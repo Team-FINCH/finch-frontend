@@ -139,21 +139,59 @@
   --text-caption--line-height: 18px;
   --text-caption--font-weight: 400;
 
+  /* 버튼 글자. 프로토타입 .btn·.btn2 가 둘 다 17px / font-weight 500 이다.
+     크기 계단(title-3 18px 과 body-1 16px 사이)에 끼우지 않고 역할 이름으로 둔
+     이유가 둘이다. title-1~3 이 큰 쪽부터 번호를 매기고 있어 18px 아래에 17px 을
+     넣으면 번호가 뒤집힌다. 그리고 프로토타입의 클래스 층에서 17px 을 쓰는 것은
+     .btn·.btn2 뿐이다 — 화면 마크업에 17px 인라인 재정의가 아홉 군데 있지만
+     그 클래스들(.navt·.sht·.ico)의 기본값은 18px·20px 이다.
+     label·caption 도 계단이 아니라 역할 이름이라 결이 맞는다.
+     Tailwind 타이포 토큰은 크기·행간·굵기를 함께 묶어 내보내므로, 굵기가 다른
+     제목과 한 이름을 쓸 수 없다는 것도 역할 이름 쪽 근거다.
+
+     행간은 프로토타입이 정하지 않았다. .btn 이 height 54px 의 flex 가운데 정렬이라
+     행간이 배치에 관여하지 않는다. 그래도 토큰은 셋이 함께 있어야 해서 body-1 과
+     같은 24px 로 뒀다 — 프로토타입에서 가장 많이 쓰인 행간이다. */
+  --text-button: 17px;
+  --text-button--line-height: 24px;
+  --text-button--font-weight: 500;
+
   /* ── 간격 ─────────────────────────────────────────────────────────── */
   /* 따로 토큰을 만들지 않고 Tailwind 기본 4px 스케일을 쓴다. 이름을 새로 만들면
      p-5 와 space-5 가 같은 값으로 둘 다 존재하게 된다.
      프로토타입 값도 대부분 4의 배수라 스케일에 실린다. 화면 좌우 여백 26px 처럼
      4로 나뉘지 않는 값은 Tailwind v4 의 소수 배수(px-6.5)로 적는다. */
 
-  /* ── 반경 (프로토타입 .chip·.btn·.card·.sheet) ────────────────────── */
-  /* Tailwind 기본 --radius-sm/md 를 우리 값으로 덮어쓴다.
-     rounded-sm·rounded-md 의 값이 Tailwind 기본과 달라진다. 의도한 것이다.
+  /* ── 반경 (프로토타입 .sk·.btn·.card·.sheet) ──────────────────────── */
+  /* Tailwind 기본 --radius-xs/sm/md 를 우리 값으로 덮어쓴다.
+     rounded-xs·rounded-sm·rounded-md 의 값이 Tailwind 기본과 달라진다. 의도한 것이다.
      프로토타입은 반경을 토큰으로 두지 않고 클래스에 직접 적는다. 여기 값은
-     그 클래스들에서 읽은 것이다. 프로토타입 안에서도 갈리는 자리가 있다 —
-     .chip 11px · .tag 8px 이라 --radius-sm 하나로 덮이지 않는다. 칩·태그를
-     실제로 만들 때 어느 쪽으로 맞출지 정한다. */
-  --radius-sm: 10px; /* 칩, 태그 (프로토타입 .chip 11px · .tag 8px) */
-  --radius-md: 14px; /* 입력, 세그먼티드, 주요 버튼, Soft Box (.btn·.soft) */
+     그 클래스들에서 읽은 것이다.
+
+     프로토타입 클래스 층의 반경을 전부 모으면 이렇다 —
+     .sk 6 · .tag 8 · .seg button 9 · .chip 11 · .ico·.seg·.row 12 ·
+     .btn·.btn2·.soft·.th·.toast 14 · .card·.ai 16 · .sheet 24 ·
+     .badge·.fab·.dot·.tabpill 999(캡슐).
+     지금 컴포넌트가 있는 자리만 토큰으로 만들었다. 쓰는 곳이 없는 토큰은 죽은
+     값이라, 만들지 않은 값은 아래 주석에 남겨 다음 사람이 알게 했다. */
+  --radius-xs: 6px; /* 스켈레톤 (.sk). 크기 이름인 이유는 아래 주석 참고 */
+  /* --radius-xs 를 --radius-skeleton 이 아니라 크기 이름으로 둔 이유 —
+     프로토타입에서 6px 이 .sk 전용이 아니다. AI 챗 버블도 왼쪽 위 꼬리 모서리에
+     6px 을 쓴다(인라인 `border-radius:6px 18px 18px 18px`, 두 군데).
+     둘은 역할이 완전히 다른데 값이 같다. 역할 이름으로 두면 챗 버블을 만들 때
+     rounded-skeleton 을 쓰게 되거나 6px 을 다시 박게 된다.
+     이미 있는 sm·md 계단에 xs 를 얹는 것이라 이름 체계도 흔들리지 않는다. */
+
+  /* 아직 쓰는 컴포넌트가 없다. Skeleton 이 --radius-xs 로 옮겨가면서 비었다.
+     칩(11px)·태그(8px)를 만들 때 이 값으로 맞출지 프로토타입 값으로 갈지 정한다.
+     10px 은 그 둘의 가운데다 — 프로토타입에서 읽은 값이 아니다. */
+  --radius-sm: 10px;
+  /* 주요 버튼, Soft Box, 토스트, 썸네일 (.btn·.btn2·.soft·.toast·.th).
+     전 주석의 "입력·세그먼티드"를 뺐다. 프로토타입에 입력 클래스가 아예 없고,
+     세그먼티드(.seg)는 12px 이다. 세그먼티드·행(.row)·아이콘 버튼(.ico)이 다
+     12px 인데 그 컴포넌트가 아직 없어 12px 토큰은 만들지 않는다.
+     만들 때 --radius-md 로 끌어오지 말고 12px 을 확인해야 한다. */
+  --radius-md: 14px;
   --radius-card: 16px; /* Standard Card (.card) */
   /* AI 박스. design.md 는 18px 이었지만 프로토타입 `.ai` 는 16px 로 카드와 같다.
      값이 같아도 이름은 남긴다 — AI 면은 색(--color-ai-surface)이 따로 있고

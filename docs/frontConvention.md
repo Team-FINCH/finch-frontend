@@ -576,15 +576,30 @@ AI로 들어가는 진입점은 탭이 아니라 전역 오버레이 레이어�
 Tailwind v4의 `@theme`에 정의해 유틸리티 클래스로 나온다.
 
 - 색: `bg-surface`, `text-text-secondary`, `border-border`, `text-stock-up`, `bg-primary`
-- 타이포: `text-display`, `text-title-2`, `text-body-1`, `text-caption` (크기·행간·굵기가 함께 붙는다)
-- 반경: `rounded-sm`, `rounded-md`, `rounded-card`, `rounded-ai`, `rounded-sheet`
+- 타이포: `text-display`, `text-title-2`, `text-body-1`, `text-caption`, `text-button` (크기·행간·굵기가 함께 붙는다)
+- 반경: `rounded-xs`, `rounded-sm`, `rounded-md`, `rounded-card`, `rounded-ai`, `rounded-sheet`
 - 그림자: `shadow-float`
 - 모션: `ease-standard`, `duration-(--motion-fast)`
 
 **Tailwind 기본 팔레트를 화면에서 직접 쓰지 않는다.** `bg-slate-900`, `text-red-500`처럼 값을 박으면 색을 바꿔야 할 때 찾아다녀야 한다.
 카카오 로그인 버튼처럼 외부 가이드가 값을 지정한 경우만 예외로 두고, 그 이유를 주석에 남긴다.
 
-`rounded-sm`과 `rounded-md`는 Tailwind 기본값이 아니라 우리 값으로 덮어썼다. 의도한 것이다.
+`rounded-xs`, `rounded-sm`, `rounded-md`는 Tailwind 기본값이 아니라 우리 값으로 덮어썼다. 의도한 것이다.
+
+타이포 계단은 `display` → `title-1~3` → `body-1~2`의 크기 순서고, `label`·`caption`·`button`은 계단이 아니라 역할 이름이다.
+`text-button`이 역할 이름인 이유는 토큰 파일 주석에 있다 — 요약하면 크기가 `title-3`과 `body-1` 사이에 들어가 번호를 매길 자리가 없고, Tailwind가 크기·행간·굵기를 한 이름으로 묶어 내보내기 때문에 굵기가 다른 제목과 이름을 공유할 수 없다.
+주요 CTA 글자에는 `text-label`이 아니라 `text-button`을 쓴다.
+
+### 반경이 프로토타입 하나로 덮이지 않는다
+
+프로토타입은 반경을 클래스마다 직접 적어서 값이 여러 갈래로 갈린다. 클래스 층의 반경 목록은 토큰 파일 주석에 모아 두었다.
+**컴포넌트가 없는 값은 토큰으로 만들지 않는다.** 쓰는 곳이 없는 토큰은 죽은 값이고, 나중에 컴포넌트를 만들 때 값이 맞는지 아무도 확인하지 않은 상태로 남는다.
+
+- `rounded-xs`는 `Skeleton`이 쓴다. 프로토타입 `.sk` 값이고, AI 챗 버블의 왼쪽 위 꼬리 모서리도 같은 값을 쓴다. 그래서 역할 이름이 아니라 크기 이름이다
+- `rounded-sm`은 지금 쓰는 곳이 없다. 칩·태그를 만들 때 이 값으로 맞출지 프로토타입 값(칩 11px · 태그 8px)으로 갈지 그때 정한다. 지금 값은 그 둘의 가운데고 프로토타입에서 읽은 값이 아니다
+- 세그먼티드 컨트롤·리스트 행·아이콘 버튼은 12px이고 `rounded-md`(14px)와 다르다. 컴포넌트가 없어 토큰을 만들지 않았다. 만들 때 `rounded-md`로 끌어오지 말고 12px을 확인한다
+
+칩·태그·세그먼티드를 만드는 사람이 알아야 할 내용이라 토큰 파일 주석에도 같은 사실을 남겨 두었다.
 
 간격은 Tailwind 기본 스케일을 쓰되, 4로 나뉘지 않는 값은 소수 배수로 적는다 — 화면 좌우 여백이 `px-6.5`다. Tailwind v4가 간격 스케일의 소수 배수를 허용한다.
 

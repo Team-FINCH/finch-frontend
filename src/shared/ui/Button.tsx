@@ -21,11 +21,14 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
  * 높이 54px 는 design.md §9.3, 최소 터치 영역 44px 와 §15 의 "주요 CTA 52px 이상"을
  * 함께 만족한다. 반경은 --radius-md(14px).
  *
+ * 글자는 --text-button(text-button). 프로토타입 `.btn`·`.btn2` 값이고 둘이 같다.
+ * 전에 쓰던 text-label(14px)은 주요 CTA 글자를 프로토타입보다 작게 내보냈다.
+ *
  * 비활성은 opacity 가 아니라 전용 색을 쓴다. opacity 는 자식 아이콘·스피너까지
  * 함께 흐려져 로딩 표시가 사라진다.
  */
 const BASE_CLASS =
-  'flex min-h-[54px] w-full items-center justify-center gap-2 rounded-md px-4 text-label ' +
+  'flex min-h-[54px] w-full items-center justify-center gap-2 rounded-md px-4 text-button ' +
   'transition-colors duration-(--motion-fast) ease-standard ' +
   'disabled:bg-disabled-surface disabled:text-disabled-text disabled:border-transparent';
 
