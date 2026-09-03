@@ -5,11 +5,13 @@ type ButtonVariant = 'primary' | 'secondary' | 'kakao';
 
 /**
  * 색·높이·반경은 모두 토큰이다 (styles/index.css).
- * primary 면색 #1F2328 은 design.md §9.3 이 정한 값이고 --color-text-primary 와
- * 같은 그래파이트다. 값이 하나라서 토큰도 하나만 둔다.
+ * primary 면색은 프로토타입 `.btn` 의 그래파이트다. --color-primary 와
+ * --color-text-primary 가 지금 같은 값이지만, 여기서는 "주요 버튼의 면색" 이라는
+ * 역할에 맞는 --color-primary 를 쓴다. 액센트가 갈라지면 이 버튼이 따라가야 한다.
+ * secondary 는 프로토타입 `.btn2`(흰 면 + --border2 테두리)와 같다.
  */
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: 'bg-text-primary text-surface',
+  primary: 'bg-primary text-surface',
   secondary: 'border border-border-strong bg-surface text-text-primary',
   // 카카오 디자인 가이드가 지정한 색이다. 등락 색과 달리 우리가 정하는 값이 아니다.
   kakao: 'bg-[#FEE500] text-[#191600]',
