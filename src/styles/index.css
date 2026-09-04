@@ -1,15 +1,35 @@
 @import 'tailwindcss';
 
-/* 본문 한글 폰트. design.md §4 가 Pretendard 를 지정한다.
+/* 본문 한글 폰트. 프로토타입과 design.md §4 가 모두 Pretendard 를 쓴다.
    dynamic-subset 은 실제로 쓰인 글자만 내려받는 판이라 전체 웨이트를 받지 않는다. */
 @import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 
 /*
  * 디자인 토큰. 단일 출처는 이 파일이다.
- * 값의 근거는 디자인 파트가 준 Finch Design Guide(design.md) 이고,
- * 우리가 정한 것은 아래에 따로 표시했다. 값을 문서에 복사하지 않는다.
  *
- * 라이트 모드 하나만 쓴다. design.md 에 다크 팔레트가 없어 만들지 않는다.
+ * 값의 1차 근거는 Finch Design Guide `frontend/docs/design.md` (v2, 2026-09-03)다.
+ * 팀 저장소에 들어와 있어서 이제 우리가 참조할 수 있다.
+ * 2차 근거는 화면 프로토타입 `prototype/screen/finch-prototype.html` 의 `:root` 와
+ * 클래스 층이다. design.md 가 값을 적지 않은 자리 — 반경, 그림자, 검정 면 위
+ * 글자색 — 는 프로토타입에서 실측해 채운다.
+ * 두 근거가 어긋나는 자리는 주석에 둘 다 적고 디자인 확인이 필요하다고 표시했다.
+ * 우리가 정한 것은 아래에 따로 표시했다.
+ * 값을 문서에 복사하지 않는다.
+ *
+ * `prototype/screen/finch-screens.dc.html` 은 낡은 판이다. 읽지 마라.
+ * 그 파일이 아직 레포에 남아 있어서 다음 사람이 또 읽는다.
+ * 이 파일의 색값은 2026-09-04 이전에 그 낡은 판을 읽은 것이었고 바로잡았다.
+ * 두 판이 갈린 곳 — 색 넷은 design.md v2 가 신 판과 일치한다:
+ *   --t2  #5B616B → #565C66 · --t3   #8B95A1 → #78828E
+ *   --up  #E25555 → #C93B3B · --down #3B82F6 → #2258C9
+ * 색 말고도 갈렸다: .card 반경 16→12 · .soft 14→10 · .row 높이 64→72 ·
+ * 그림자가 요소별로 넷으로 나뉘었다. 그쪽은 이번에 손대지 않았다.
+ *
+ * 프로토타입은 `--t1`·`--ai` 처럼 짧은 이름을 쓰지만 우리는 `--color-*` 접두를
+ * 유지한다. Tailwind 유틸리티 이름이 여기서 나오기 때문이다. 값만 가져온다.
+ *
+ * 라이트 모드 하나만 쓴다. 프로토타입에 `.dark` 팔레트가 있지만 팀에서 다크를
+ * 없애기로 정했고 프로토타입에서도 제거 예정이다.
  * prefers-color-scheme·data-theme·dark: 분기를 새로 넣지 않는다.
  *
  * 화면에서 bg-slate-900 처럼 Tailwind 팔레트를 직접 쓰지 않고 이 토큰만 참조한다.
@@ -20,44 +40,109 @@
  * 단일 출처 구실을 한다. 비용은 gzip 0.23kB 다.
  */
 @theme static {
-  /* ── 색: 기본 (design.md §3 Base Colors / §16) ────────────────────── */
+  /* ── 색: 기본 (프로토타입 --bg·--surface·--t1~t3·--border·--border2) ── */
   --color-bg: #f7f8fa;
   --color-surface: #ffffff;
   --color-text-primary: #1f2328;
-  --color-text-secondary: #5b616b;
-  --color-text-muted: #8b95a1;
+  --color-text-secondary: #565c66;
+  /* design.md v2 §4 (--t3) 값이다. 흰 배경 대비 3.90 으로 AA(작은 글씨 4.5:1)에
+     못 미친다. 낡은 프로토타입의 #8B95A1 (3.04)보다는 나아졌다.
+     디자인이 정한 값이라 우리가 올리지 않는다. 대신 쓰는 자리를 좁힌다 —
+     design.md 가 적은 용도인 캡션·기준 시각·출처에만 쓰고,
+     읽어야 하는 본문이나 라벨에는 --color-text-secondary (6.73)를 쓴다. */
+  --color-text-muted: #78828e;
   --color-border: #e9ecef;
-  /* 강조 테두리. §16 에는 없고 §7 Border 와 §9.5 Secondary Button 이 쓴다. */
+  /* 강조 테두리(프로토타입 --border2). Secondary Button 과 시트 핸들이 쓴다. */
   --color-border-strong: #d9dee5;
 
-  /* ── 색: 브랜드·AI (design.md §3 / §16) ───────────────────────────── */
-  --color-primary: #3b82f6;
-  --color-primary-soft: #eef5ff;
-  --color-ai-surface: #f7f2ea;
-  --color-ai-border: #ede3d7;
+  /* ── 색: 브랜드·AI (프로토타입 --brand·--brand-soft·--ai·--ai-b) ───── */
+  /* 브랜드색은 코발트가 아니라 그래파이트다. 프로토타입에는 코발트에 해당하는
+     토큰이 아예 없다 — 파랑은 --color-stock-down(하락) 전용이다.
+     값이 --color-text-primary 와 같지만 토큰은 둘로 둔다. 역할이 다르다.
+     text-primary 는 본문 글자색이고 primary 는 링크·선택·주요 버튼의 면색이다
+     (프로토타입도 `a{color:var(--brand)}` 와 `.btn.cb` 에서 --brand 를 따로 쓴다).
+     같은 값을 두 번 적지 않으려고 별칭으로 뒀다. 액센트가 갈라지는 날
+     이 줄만 고치면 된다. 흰 배경 대비 15.80 — 코발트 3.68 보다 크게 낫다. */
+  --color-primary: var(--color-text-primary);
+  --color-primary-soft: #f0f1f3;
 
-  /* ── 색: 등락 (design.md §3 Stock Semantic Colors / §16) ──────────── */
-  /* 국내 관례를 따라 상승이 적색, 하락이 청색이다. 미국식과 반대다. */
+  /* AI 영역은 검정 면이다. design.md v2 §1·§4·§15 가 "Dark Charcoal Surface +
+     White" 로 못박았다 — 화면 대부분은 White/Graphite 이고, AI 가 관여한 영역만
+     검정 면으로 갈라 보인다.
 
-  /* 흰 배경 대비 3.71 로 WCAG AA(4.5:1) 미달이다. 등락률은 caption 13px 로
-     나오므로 작은 글씨 기준에 걸린다. 그래도 바꾸지 않는다 — 브랜드 색이라
-     우리가 정할 값이 아니다. 디자인 파트에 확인을 요청해 둔 상태다. */
-  --color-stock-up: #e25555;
+     전 판이 여기 넣은 #F4F6F8·#E1E6EB 은 틀렸다. 프로토타입 `:root` 의
+     --ai·--ai-b 를 읽은 값인데, --ai 는 파일 전체에서 참조가 0건인 죽은 값이고
+     --ai-b 는 결제 안내 카드 하나의 테두리로만 쓰인다 (그 카드 면색 #F4F6F8 은
+     인라인 하드코딩이다). 둘 다 AI 면이 아니다.
+     실제 AI 면은 `.ai{background:#24272C;border:1px solid #24272C}` 하드코딩이고,
+     Floating AI 버튼 `.fab` 도 같은 #24272C 를 쓴다.
 
-  /* design.md 는 #3B82F6 으로 적었지만 그 값은 --color-primary 와 완전히 같다.
-     그러면 링크·선택 상태와 하락 숫자가 한 화면에서 같은 색이 되어
-     design.md §9.4 자신이 요구하는 "매수/매도 의미와 혼동되지 않게" 를
-     지킬 수 없다. 게다가 흰 배경 대비 3.68 로 AA 미달이다.
-     같은 계열에서 채도·명도를 낮춘 #2E5FCC 로 바꿔 쓴다. 대비 5.79 로 AA 통과.
-     디자인 파트에 확인 요청 중이며, 회신이 오면 이 값을 다시 본다. */
-  --color-stock-down: #2e5fcc;
+     테두리는 면과 같은 값이다. 검정 면이 흰 카드와 이미 갈라져서 테두리로
+     경계를 더 그을 것이 없다. 값이 같아도 토큰은 남긴다 — 테두리만 밝히는
+     변형이 나오면 이 줄만 고친다.
 
+     design.md §4 는 AI Surface 를 Primary(--t1 #1F2328)에 묶어 적었지만
+     프로토타입은 .ai·.fab 두 자리 모두 #24272C 다. 실측값을 따랐다.
+     둘의 차이는 눈에 띄지 않는다. 앱 배경 #F7F8FA 와의 대비는 14.10 이다. */
+  --color-ai-surface: #24272c;
+  --color-ai-border: #24272c;
+
+  /* 검정 면 위 글자색. 흰 배경용 --color-text-* 를 그대로 올리면 보이지 않는다.
+     프로토타입 실측 — 본문 `.aimain`·`.ai .b1` 이 var(--bg),
+     보조 `.ai .b2,.ai .cp,.ai .pre` 가 rgba(255,255,255,.72),
+     라벨 `.ailb` 가 rgba(255,255,255,.62) 다.
+     #24272C 위 대비는 본문 14.10 · 보조 8.49 · 라벨 6.67 로 셋 다 AA 를 넘는다.
+     알파를 그대로 두는 이유 — 프로토타입이 적은 것이 알파고, 면색이 갈라져도
+     따라간다. 불투명하게 굳히면 각각 #C2C3C4 · #ACADAF 다.
+     면 안의 1px 구분선 `.ai .dv` 는 rgba(255,255,255,.16) (대비 1.68)인데
+     쓰는 컴포넌트가 없어 토큰으로 만들지 않았다. 만들 때 이 값을 확인한다. */
+  --color-ai-text-primary: #f7f8fa;
+  --color-ai-text-secondary: rgba(255, 255, 255, 0.72);
+  --color-ai-text-muted: rgba(255, 255, 255, 0.62);
+
+  /* AI 액센트. 검정 면 위에서만, 한 카드에 최대 2~3곳만 쓴다 (design.md §4·§15).
+     디자인 확인이 필요하다 — 두 근거의 값이 다르다.
+       design.md v2 §4  --ai-accent  #E3B341   #24272C 위 대비 7.70
+       프로토타입 :root  --ai-acc     #E9C77F   #24272C 위 대비 9.23 (실사용 5곳)
+     둘 다 AA 를 넘긴다. 1차 근거인 design.md 값을 넣었다.
+     프로토타입 쪽이 맞다는 회신이 오면 이 줄만 #E9C77F 로 고친다.
+     흰 배경에서는 둘 다 대비가 2 미만이라 검정 면 밖에서 쓰지 않는다.
+     쓰는 컴포넌트가 아직 없다 — AI 슬롯을 만들 때 값을 다시 확인한다. */
+  --color-ai-accent: #e3b341;
+
+  /* 구분선(프로토타입 --rule). --color-border 보다 반톤 진하다.
+     프로토타입은 카드 테두리에 --border 를, 카드 안에서 내용 덩어리를 가르는
+     1px 수평선에 --rule 을 쓴다. 역할이 달라 토큰을 따로 둔다.
+     이름은 쓰임을 따라 divider 로 정했다 (border-divider·bg-divider 로 나온다). */
+  --color-divider: #dfe4ea;
+
+  /* ── 색: 등락 (design.md v2 §4 --up·--down·--neu, 신 프로토타입과 같음) ── */
+  /* 국내 관례를 따라 상승이 적색, 하락이 청색이다. 미국식과 반대다.
+     디자인이 정한 값이라 우리가 바꾸지 않는다.
+
+     흰 배경 대비가 상승 5.03 · 하락 6.35 로 둘 다 WCAG AA(작은 글씨 4.5:1)를
+     넘는다. 앱 배경 #F7F8FA 위에서도 4.74 · 5.98 이다.
+     등락률이 caption 13px 로 나와 작은 글씨 기준에 걸리는데, 이제 통과한다.
+
+     낡은 프로토타입의 #E25555(3.71) · #3B82F6(3.68)은 둘 다 AA 미달이었다.
+     design.md v2 와 신 프로토타입이 값을 함께 고쳐 해결했다.
+     우리가 대비 때문에 임의로 낮춰 쓰던 #2E5FCC 이력은 이제 필요 없다 —
+     디자인 쪽이 값으로 풀었으므로 우리가 색을 조정할 이유가 사라졌다.
+
+     대비가 해결돼도 색만으로 등락을 말하지 않는다. 색각 이상 사용자에게는
+     적청 구분 자체가 어렵다. 컨벤션 §11 이 부호(+/-) 병기를 요구한다.
+     삼각형(▲/▼)은 쓰지 않는다 — 디자인 파트 회신(GitLab 이슈 #29). */
+  --color-stock-up: #c93b3b;
+  --color-stock-down: #2258c9;
   --color-stock-neutral: #6b7280;
 
   /* ── 색: 우리가 정한 것 ───────────────────────────────────────────── */
-  /* design.md 가 §14 States 에서 에러 화면을 다루지만 색은 정하지 않았다.
-     상승 적(#E25555, HSV 채도 62%)과 구분되게 채도를 87% 로 올렸다.
-     등락 적색을 에러에 쓰면 "떨어졌다" 로 오독된다.
+  /* 프로토타입에도 design.md 에도 에러 전용 색 토큰이 없다. 그래서 유지한다.
+     (프로토타입 `.tag.u` 의 #C13B3B 는 상승 태그 글자색이지 에러색이 아니다.)
+     등락 적색을 에러에 쓰면 "떨어졌다" 로 오독돼서 채도를 87% 로 올려 갈랐다.
+     이 값은 상승색이 #E25555(채도 62%)일 때 고른 것이다. 상승색이 #C93B3B
+     (채도 71%)로 바뀌면서 둘이 가까워졌다 — 나란히 놓이는 화면이 나오면
+     danger 를 다시 본다. 지금은 에러와 등락이 같은 화면에 없다.
      흰 배경 5.54 / --color-danger-surface 위 5.10 으로 둘 다 AA 통과한다.
      (첫 후보 #D92D20 은 danger-surface 위에서 4.44 로 미달이라 버렸다.)
      색만으로 알리지 않는다 — 에러에는 원형 ! 아이콘과 문구를 함께 쓴다. */
@@ -65,19 +150,22 @@
   --color-danger-surface: #fef3f2;
 
   /* 스켈레톤. --color-border(#E9ECEF)보다 반톤 진하다.
-     흰 카드 위에서 자리표시자가 보여야 한다. */
+     흰 카드 위에서 자리표시자가 보여야 한다.
+     프로토타입에 대응 토큰이 없어 유지한다. 프로토타입 `.sk` 는 #EDEFF2 를
+     클래스에 직접 박아 쓰는데(흰 배경 대비 1.15) 우리 값이 1.24 로 더 잘 보인다. */
   --color-skeleton: #e4e7eb;
 
   /* 비활성. opacity 가 아니라 전용 색을 쓴다 —
      opacity 는 겹친 자식 요소까지 함께 흐려져 아이콘이 사라진다.
-     design.md §9.3 은 opacity 0.35~0.45 를 적었지만 그 이유로 따르지 않는다.
+     design.md §9.3 은 opacity 0.35~0.45 를, 프로토타입 `.btn[disabled]` 는
+     opacity .38 을 쓰지만 그 이유로 따르지 않는다. 둘 다 토큰이 아니다.
      면색은 #F1F3F5 를 후보로 봤다가 버렸다. 앱 배경 #F7F8FA 대비 1.05 라
      배경 위에서 버튼 모양이 사라진다. #E9ECEF 는 흰 배경 1.19 / 앱 배경 1.12 다.
      글자색은 muted 를 재사용한다. 비활성 요소는 WCAG 1.4.3 대비 요구 대상이 아니다. */
   --color-disabled-surface: #e9ecef;
-  --color-disabled-text: #8b95a1;
+  --color-disabled-text: #78828e; /* --color-text-muted 와 같은 값. 함께 움직인다 */
 
-  /* ── 타이포 (design.md §4 Type Scale) ─────────────────────────────── */
+  /* ── 타이포 (프로토타입 .d36·.t1~.t3·.b1·.b2·.lb·.cp) ─────────────── */
   --font-sans: Pretendard, system-ui, -apple-system, sans-serif;
 
   --text-display: 36px;
@@ -110,25 +198,73 @@
   --text-caption--line-height: 18px;
   --text-caption--font-weight: 400;
 
-  /* ── 간격 (design.md §5) ──────────────────────────────────────────── */
-  /* design.md 의 4·8·12·16·20·24·32·40·48px 는 Tailwind 기본 4px 스케일과
-     1:1 로 맞는다 (p-1 … p-12). 따로 토큰을 만들지 않고 기본 스케일을 쓴다.
-     이름을 새로 만들면 p-5 와 space-5 가 같은 값으로 둘 다 존재하게 된다. */
+  /* 버튼 글자. 프로토타입 .btn·.btn2 가 둘 다 17px / font-weight 500 이다.
+     크기 계단(title-3 18px 과 body-1 16px 사이)에 끼우지 않고 역할 이름으로 둔
+     이유가 둘이다. title-1~3 이 큰 쪽부터 번호를 매기고 있어 18px 아래에 17px 을
+     넣으면 번호가 뒤집힌다. 그리고 프로토타입의 클래스 층에서 17px 을 쓰는 것은
+     .btn·.btn2 뿐이다 — 화면 마크업에 17px 인라인 재정의가 아홉 군데 있지만
+     그 클래스들(.navt·.sht·.ico)의 기본값은 18px·20px 이다.
+     label·caption 도 계단이 아니라 역할 이름이라 결이 맞는다.
+     Tailwind 타이포 토큰은 크기·행간·굵기를 함께 묶어 내보내므로, 굵기가 다른
+     제목과 한 이름을 쓸 수 없다는 것도 역할 이름 쪽 근거다.
 
-  /* ── 반경 (design.md §7 Radius) ───────────────────────────────────── */
-  /* Tailwind 기본 --radius-sm/md 를 design.md 이름으로 덮어쓴다.
-     rounded-sm·rounded-md 의 값이 Tailwind 기본과 달라진다. 의도한 것이다. */
-  --radius-sm: 10px; /* 칩, 태그 */
-  --radius-md: 14px; /* 입력, 세그먼티드, 주요 버튼, Soft Box */
-  --radius-card: 16px; /* Standard Card */
-  --radius-ai: 18px; /* AI Insight Box */
-  --radius-sheet: 24px; /* Bottom Sheet 상단 */
+     행간은 프로토타입이 정하지 않았다. .btn 이 height 54px 의 flex 가운데 정렬이라
+     행간이 배치에 관여하지 않는다. 그래도 토큰은 셋이 함께 있어야 해서 body-1 과
+     같은 24px 로 뒀다 — 프로토타입에서 가장 많이 쓰인 행간이다. */
+  --text-button: 17px;
+  --text-button--line-height: 24px;
+  --text-button--font-weight: 500;
 
-  /* ── 그림자 (design.md §7 Shadow) ─────────────────────────────────── */
-  /* 기본은 그림자 없음. floating button·bottom sheet·sticky layer 에만 쓴다. */
-  --shadow-float: 0 6px 20px rgba(31, 35, 40, 0.08);
+  /* ── 간격 ─────────────────────────────────────────────────────────── */
+  /* 따로 토큰을 만들지 않고 Tailwind 기본 4px 스케일을 쓴다. 이름을 새로 만들면
+     p-5 와 space-5 가 같은 값으로 둘 다 존재하게 된다.
+     프로토타입 값도 대부분 4의 배수라 스케일에 실린다. 화면 좌우 여백 26px 처럼
+     4로 나뉘지 않는 값은 Tailwind v4 의 소수 배수(px-6.5)로 적는다. */
 
-  /* ── 모션 (design.md §10 / §16) ───────────────────────────────────── */
+  /* ── 반경 (프로토타입 .sk·.btn·.card·.sheet) ──────────────────────── */
+  /* Tailwind 기본 --radius-xs/sm/md 를 우리 값으로 덮어쓴다.
+     rounded-xs·rounded-sm·rounded-md 의 값이 Tailwind 기본과 달라진다. 의도한 것이다.
+     프로토타입은 반경을 토큰으로 두지 않고 클래스에 직접 적는다. 여기 값은
+     그 클래스들에서 읽은 것이다.
+
+     프로토타입 클래스 층의 반경을 전부 모으면 이렇다 —
+     .sk 6 · .tag 8 · .seg button 9 · .chip 11 · .ico·.seg·.row 12 ·
+     .btn·.btn2·.soft·.th·.toast 14 · .card·.ai 16 · .sheet 24 ·
+     .badge·.fab·.dot·.tabpill 999(캡슐).
+     지금 컴포넌트가 있는 자리만 토큰으로 만들었다. 쓰는 곳이 없는 토큰은 죽은
+     값이라, 만들지 않은 값은 아래 주석에 남겨 다음 사람이 알게 했다. */
+  --radius-xs: 6px; /* 스켈레톤 (.sk). 크기 이름인 이유는 아래 주석 참고 */
+  /* --radius-xs 를 --radius-skeleton 이 아니라 크기 이름으로 둔 이유 —
+     프로토타입에서 6px 이 .sk 전용이 아니다. AI 챗 버블도 왼쪽 위 꼬리 모서리에
+     6px 을 쓴다(인라인 `border-radius:6px 18px 18px 18px`, 두 군데).
+     둘은 역할이 완전히 다른데 값이 같다. 역할 이름으로 두면 챗 버블을 만들 때
+     rounded-skeleton 을 쓰게 되거나 6px 을 다시 박게 된다.
+     이미 있는 sm·md 계단에 xs 를 얹는 것이라 이름 체계도 흔들리지 않는다. */
+
+  /* 아직 쓰는 컴포넌트가 없다. Skeleton 이 --radius-xs 로 옮겨가면서 비었다.
+     칩(11px)·태그(8px)를 만들 때 이 값으로 맞출지 프로토타입 값으로 갈지 정한다.
+     10px 은 그 둘의 가운데다 — 프로토타입에서 읽은 값이 아니다. */
+  --radius-sm: 10px;
+  /* 주요 버튼, Soft Box, 토스트, 썸네일 (.btn·.btn2·.soft·.toast·.th).
+     전 주석의 "입력·세그먼티드"를 뺐다. 프로토타입에 입력 클래스가 아예 없고,
+     세그먼티드(.seg)는 12px 이다. 세그먼티드·행(.row)·아이콘 버튼(.ico)이 다
+     12px 인데 그 컴포넌트가 아직 없어 12px 토큰은 만들지 않는다.
+     만들 때 --radius-md 로 끌어오지 말고 12px 을 확인해야 한다. */
+  --radius-md: 14px;
+  --radius-card: 16px; /* Standard Card (.card) */
+  /* AI 박스. design.md 는 18px 이었지만 프로토타입 `.ai` 는 16px 로 카드와 같다.
+     값이 같아도 이름은 남긴다 — AI 면은 색(--color-ai-surface)이 따로 있고
+     카드와 갈라질 여지가 있는 자리다. */
+  --radius-ai: 16px;
+  --radius-sheet: 24px; /* Bottom Sheet 상단 (.sheet) */
+
+  /* ── 그림자 (프로토타입 .fab·.toast) ──────────────────────────────── */
+  /* 기본은 그림자 없음. floating button·bottom sheet·sticky layer 에만 쓴다.
+     프로토타입 .toast 가 0 6px 20px rgba(31,35,40,.2), .fab 이 같은 크기에 .22 다.
+     design.md 근거로 넣었던 0.08 은 떠 있는 요소에 쓰기에 너무 옅었다. */
+  --shadow-float: 0 6px 20px rgba(31, 35, 40, 0.2);
+
+  /* ── 모션 (프로토타입 --ease) ─────────────────────────────────────── */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
