@@ -3,7 +3,7 @@
 이 문서는 프론트엔드가 만들 화면의 목록과 구조를 정한다.
 역할 분담과 일정 산정의 기준이 되므로 **분담 가능한 단위**로 쪼개 적었다.
 
-- 작성일: 2026-08-19 / 최종 개정: 2026-09-03 (PRD v1.0·프로토타입 기준 화면 구성 전면 개정)
+- 작성일: 2026-08-19 / 최종 개정: 2026-09-04 (프로토타입 `f9e4bb4` 재대조 — 포트폴리오 4중 탭·위키 진입 경로·바텀시트 목록 정정) / 2026-09-03 (PRD v1.0·프로토타입 기준 화면 구성 전면 개정)
 - UI 레퍼런스: 토스증권 / 플랫폼: 모바일 웹(반응형, 모바일 우선)
 - 관련 문서: [`../../docs/convention/frontConvention.md`](../../docs/convention/frontConvention.md) ·
   [`contracts.md`](./contracts.md) · [`../../docs/api/apiSpec.md`](../../docs/api/apiSpec.md) ·
@@ -53,7 +53,7 @@ AI 중계 경로를 그렇게 남겨 뒀다가 apiSpec §10.1에 답이 와서 �
 | 화면                   | 라우트                   | 목적                                                      | 필요한 API                                                                                                    | AI    | 티켓                                                    | 의존   |
 | ---------------------- | ------------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------- | ------ |
 | 홈                     | `/`                      | 총자산·손익 요약, 보유 종목·관심 종목 요약, 오늘의 브리핑 | `GET /api/v1/account` · `GET /api/v1/portfolio` · `GET /api/v1/watchlist?sort=` · `GET /api/v1/stocks/prices` | ● 2종 | [2-8](FINCH-49) | 로그인 |
-| 포트폴리오             | `/portfolio`             | 보유 종목 상세, 평가손익, 진단                            | `GET /api/v1/portfolio?sort=` · `GET /api/v1/stocks/prices`                                                   | ● 2종 | [2-8](FINCH-49) | 로그인 |
+| 포트폴리오             | `/portfolio`             | 보유 종목 상세·평가손익, AI 진단, 수익률 원인 분석, 투자 기준(위키) 4중 탭 | `GET /api/v1/portfolio?sort=` · `GET /api/v1/stocks/prices`                                                   | ● 2종 | [2-8](FINCH-49) | 로그인 |
 | 매매 내역              | `/transactions`          | 원장 통합 내역(매수·매도·충전) 조회                       | `GET /api/v1/transactions?type=&cursor=&size=`                                                                |       | [2-8](FINCH-49) | 로그인 |
 | 브리핑 전체 **(잠정)** | `/briefing` **(미확정)** | 오늘의 브리핑 항목 전체 열람. 홈 "전체 보기"의 도착지     | `GET /api/v1/ai/briefing`                                                                                     | ● 1종 | 미발행                                                  | 로그인 |
 | 충전                   | `/deposit`               | 모의 결제로 예수금 충전                                   | `GET /api/v1/deposits/limit` · `POST /api/v1/deposits` (`Idempotency-Key` 필수)                               |       | [1-5](FINCH-35) | 로그인 |
@@ -65,6 +65,7 @@ AI 중계 경로를 그렇게 남겨 뒀다가 apiSpec §10.1에 답이 와서 �
 - **회차 조회 화면(`/rounds`)과 마이페이지의 계좌 초기화 진입점을 뺐다.** 근거는 GitLab 이슈 [#27](issue #27) — 실제 투자 서비스에는 계좌를 초기화하고 다시 시작하는 기능이 없다는 것이 이유다. **`contracts.md` 의 C26·C47·C49 는 2026-09-03 에 apiSpec v0.7(MR !78)로 갱신되고 C48(계좌 리셋)은 폐기됐다.** 누적 한도 기준(이슈 #27의 "함께 정해야 하는 것" 1번)도 계정 전체 누적으로 정해졌다. 이 개정에서는 화면만 먼저 뺐고 계약 반영은 뒤따랐다.
 - **관심 종목은 독립 화면(`/watchlist`)을 갖지 않는다.** 홈의 "관심 종목" 섹션으로만 존재한다. `GET`·`POST`·`DELETE /watchlist` API는 그대로 살아 있다 — 화면만 없앤다. §1 "탐색·거래" 절 끝의 설명을 본다.
 - **브리핑 전체 화면은 잠정이다.** 프로토타입에 `isBriefing` 화면과 홈의 "전체보기" 버튼(`goBriefing`)이 있지만, PRD v1.0의 화면 수 집계(§06)에는 독립 항목으로 나타나지 않는다. 라우트 `/briefing`은 프로토타입의 내부 화면 id를 따라 프론트가 제안한 값이고 팀 확인을 받지 않았다.
+- **포트폴리오는 탭 2개가 아니라 4개다.** 프로토타입(`f9e4bb4`)을 직접 대조해 이전 판의 오류를 바로잡았다. `pftab` 상태값은 `holdings`(보유) · `diagnosis`(AI 진단) · `cause`(수익률 분석) · `wiki`(투자 기준) 넷이고, 탭 버튼 라벨도 프로토타입 원문 그대로 "보유" · "AI 진단" · "수익률 분석" · "투자 기준"이다. 넷째 탭의 내용은 §1 "AI가 이해한 나 — 위키 화면" 절에서 다룬다.
 
 ### 탐색·거래
 
@@ -222,7 +223,7 @@ AI 서버에 `/wiki/**` 4종이 구현돼 있고(AI 명세 §9) 그중 셋이 �
 | `/stocks/:stockCode`       | `tab`      | `chart` \| `info` \| `ai`             |
 | `/stocks/:stockCode`       | `period`   | `1M` \| `3M` \| `1Y` (전부 일봉)      |
 | `/stocks/:stockCode/order` | `side`     | `buy` \| `sell`                       |
-| `/portfolio`               | `tab`      | `holdings` \| `diagnosis`             |
+| `/portfolio`               | `tab`      | `holdings` \| `diagnosis` \| `cause` \| `wiki` |
 | `/portfolio`               | `sort`     | `EVALUATION` \| `PROFIT_RATE`         |
 | `/transactions`            | `type`     | `ALL` \| `BUY` \| `SELL` \| `DEPOSIT` |
 | `/search`                  | `q`        | 검색어                                |
