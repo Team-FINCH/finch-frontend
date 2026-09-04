@@ -114,6 +114,14 @@
   --color-ai-text-secondary: rgba(255, 255, 255, 0.72);
   --color-ai-text-muted: rgba(255, 255, 255, 0.62);
 
+  /* 검정 면 안에서 내용 덩어리를 가르는 1px 선.
+     프로토타입 `.ai .dv{background:rgba(255,255,255,.16)}` 실측값이다.
+     흰 면의 --color-divider 와 역할이 같고 면이 달라 값이 갈린다.
+     #24272C 위 대비 1.68 — 글자가 아니라 선이라 대비 기준 대상이 아니다.
+     AiCard 셸 자체는 쓰지 않는다. design.md §8.1 이 AISummary 에 "Divider X" 라고
+     적었다. 검정 면을 쓰는 본문 슬롯(분석·진단·점검)이 쓰라고 만든 값이다. */
+  --color-ai-divider: rgba(255, 255, 255, 0.16);
+
   /* AI 액센트. 검정 면 위에서만, 한 카드에 최대 2~3곳만 쓴다 (design.md §4·§15).
      디자인 확인이 필요하다 — 두 근거의 값이 다르다.
        design.md v2 §4  --ai-accent  #E3B341   #24272C 위 대비 7.70
