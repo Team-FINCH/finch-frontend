@@ -19,10 +19,12 @@ export const STOCK_CODE_PARAM = 'stockCode';
  * 링크·`navigate`·`redirect` 값은 전부 여기서 만든다.
  */
 /**
- * **`/rounds`(회차 조회)와 `/watchlist`(관심 종목 독립 화면)는 여기 없다.**
+ * **`/rounds`(회차 조회)·`/watchlist`(관심 종목 독립 화면)·`/my/wiki`(위키 독립 화면)는 여기 없다.**
  * 회차 조회·계좌 초기화는 GitLab 이슈 #27 로 기능 자체가 빠졌고(ia.md §1 "기타"),
  * 관심 종목은 독립 화면을 갖지 않고 홈 안의 섹션으로만 존재한다(ia.md §1 "홈·자산").
- * **API 계약(`GET`·`POST`·`DELETE /watchlist`)은 그대로 살아 있다** — 화면만 없다.
+ * 위키는 2026-09-04 에 포트폴리오 4번째 탭(`portfolio` + `?tab=wiki`)으로 합쳤다
+ * (ia.md §1 "AI가 이해한 나 — 위키 화면"의 "라우트를 하나로 합친 이유").
+ * **API 계약(`GET`·`POST`·`DELETE /watchlist`, 위키 3종)은 그대로 살아 있다** — 화면만 없다.
  * 되살릴 일이 생기면 ia.md §2 를 먼저 고친다.
  */
 export const ROUTES = {
@@ -37,7 +39,7 @@ export const ROUTES = {
   transactions: '/transactions',
   /**
    * 브리핑 전체 화면. **경로 미확정** (ia.md §1·§7).
-   * 프로토타입(`finch-screens.dc.html`)의 내부 화면 id `briefing` 을 따라 프론트가
+   * 프로토타입(`finch-prototype.html`)의 내부 화면 id `briefing` 을 따라 프론트가
    * 제안한 값이고 팀 확인을 받지 않았다. PRD v1.0 §06 의 화면 집계에는 독립 항목으로
    * 없다. 답이 오면 여기 한 줄만 고친다.
    */
@@ -47,14 +49,13 @@ export const ROUTES = {
   /**
    * 알림함 — Finch 가 물어다 놓는 것 열람. **경로 미확정** (ia.md §1·§7).
    * 경로 `/inbox` 와 키 `inbox` 는 프론트가 제안한 값이고 팀 확인을 받지 않았다.
-   * **프로토타입(`finch-screens.dc.html`) 내부 식별자는 여전히 `isMail`·`goMail` 이다** —
+   * **프로토타입(`finch-prototype.html`) 내부 식별자는 여전히 `isMail`·`goMail` 이다** —
    * 라우트 이름만 `/inbox` 로 옮겼으므로 프로토타입을 보고 `/mail` 로 되돌리지 않는다.
    * **API 계약도 아직 없다** — GitLab 이슈 #26 1번으로 문의 중이다.
    */
   inbox: '/inbox',
   my: '/my',
-  myWiki: '/my/wiki',
-  /** ia.md 에 없는 개발 전용 배선 점검 화면. 화면 17개에 포함되지 않는다. */
+  /** ia.md 에 없는 개발 전용 배선 점검 화면. 화면 16개에 포함되지 않는다. */
   health: '/health',
 } as const;
 

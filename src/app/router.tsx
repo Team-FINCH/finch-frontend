@@ -123,10 +123,6 @@ export const router = createBrowserRouter([
             path: ROUTES.chat,
             element: <RoutePlaceholder screen="AI 채팅" />,
           },
-          {
-            path: ROUTES.myWiki,
-            element: <RoutePlaceholder screen="AI가 이해한 나" />,
-          },
 
           {
             // 형식이 틀린 종목코드를 여기서 한 번에 거른다.
