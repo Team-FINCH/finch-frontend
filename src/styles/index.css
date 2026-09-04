@@ -122,6 +122,14 @@
      적었다. 검정 면을 쓰는 본문 슬롯(분석·진단·점검)이 쓰라고 만든 값이다. */
   --color-ai-divider: rgba(255, 255, 255, 0.16);
 
+  /* AI 상태(실패·데이터 부족) 아이콘 원반의 면색.
+     프로토타입 `.aist>i{background:#F1F3F6}` 실측값이다.
+     흰 카드 위가 아니라 앱 배경(#F7F8FA) 위에 놓이는 자리라 대비가 1.02 로 아주 옅다.
+     그래서 원반만으로 뜻을 전하지 않고 안에 글리프(↻·◌)를 함께 넣는다.
+     --color-disabled-surface(#E9ECEF)를 재사용하지 않은 이유는 역할이 다르고
+     값도 다르기 때문이다. 비활성 면이 밝아지면 이 원반이 따라갈 이유가 없다. */
+  --color-ai-status-icon-surface: #f1f3f6;
+
   /* AI 액센트. 검정 면 위에서만, 한 카드에 최대 2~3곳만 쓴다 (design.md §4·§15).
      디자인 확인이 필요하다 — 두 근거의 값이 다르다.
        design.md v2 §4  --ai-accent  #E3B341   #24272C 위 대비 7.70
@@ -236,6 +244,17 @@
   --text-button: 17px;
   --text-button--line-height: 24px;
   --text-button--font-weight: 500;
+
+  /* AI 상태(실패·데이터 부족) 화면의 제목. 프로토타입 `.aist>b` 실측값이다
+     (`font-size:17px;line-height:25px;font-weight:600;letter-spacing:-.01em`).
+     크기가 --text-button 과 같은 17px 인데 토큰을 따로 두는 이유가 둘이다.
+     굵기가 다르고(600 vs 500) 행간이 다르다(25 vs 24). Tailwind 타이포 토큰은
+     셋을 한 이름에 묶어 내보내므로 한쪽을 재사용할 수 없다.
+     title-3(18px/26px/600)로 올려 붙이지 않았다. 1px 차이지만 실측값이 아니게 된다.
+     자간 -.01em 은 타이포 토큰에 담기지 않아 컴포넌트에서 tracking 으로 적는다. */
+  --text-ai-status-title: 17px;
+  --text-ai-status-title--line-height: 25px;
+  --text-ai-status-title--font-weight: 600;
 
   /* ── 간격 ─────────────────────────────────────────────────────────── */
   /* 따로 토큰을 만들지 않고 Tailwind 기본 4px 스케일을 쓴다. 이름을 새로 만들면
