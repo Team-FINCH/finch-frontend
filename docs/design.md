@@ -69,11 +69,13 @@ Finch는 주식에 투자하는 사람을 위한 AI 투자 어시스턴트다.
 브랜드 마크는 **새 실루엣**을 기본으로 한다.
 
 **사용 영역**
+
 - 랜딩 / 온보딩
 - 브랜드 소개
 - 마케팅 콘텐츠
 
 **제품 UI에서 제한**
+
 - 현재가 / 등락률 / 차트
 - 총자산 / 평가손익
 - 매수·매도 버튼
@@ -85,18 +87,21 @@ Finch는 주식에 투자하는 사람을 위한 AI 투자 어시스턴트다.
 제품 UI에서 AI가 관여한 정보를 표시할 때는 **공통 AI Glyph 하나로 통일**한다.
 
 권장 형태:
+
 - Dark Rounded Square
 - White Finch Symbol 또는 단순화된 Finch AI Symbol
 - 작은 크기에서도 형태가 무너지지 않는 단순 실루엣
 - 필요 시 Sparkle을 한 번만 사용
 
 **사용 영역**
+
 - AI Summary Header
 - AI Inline Insight
 - AI 진입점
 - AI Floating Button
 
 **Scale**
+
 - AI Inline / Header: **28~36px**
 - Floating Button 내부: **20~24px**
 - 랜딩 일러스트: **112~132px**
@@ -119,31 +124,31 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 
 ### Representative Colors
 
-| Role | Token | Color | Usage |
-|---|---|---|---|
-| **Primary** | `--t1` | `#1F2328` | 주요 텍스트, 핵심 버튼, AI Surface |
-| **Background** | `--bg` | `#F7F8FA` | 전체 화면 배경 |
-| **Surface** | `--surface` | `#FFFFFF` | 기본 카드, 바텀시트 |
-| **AI Accent** | `--ai-accent` | `#E3B341` | 검정 Surface 위 핵심 숫자·상태 강조 |
-| **Notify** | `--notify` | `#D94A4A` | 메일 미확인 점/뱃지 등 알림 상태 |
+| Role           | Token         | Color     | Usage                               |
+| -------------- | ------------- | --------- | ----------------------------------- |
+| **Primary**    | `--t1`        | `#1F2328` | 주요 텍스트, 핵심 버튼, AI Surface  |
+| **Background** | `--bg`        | `#F7F8FA` | 전체 화면 배경                      |
+| **Surface**    | `--surface`   | `#FFFFFF` | 기본 카드, 바텀시트                 |
+| **AI Accent**  | `--ai-accent` | `#E3B341` | 검정 Surface 위 핵심 숫자·상태 강조 |
+| **Notify**     | `--notify`    | `#D94A4A` | 메일 미확인 점/뱃지 등 알림 상태    |
 
 ### Supporting Neutrals
 
-| Token | Color | Usage |
-|---|---|---|
-| `--t2` | `#565C66` | 보조 텍스트 |
-| `--t3` | `#78828E` | 캡션, 기준 시각, 출처 |
-| `--border` | `#E9ECEF` | 카드·구분선 |
-| `--border2` | `#D9DEE5` | 입력 필드, 강한 구분 |
+| Token          | Color     | Usage                   |
+| -------------- | --------- | ----------------------- |
+| `--t2`         | `#565C66` | 보조 텍스트             |
+| `--t3`         | `#78828E` | 캡션, 기준 시각, 출처   |
+| `--border`     | `#E9ECEF` | 카드·구분선             |
+| `--border2`    | `#D9DEE5` | 입력 필드, 강한 구분    |
 | `--brand-soft` | `#F0F1F3` | 선택 상태, 얕은 Surface |
 
 ### Semantic Stock Colors
 
-| Token | Color | Usage |
-|---|---|---|
-| `--up` | `#C93B3B` | 상승 / 매수 텍스트 |
+| Token    | Color     | Usage              |
+| -------- | --------- | ------------------ |
+| `--up`   | `#C93B3B` | 상승 / 매수 텍스트 |
 | `--down` | `#2258C9` | 하락 / 매도 텍스트 |
-| `--neu` | `#6B7280` | 보합 |
+| `--neu`  | `#6B7280` | 보합               |
 
 상승 빨강 / 하락 파랑. 서구권과 반대다.
 
@@ -176,15 +181,15 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 
 ### Type Scale
 
-| Type | Size | Weight | Usage |
-|---|---:|---:|---|
-| Display | 36~40px | 700 | 현재가, 총자산 |
-| H1 | 26~28px | 700 | 화면 제목 |
-| H2 | 19~22px | 700 | 섹션 제목 |
-| H3 | 17~18px | 600 | 카드 제목 |
-| Body | 15~16px | 400~500 | 일반 내용 |
-| Small | 14px | 400~500 | 보조 정보 |
-| Caption | 12~13px | 400 | 기준 시각, 출처 |
+| Type    |    Size |  Weight | Usage           |
+| ------- | ------: | ------: | --------------- |
+| Display | 36~40px |     700 | 현재가, 총자산  |
+| H1      | 26~28px |     700 | 화면 제목       |
+| H2      | 19~22px |     700 | 섹션 제목       |
+| H3      | 17~18px |     600 | 카드 제목       |
+| Body    | 15~16px | 400~500 | 일반 내용       |
+| Small   |    14px | 400~500 | 보조 정보       |
+| Caption | 12~13px |     400 | 기준 시각, 출처 |
 
 ### Rules
 
@@ -225,6 +230,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 `종목명·코드 → 현재가·등락 → 내 보유 Summary → 선택한 탭 콘텐츠 → 매수/매도`
 
 탭 내부:
+
 - 차트: 가격 흐름 → 평균 매수가 → 거래량 → 오늘 시세
 - 기업: 기업 한 줄 요약 → 핵심 지표 → 매출/영업이익
 - AI 분석: 한 줄 결론 → 확인할 위험 → 내 계좌 영향 → 투자 기준 → 일정
@@ -245,6 +251,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 `지수 Horizontal Ticker → Compact AI 브리핑 → 총자산 → AI 수익 인사이트 → 내 종목 / 관심 종목`
 
 #### 지수
+
 - KOSPI / KOSDAQ / USD-KRW / NASDAQ
 - **자동으로 흐르는 Animation은 사용하지 않는다**
 - 한 줄 Horizontal Scroll
@@ -254,6 +261,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 - 홈의 보조 정보로 낮은 시각적 강도 유지
 
 #### AI 데일리 브리핑
+
 - Compact Dark `AISummary`
 - 한 줄 결론 + 핵심 Meta
 - `확인 필요 N건`만 AI Accent 또는 Attention Text로 가볍게 강조
@@ -261,17 +269,20 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 - 전체 카드 클릭 + Chevron
 
 #### 총자산
+
 - Card로 감싸지 않고 Hero Information으로 배치
 - `총자산 Label → 금액 → 오늘 손익 → 기준 시각`
 - 손익금액과 수익률은 한 줄로 표시
 - 수익률을 별도 Pill로 만들지 않는다
 
 #### AI 수익 인사이트
+
 - 총자산 바로 아래 `AIInline`
 - 예: `오늘 내 자산은 왜 올랐을까요?`
 - 한 줄 설명 + Chevron
 
 #### 내 종목 / 관심 종목
+
 - Text Tab
 - Preview 2~3개 + 전체 보기
 - Card보다 Flat List 우선
@@ -284,6 +295,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 `검색 → 최근 검색어 → 시장 랭킹 → 최근 본 종목`
 
 #### 검색창
+
 - 화면의 가장 중요한 인터랙션
 - 종목명 또는 종목코드
 - 1글자: `2글자 이상 입력해 주세요`
@@ -291,6 +303,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 - 검색어는 `/search?q=`와 동기화
 
 #### 최근 검색어
+
 - Compact Chip
 - 최대 10개
 - 각 Chip에 `×`
@@ -298,6 +311,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 - 많으면 Horizontal Scroll
 
 #### 시장 랭킹
+
 - 현재 확정 범위: `급상승 / 급하락 / 전일 거래량`
 - Pill이 아니라 **Text Tab + 얇은 Indicator**
 - `시장 랭킹` Section Title + 기준 시각
@@ -308,18 +322,21 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 - `실시간`, `인기 종목`, `거래대금`, `시장 필터`, `테마`는 추가하지 않는다
 
 #### 최근 본 종목
+
 - 하단 보조 Section
 - 최대 3개 Preview + 전체 보기
 - 종목명 / 종목코드 / 현재가 / 등락률
 - 최근 본 API에 `market`이 없으면 시장명 표시 금지
 
 #### 검색 상태
+
 - 검색 중: 결과 영역 Skeleton/Loading
 - 결과 없음: 간단한 Empty State
 - 실패: 재시도
 - 검색 결과 상태에서는 랭킹/최근 기록을 숨기고 결과만 표시
 
 #### 탐색 화면에서 제거
+
 - AI Floating Button
 - 메일 아이콘 / 미확인 Badge
 
@@ -330,6 +347,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 `종목명·코드 → 현재가·등락 → 내 보유 Summary → 차트 / 기업 / AI 분석`
 
 #### 상단
+
 - 종목명 + 종목코드·시장 = 하나의 Identity Group
 - 현재가를 가장 강하게
 - 등락과 기준 시각 분리
@@ -340,6 +358,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
   - 클릭 시 기존 기록 흐름으로 이동
 
 #### Tab
+
 - `차트 / 기업 / AI 분석`
 - Text Tab + 얇은 Indicator
 - 탭마다 별도 큰 Background 사용 금지
@@ -369,11 +388,13 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 `기업 요약 → 핵심 지표 → 매출과 영업이익`
 
 #### 기업 요약
+
 - 탭 상단에 Light Outline/Neutral Surface
 - 회사가 무엇을 하는지 2줄 이내
 - AI Badge / Dark Theme 사용 금지
 
 #### 핵심 지표
+
 - Flat 2-column
 - PER / PBR 등 기존 API 데이터만 사용
 - 업종 평균은 Secondary
@@ -382,6 +403,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 - `지표 더보기`는 Full-width Button이 아니라 Text Action
 
 #### 매출과 영업이익
+
 - 별도 Card 없이 Flat Section
 - 충분한 Section Gap
 - 기존 차트/데이터 사용
@@ -394,6 +416,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 큰 검정 카드 하나 안에 모든 내용을 넣지 않는다.
 
 권장 흐름:
+
 1. Compact `AISummary`
 2. 확인해볼 위험
 3. 내 계좌 영향
@@ -403,25 +426,30 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 7. Feedback
 
 #### 확인해볼 위험
+
 - 빨간 `!` 반복 금지
 - Neutral Bullet / Flat List
 - 한 항목 최대 2줄
 
 #### 내 계좌 영향
+
 - 포트폴리오 비중 / 평가손익
 - 숫자와 의미를 연결
 - 필요 시 Light Surface 1개
 
 #### 나의 투자 기준
+
 - 기록이 없으면 `매수 이유 기록하기` CTA
 - 일반 Text Link가 아니라 Light Action Row
 - 상단 Summary의 미기록 상태와 연결
 
 #### 앞으로 확인할 일정
+
 - 날짜 Secondary / 이벤트 Primary
 - 별도 Card 금지
 
 #### Feedback
+
 - 응답 최하단 1회
 - Compact Neutral Button
 
@@ -447,6 +475,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 - 제출 버튼 바로 위에 위치
 
 구성:
+
 1. 핵심 변화 한 줄
 2. 주문 전후 예수금
 3. 주문 전후 포트폴리오 비중
@@ -454,6 +483,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 5. `참고용 정보예요.`
 
 표현:
+
 - `17% → 17%`처럼 동일값 반복 금지
 - 변화 없음은 `17% · 큰 변화 없음`
 - Before = Gray
@@ -473,12 +503,14 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 목적: **설문이 아니라 투자 판단을 빠르게 기록**
 
 구조:
+
 1. 질문
 2. 이유 선택
 3. 직접 입력
 4. 저장 CTA
 
 권장 선택지:
+
 - 실적이 좋아질 것 같아서
 - 업종 전망이 좋아 보여서
 - 배당이 괜찮아 보여서
@@ -486,6 +518,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 - 직접 입력
 
 Rules:
+
 - 큰 Outline Card 4개 반복 금지
 - Compact Selection Row
 - 단일 선택이면 Radio, 복수 선택이면 Checkbox
@@ -500,6 +533,7 @@ Rules:
 `평가 자산 → 보유 / AI 진단 탭`
 
 #### 보유
+
 - 평가자산 Hero
 - 평가손익 / 예수금
 - `AIInline` 수익 원인
@@ -507,6 +541,7 @@ Rules:
 - 비중은 텍스트로 의미 명확히
 
 #### AI 진단
+
 - Compact `AISummary`
 - 포트폴리오 상태
   - 집중도
@@ -527,6 +562,7 @@ Rules:
 ### 7.10 수익률 분석 Bottom Sheet
 
 구조:
+
 1. 타이틀 + 한 줄 설명
 2. Dark `AISummary`
 3. 시장 / 업종 / 종목 영향
@@ -536,6 +572,7 @@ Rules:
 7. Feedback
 
 Rules:
+
 - Progress Bar 남발 금지
 - 영향 값이 단순 합산되지 않는 경우 오해 방지 안내
 - Bottom Sheet 활성 시 Bottom Navigation / Floating AI Button 숨김
@@ -550,11 +587,13 @@ Rules:
 알림으로 재촉하지 않는다.
 
 유형:
+
 - **기록** — 매수했는데 이유를 안 적은 종목
 - **확인** — Finch 추측을 맞다/아니다로 확인
 - **소식** — 보유 종목 관련 뉴스
 
 Rules:
+
 - 미확인은 작은 빨간 Dot
 - Dot은 unread에만 사용
 - 유형 Label은 Neutral
@@ -571,6 +610,7 @@ Rules:
 이 화면은 **Finch가 분석한 내 투자 생각을 확인하고 정리하는 곳**이다.
 
 상단:
+
 - `AIInline`
 - 예: `Finch가 분석한 투자 기준이에요.`
 - `대화와 투자 기록을 바탕으로 정리했어요.`
@@ -579,6 +619,7 @@ Rules:
 세 영역:
 
 #### 1. 확정된 투자 기준
+
 - 이미 Finch가 참고 중
 - Flat List
 - 출처 + 날짜
@@ -586,6 +627,7 @@ Rules:
 - 삭제는 Secondary, Confirmation 단계에서만 Red
 
 #### 2. Finch가 이렇게 이해했어요
+
 - 추정 내용
 - Compact Light Neutral Surface
 - `맞아요 / 아니에요`
@@ -594,6 +636,7 @@ Rules:
 - 확인되면 확정된 기준으로 이동
 
 #### 3. 종목별 매수 이유
+
 - 종목명
 - 매수 이유 원문
 - 기록 시점 / 투자 기간
@@ -607,20 +650,24 @@ Rules:
 `필터 → 날짜별 그룹 → 거래 Row`
 
 필터:
+
 - `전체 / 매수 / 매도 / 입금`
 - Compact
 
 날짜별 그룹:
+
 - `08.28`
 - `08.27`
 
 Row:
+
 - 종목명 / 거래 유형
 - 수량 · 체결단가
 - 금액
 - 시간
 
 Rules:
+
 - 입금 행에 `입금 + 입금 Badge` 중복 금지
 - 날짜를 각 Row마다 반복하지 않는다
 - 거래 금액은 +/- 부호로 구분
@@ -632,6 +679,7 @@ Rules:
 ### 7.14 내 정보
 
 구조:
+
 1. 프로필
 2. 투자 계좌 Summary
 3. 거래 내역
@@ -641,6 +689,7 @@ Rules:
 7. 로그아웃
 
 Rules:
+
 - 프로필 / 계좌 영역 Compact
 - 투자 계좌는 Light Surface
 - 거래 내역 / 입금·결제는 Flat Navigation Row
@@ -674,12 +723,14 @@ AI 기능은 공통 UI 문법을 사용한다.
 정상 AI 결과의 Compact Summary.
 
 구조:
+
 1. 공통 AI Glyph + 기능 Label
 2. 핵심 결론 최대 2줄
 3. 핵심 Meta 최대 2개
 4. 필요 시 Chevron
 
 Style:
+
 - Dark Surface
 - White Main Copy
 - Gray Secondary
@@ -691,6 +742,7 @@ Style:
 - Radius / Padding / Header 위치 통일
 
 적용:
+
 - 홈 AI 브리핑
 - 포트폴리오 AI 진단
 - 종목 AI 분석 요약
@@ -702,17 +754,20 @@ Style:
 기존 금융 정보에 붙는 짧은 AI Insight / Entry.
 
 구조:
+
 - 공통 AI Glyph
 - Title
 - Secondary Copy
 - Chevron
 
 Style:
+
 - 큰 Dark Background 없음
 - 기본 Background 또는 Light Surface
 - 짧고 가볍게
 
 적용:
+
 - 홈 `오늘 내 자산은 왜 올랐을까요?`
 - 마이페이지 `나의 투자 기준`
 - `나의 투자 기준` 상단 Intro
@@ -726,6 +781,7 @@ Style:
 `결론 → 근거 → 위험/확인할 점 → 내 계좌 영향 → 일정/기준 → 출처 → Feedback`
 
 Rules:
+
 - 기본 Background 위 Flat Section
 - 모든 Section을 Card로 만들지 않는다
 - 상세 분석 전체를 하나의 Dark Card에 넣지 않는다
@@ -794,6 +850,7 @@ O `반도체 비중이 48%예요. 한 업종이 흔들리면 계좌 전체도 �
 `데이터가 없습니다`를 쓰지 않는다.
 
 예:
+
 > 아직 관심 종목이 없어요.  
 > 관심 있는 종목을 담아보세요.
 
@@ -806,6 +863,7 @@ O `반도체 비중이 48%예요. 한 업종이 흔들리면 계좌 전체도 �
 - Red Warning Box 금지
 
 카피:
+
 > 분석을 불러오지 못했어요.  
 > 잠시 후 다시 시도해 주세요.  
 > **[다시 시도]**
@@ -823,10 +881,12 @@ O `반도체 비중이 48%예요. 한 업종이 흔들리면 계좌 전체도 �
 - 모든 슬롯에 동일한 숫자 조건을 하드코딩하지 않는다
 
 예:
+
 > 아직 분석할 정보가 충분하지 않아요.  
 > 필요한 기록이 조금 더 쌓이면 분석 결과를 볼 수 있어요.
 
 슬롯별 예:
+
 - 수익률 원인 → 해당 기능의 실제 매매내역 조건
 - 포트폴리오 진단 → 실제 보유 종목/업종 조건
 - 종목 분석 → 필요한 공시/시세 데이터 조건
@@ -863,11 +923,13 @@ O `반도체 비중이 48%예요. 한 업종이 흔들리면 계좌 전체도 �
 ### Compact Secondary Button
 
 적용:
+
 - `맞아요 / 아니에요`
 - `도움됐어요 / 아쉬워요`
 - 기타 작은 확인 액션
 
 Rules:
+
 - 높이 **34~40px**
 - 좌우 Padding **14~18px**
 - Neutral Border / Background
@@ -876,11 +938,13 @@ Rules:
 ### Light Action Row
 
 적용:
+
 - `매수 이유 기록하기`
 - `매수 이유 추가하기`
 - 기타 Secondary CTA
 
 Rules:
+
 - Light Neutral Surface
 - Chevron
 - 전체 Row Clickable
@@ -959,6 +1023,7 @@ O `잠시 문제가 생겼어요. 다시 시도해 주세요.`
 X `정말 삭제하시겠습니까?`
 
 O
+
 > 이 투자 기준을 삭제할까요?  
 > 삭제하면 Finch가 이후 분석에서 이 기준을 참고하지 않아요.
 
@@ -967,6 +1032,7 @@ O
 X `데이터가 없습니다.`
 
 O
+
 > 아직 최근에 본 종목이 없어요.  
 > 종목을 둘러보면 여기에 모아둘게요.
 
