@@ -444,14 +444,14 @@ AI 명세는 "화면에서 AI 응답이 들어갈 빈 슬롯"만 요구한다. �
 
 #### 에러 자리의 피드백
 
-에러 봉투에도 `requestId`가 보존되므로(apiSpec §10.3) 실패 응답과 `INSUFFICIENT_DATA` 대체 문구 자리에도 붙는다.
-성공 자리와 다른 점은 셋이다.
+**실패·데이터 부족 자리에는 피드백을 두지 않는다.** `design.md` §10 "AI 실패"가 **Feedback 노출 금지**로 못박았다 — 실패한 답에 "도움이 되었나요"를 묻는 것은 사용자에게 무례하고, 실패 자리의 주 동작은 재시도 하나여야 한다. 선택지가 둘이면 무엇을 눌러야 하는지 흐려진다. **이전 판은 재시도 무의미 코드에서 피드백을 그 자리의 유일한 행동으로 가장 크게 노출한다고 적었지만, `design.md`와 정면으로 부딪혀 이번 개정에서 뒤집었다.**
 
-1. **재시도와의 우선순위가 갈린다.** `apiSpec.md` §10.4의 분류를 그대로 쓴다
-   - 재시도 가능(`RETRIEVAL_FAILED` 502 · `LLM_TIMEOUT` 504 · `AI_UPSTREAM_UNAVAILABLE` 502 · `AI_UPSTREAM_TIMEOUT` 504) — **재시도 버튼이 주 동작**이고 피드백은 보조로 접어 둔다
-   - 재시도 무의미(`INSUFFICIENT_DATA` 409 · `GUARDRAIL_BLOCKED` 422) — 재시도 버튼을 만들지 않으므로 **피드백이 그 자리에서 유일한 사용자 행동**이다. 가장 크게 노출된다
-2. **`rating: "up"`을 노출하지 않는다 (잠정).** 실패한 응답에 "좋다"를 표시할 대상이 없다. `rating`은 `up`·`down` 중 하나가 필수인 값이므로(`openapi.json`의 `FeedbackRating`) 에러 자리는 `down` 고정으로 보낸다. 근거 문서가 없는 프론트 판단이다
-3. **`AI_UPSTREAM_*`에는 슬롯을 만들지 않는다.** 이전 판은 이것을 미확정으로 뒀지만 `apiSpec.md` §10.4가 확정했다 — `AI_UPSTREAM_UNAVAILABLE`·`AI_UPSTREAM_TIMEOUT`은 **백엔드 자체 에러**라 AI 서버가 응답한 적이 없고 최상위 `requestId`도 없다. 평가할 원본 응답이 존재하지 않는다. 나머지 네 코드는 AI 서버가 발행한 것이라 `requestId`가 보존되므로 슬롯을 만든다. **에러 코드로 갈리므로 `requestId` 유무를 런타임에 떠보지 않아도 된다**
+재시도 가능·불가 구분은 `apiSpec.md` §10.4의 분류를 그대로 쓴다. 코드 목록은 바뀌지 않았고 `frontend/src/shared/lib/aiErrorRetry.ts`가 이미 이대로 구현돼 있다.
+
+- 재시도 가능(`RETRIEVAL_FAILED` 502 · `LLM_TIMEOUT` 504 · `AI_UPSTREAM_UNAVAILABLE` 502 · `AI_UPSTREAM_TIMEOUT` 504) — **재시도 버튼이 유일한 주 동작**이다. 피드백은 붙이지 않는다
+- 재시도 무의미(`INSUFFICIENT_DATA` 409 · `GUARDRAIL_BLOCKED` 422) — 재시도 버튼을 만들지 않는다. **버튼 없이 그 슬롯이 실제로 언제 열리는지만 알린다**(`design.md` §10 "AI 데이터 부족"). 피드백도 붙이지 않는다
+
+**피드백은 정상 응답 자리에만 둔다.** 위 "피드백 슬롯 배치 규칙"의 표와 `requestId` 대응 규칙은 정상 응답에만 적용된다.
 
 #### 요청에 싣는 것
 
