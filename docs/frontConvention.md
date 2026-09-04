@@ -580,9 +580,9 @@ AI로 들어가는 진입점은 탭이 아니라 전역 오버레이 레이어�
 
 Tailwind v4의 `@theme`에 정의해 유틸리티 클래스로 나온다.
 
-- 색: `bg-surface`, `text-text-secondary`, `border-border`, `text-stock-up`, `bg-primary`
+- 색: `bg-surface`, `bg-surface-soft`, `text-text-secondary`, `border-border`, `text-stock-up`, `bg-primary`
 - 타이포: `text-display`, `text-title-2`, `text-body-1`, `text-caption`, `text-button` (크기·행간·굵기가 함께 붙는다)
-- 반경: `rounded-xs`, `rounded-sm`, `rounded-md`, `rounded-card`, `rounded-ai`, `rounded-sheet`
+- 반경: `rounded-xs`, `rounded-sm`, `rounded-md`, `rounded-12`, `rounded-card`, `rounded-ai`, `rounded-sheet`
 - 그림자: `shadow-float`
 - 모션: `ease-standard`, `duration-(--motion-fast)`
 
@@ -602,7 +602,7 @@ Tailwind v4의 `@theme`에 정의해 유틸리티 클래스로 나온다.
 
 - `rounded-xs`는 `Skeleton`이 쓴다. 프로토타입 `.sk` 값이고, AI 챗 버블의 왼쪽 위 꼬리 모서리도 같은 값을 쓴다. 그래서 역할 이름이 아니라 크기 이름이다
 - `rounded-sm`은 지금 쓰는 곳이 없다. 칩·태그를 만들 때 이 값으로 맞출지 프로토타입 값(칩 11px · 태그 8px)으로 갈지 그때 정한다. 지금 값은 그 둘의 가운데고 프로토타입에서 읽은 값이 아니다
-- 세그먼티드 컨트롤·리스트 행·아이콘 버튼은 12px이고 `rounded-md`(14px)와 다르다. 컴포넌트가 없어 토큰을 만들지 않았다. 만들 때 `rounded-md`로 끌어오지 말고 12px을 확인한다
+- 세그먼티드 컨트롤·리스트 행·아이콘 버튼은 12px이고 `rounded-md`(14px)와 다르다. `rounded-12`로 토큰이 생겼다. `StockRow`(`.row`)가 쓰고, 세그먼티드·아이콘 버튼 컴포넌트를 만들 때 재사용한다
 
 칩·태그·세그먼티드를 만드는 사람이 알아야 할 내용이라 토큰 파일 주석에도 같은 사실을 남겨 두었다.
 

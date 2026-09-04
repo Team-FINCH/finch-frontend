@@ -7,12 +7,12 @@ import { type ComponentProps, type ReactNode } from 'react';
  * 프로토타입 `.soft` 실측 — 반경 10px · 안쪽 여백 16px · 옅은 회색 면.
  * 카드(`Card`)와 다르다. 카드는 흰 면에 테두리가 있고 이쪽은 테두리 없이 면색으로만 갈린다.
  *
- * 면색은 `--color-primary-soft` 다. 프로토타입 `.soft` 의 값(#F1F3F6)과 한 단계 다르고
- * 그 값에는 토큰이 없다 — 감독관에게 보고한 항목이다.
+ * 면색은 `--color-surface-soft` 다. `--color-primary-soft` 와 값이 거의 같지만
+ * 역할이 다르다 — 근거는 토큰 파일 주석에 있다.
  */
 export function SoftBox({ className = '', ...props }: ComponentProps<'div'>) {
   return (
-    <div {...props} className={`rounded-sm bg-primary-soft p-4 ${className}`} />
+    <div {...props} className={`rounded-sm bg-surface-soft p-4 ${className}`} />
   );
 }
 

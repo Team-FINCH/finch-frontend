@@ -94,7 +94,7 @@ function InitialBadge({ stockName }: { stockName: string }) {
   return (
     <span
       aria-hidden="true"
-      className="flex size-11 flex-none items-center justify-center rounded-md bg-primary-soft text-body-1 font-bold text-text-secondary"
+      className="flex size-11 flex-none items-center justify-center rounded-md bg-surface-soft text-body-1 font-bold text-text-secondary"
     >
       {stockName.slice(0, 1)}
     </span>
@@ -141,12 +141,11 @@ function readFigures(figures: StockRowFigures) {
 
 /**
  * 행 높이 72px 은 터치 영역 44px 기준을 넉넉히 넘는다 (design.md §12).
- * 반경 12px 은 누를 때 잠깐 깔리는 배경에만 보인다.
- * **12px 짜리 반경 토큰이 없다** — `--radius-md` 는 14px 이고 토큰 파일 주석이
- * 리스트 행을 `rounded-md` 로 끌어오지 말라고 못박아 뒀다. 토큰이 생기면 이 한 줄을 고친다.
+ * 반경 12px 은 누를 때 잠깐 깔리는 배경에만 보인다. `--radius-md`(14px)와 다른
+ * 값이라 `rounded-md`로 끌어오지 않고 `rounded-12`를 쓴다.
  */
 const ROW_CLASS =
-  'flex w-full min-h-18 items-center gap-3 rounded-[12px] py-3.5 text-left ' +
+  'flex w-full min-h-18 items-center gap-3 rounded-12 py-3.5 text-left ' +
   'transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft';
 
 export function StockRow({
