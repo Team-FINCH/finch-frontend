@@ -1,3 +1,12 @@
+import {
+  CauseTab,
+  DiagnosisTab,
+  HoldingsTab,
+  PortfolioHeader,
+  PortfolioTabBar,
+  usePortfolioTabState,
+  WikiTab,
+} from '@/features/portfolio';
 import { PageMain } from '@/shared/ui/PageMain';
 
 /**
@@ -14,12 +23,26 @@ import { PageMain } from '@/shared/ui/PageMain';
  * (위키 탭은 `GET /api/v1/ai/wiki` · `PUT /api/v1/ai/wiki/theses/{stockCode}` ·
  * `DELETE /api/v1/ai/wiki/facts/{factId}`, `ia.md` §1 "AI가 이해한 나" 절).
  *
- * 화면 UI 는 이 티켓의 범위가 아니다. 라우트 자리만 잡는다.
+ * **탭마다 컴포넌트를 갈아 끼운다 — 넷을 한꺼번에 마운트하지 않는다.** 보이지
+ * 않는 탭의 AI 요청(`tab=diagnosis`·`tab=cause`)이 나가지 않게 하는 것이 이 구조
+ * 하나로 해결된다 — 컴포넌트가 마운트될 때만 그 탭의 쿼리가 돈다. 탭을 오갈 때
+ * 스크롤·펼침 상태가 초기화되는 대신 얻는 단순함이다.
+ *
+ * `GET /stocks/prices`(시세 폴링)는 이 티켓의 범위가 아니다 — `GET /portfolio`가
+ * 내려주는 `currentPrice` 스냅샷을 그대로 쓴다.
  */
 export function PortfolioPage() {
+  const { tab, sort, setTab, setSort } = usePortfolioTabState();
+
   return (
     <PageMain>
-      <h1 className="text-lg font-semibold text-text-primary">포트폴리오</h1>
+      <PortfolioHeader />
+      <PortfolioTabBar tab={tab} onChange={setTab} />
+
+      {tab === 'holdings' && <HoldingsTab sort={sort} onSortChange={setSort} />}
+      {tab === 'diagnosis' && <DiagnosisTab />}
+      {tab === 'cause' && <CauseTab />}
+      {tab === 'wiki' && <WikiTab />}
     </PageMain>
   );
 }
