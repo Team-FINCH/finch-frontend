@@ -96,20 +96,31 @@ export type WikiResponse = z.infer<typeof WikiResponseSchema>;
 /**
  * `PUT /wiki/theses/{stockCode}` 요청 (openapi `ThesisIn`, 최대 500자).
  *
- * TODO(계약): `ThesisIn`은 AI 서버가 받는 스키마이고 `ticker`·`linkedTradeId`도
- * 실려 있지만, 화면은 `text`(와 `horizon`)만 사용자가 고른다 — `ticker`는 경로가
- * 이미 지목하고 `linkedTradeId`는 최초 기록(AI 스스로 호출) 전용이라 화면이 채울
- * 값이 없다. 이 둘을 요청 본문에 실제로 실어 보내야 하는지는 백엔드 중계 스펙에
- * 명문화돼 있지 않다 — 지금은 `text`·`horizon`만 보내고, 회신이 오면 이 스키마와
- * `putWikiThesis.ts`를 함께 고친다. 근거: ia.md §1 "편집·삭제 동작", contracts C75.
+ * **`ticker`를 본문에 채워 보낸다 — contracts C60이 확정한 값이다.** "서버는
+ * 경로의 `ticker`를 기준으로 처리하고 본문의 `ticker` 값은 무시한다. 다만 호환을
+ * 위해 프론트는 본문에도 `ticker`를 채워 보낸다"(이슈 #13 회신, 2026-08-28).
+ * 예전에는 이 자리에 "화면이 채울 값이 없어 보내지 않는다"는 TODO가 있었는데,
+ * FINCH-28-ai-entry 작업 중 contracts.md를 다시 읽고 그 TODO가 C60을 놓친
+ * 것이었음을 확인해 지웠다 — `ticker`는 호출부(`putWikiThesis.ts`)가 경로의
+ * `stockCode`를 그대로 채운다.
+ *
+ * `linkedTradeId`(C75 — 요청 본문도 camelCase)는 여전히 선택 필드다. 논지를
+ * 특정 매수 거래에 잇는 값이라 **이미 그 논지에 연결된 거래 id를 알 때만**
+ * 채운다(위키 편집 화면은 수정 대상 논지의 기존 `WikiThesis.linkedTradeId`를
+ * 그대로 넘긴다) — 새로 지어내지 않는다. 근거: ia.md §1 "편집·삭제 동작".
  */
 export const UpdateWikiThesisRequestSchema = z.object({
+  ticker: StockCodeSchema,
   text: z.string().min(1).max(500),
   horizon: ThesisHorizonSchema.nullish(),
+  linkedTradeId: z.string().nullish(),
 });
 export type UpdateWikiThesisRequest = z.infer<
   typeof UpdateWikiThesisRequestSchema
 >;
+
+/** 화면이 실제로 고르는 값 — `ticker`는 호출부가 경로에서 채운다. */
+export type UpdateWikiThesisInput = Omit<UpdateWikiThesisRequest, 'ticker'>;
 
 /** `PUT /wiki/theses/{stockCode}` 응답. `content`는 갱신된 논지 전체다(ia.md §1 C61). */
 export const UpdateWikiThesisResponseSchema =

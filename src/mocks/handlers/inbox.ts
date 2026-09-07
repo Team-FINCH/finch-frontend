@@ -39,7 +39,7 @@ const inboxItems: MockInboxItem[] = [
     kind: 'record',
     title: 'SK하이닉스, 왜 담으셨나요?',
     summary:
-      '체결 직후 이유를 적어 두면 나중에 나의 투자 기준에서 다시 볼 수 있어요.',
+      '체결 직후 이유를 적어 두면 AI가 이 기록을 근거로 더 맞는 추천을 해줘요.',
     unread: true,
     createdAt: '2026-09-06T09:31:00+09:00',
     stockCode: '000660',
