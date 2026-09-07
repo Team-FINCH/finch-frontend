@@ -98,7 +98,11 @@ export function SearchPage() {
 
   return (
     <PageMain>
-      <h1 className="sr-only">종목 검색</h1>
+      {/* 프로토타입 isSearch 블록의 `<div class="nav"><span class="navt">탐색</span></div>`.
+          다른 상시 화면(홈·포트폴리오·내 정보)과 같은 자리·같은 크기의 제목이다 —
+          여기만 sr-only 로 두면 탭을 옮길 때 이 화면만 제목이 사라져 보인다.
+          알림함 뱃지는 넣지 않는다. 프로토타입의 탐색 nav 에는 없다 (ia.md §1). */}
+      <h1 className="mb-4 text-title-3 text-text-primary">탐색</h1>
 
       <StockSearchField value={input} onChange={setInput} />
 
