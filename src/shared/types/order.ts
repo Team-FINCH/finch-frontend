@@ -80,6 +80,7 @@ export type OrderAvailableQuery = z.infer<typeof OrderAvailableQuerySchema>;
 
 /**
  * 체결 직전 재검증에서 예상 금액과 실제 체결가가 갈릴 수 있다 (apiSpec §7.2 체결 처리 순서).
- * 서버는 수량을 임의로 줄여 체결하지 않고 주문을 거부하므로, 화면은
- * `ORDER_PRICE_CHANGED` 를 받으면 다시 시도하도록 안내한다. 여기에는 스키마가 없다.
+ * 서버는 수량을 임의로 줄여 체결하지 않고 주문을 거부한다 — 가격 변동으로 부족해진 것과
+ * 원래 부족했던 것을 구분하지 않고 `ORDER_INSUFFICIENT_CASH` 하나로 응답한다
+ * (apiSpec v0.8, `ORDER_PRICE_CHANGED` 폐기 확정 · featureSpec §7.3). 화면 문구도 하나다.
  */
