@@ -389,14 +389,16 @@ AI 명세는 "화면에서 AI 응답이 들어갈 빈 슬롯"만 요구한다. �
 **6종 전부 일반 요청/응답이다. 스트리밍이 아니다.**
 `ai/docs/openapi.json`의 6개 엔드포인트가 모두 단일 JSON(`Envelope`)을 반환한다.
 
-| #   | 기능             | 화면            | 위치                         | 경로 (프론트가 호출하는 것)                   |
-| --- | ---------------- | --------------- | ---------------------------- | --------------------------------------------- |
-| 1   | 데일리 브리핑    | 홈              | 자산 요약 아래 첫 블록       | `GET /api/v1/ai/briefing`                     |
-| 2   | 수익률 원인 분석 | 홈 · 포트폴리오 | 손익 숫자 바로 아래          | `POST /api/v1/ai/portfolio/attribution`       |
-| 3   | AI 종목 분석     | 종목 상세       | `tab=ai` 탭                  | `POST /api/v1/ai/stocks/{stockCode}/analysis` |
-| 4   | 주문 전 점검     | 주문            | 주문 확인 단계, 제출 버튼 위 | `POST /api/v1/ai/orders/preview`              |
-| 5   | 포트폴리오 진단  | 포트폴리오      | `tab=diagnosis` 탭           | `POST /api/v1/ai/portfolio/diagnosis`         |
-| 6   | Ask My Portfolio | AI 채팅         | 화면 전체                    | `POST /api/v1/ai/chat`                        |
+| #   | 기능             | 화면       | 위치                         | 경로 (프론트가 호출하는 것)                   |
+| --- | ---------------- | ---------- | ---------------------------- | --------------------------------------------- |
+| 1   | 데일리 브리핑    | 홈         | 자산 요약 아래 첫 블록       | `GET /api/v1/ai/briefing`                     |
+| 2   | 수익률 원인 분석 | 포트폴리오 | 손익 숫자 바로 아래          | `POST /api/v1/ai/portfolio/attribution`       |
+| 3   | AI 종목 분석     | 종목 상세  | `tab=ai` 탭                  | `POST /api/v1/ai/stocks/{stockCode}/analysis` |
+| 4   | 주문 전 점검     | 주문       | 주문 확인 단계, 제출 버튼 위 | `POST /api/v1/ai/orders/preview`              |
+| 5   | 포트폴리오 진단  | 포트폴리오 | `tab=diagnosis` 탭           | `POST /api/v1/ai/portfolio/diagnosis`         |
+| 6   | Ask My Portfolio | AI 채팅    | 화면 전체                    | `POST /api/v1/ai/chat`                        |
+
+2번 슬롯의 배치에서 홈을 뺐다(2026-09-07). 프로토타입 `isHome` 블록(`prototype/screen/finch-prototype.html`)에는 수익률 원인 분석에 해당하는 마크업이 없고, `attribution` 데이터는 포트폴리오 화면의 `isPfCause` 탭에만 있다. 프론트도 홈에는 이 슬롯을 만들지 않았다 — 이 문서를 보고 홈에 슬롯을 새로 만들 필요는 없다.
 
 ### 기획서의 기능 6개와 이 슬롯 6종은 1:1이 아니다
 
