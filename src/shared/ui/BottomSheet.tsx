@@ -1,5 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
+
+import { useSheetOverlayStore } from '@/shared/hooks/useSheetOverlayStore';
 
 /**
  * 바텀시트 (FINCH-28). `@radix-ui/react-dialog` 위에 프로토타입
@@ -21,6 +23,11 @@ import { type ReactNode } from 'react';
  * `flex:1;overflow-y:auto` 래퍼를 따로 둔다 — 짧은 시트(약관)까지 스크롤 영역을
  * 두면 스크롤바가 없는데 영역만 생기는 것과 같다. 필요한 화면이 `children` 안에서
  * 직접 연다.
+ *
+ * **열림/닫힘을 `useSheetOverlayStore`에 스스로 알린다.** `TabBar`·
+ * `AiFloatingOverlay`가 "지금 열린 시트가 있나"를 판정하는 근거다. 이 컴포넌트를
+ * 쓰는 화면이 그 스토어를 직접 건드릴 필요가 없다 — 잊으면 탭바가 시트 위에
+ * 남는 종류의 버그라 컴포넌트가 책임진다.
  */
 type BottomSheetProps = {
   open: boolean;
@@ -43,6 +50,15 @@ export function BottomSheet({
   children,
   className = '',
 }: BottomSheetProps) {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const { increment, decrement } = useSheetOverlayStore.getState();
+    increment();
+    return decrement;
+  }, [open]);
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
