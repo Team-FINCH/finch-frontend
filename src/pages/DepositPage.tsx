@@ -1,4 +1,17 @@
+import { useState } from 'react';
+
+import { useAccount } from '@/features/deposit/api/useAccount';
+import { useDepositLimit } from '@/features/deposit/api/useDepositLimit';
+import { useDepositReady } from '@/features/deposit/api/useDepositReady';
+import { AmountInput } from '@/features/deposit/components/AmountInput';
+import { PaymentMethodPicker } from '@/features/deposit/components/PaymentMethodPicker';
+import { isHttpError } from '@/shared/api';
+import { formatKrw } from '@/shared/lib/formatNumber';
+import { type PaymentMethod } from '@/shared/types/deposit';
+import { ActionBar } from '@/shared/ui/ActionBar';
+import { Button } from '@/shared/ui/Button';
 import { PageMain } from '@/shared/ui/PageMain';
+import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
 
 /**
  * 충전 — 모의 결제로 예수금 충전. 4단계(준비 → 결제창 → 승인 → 확정) 중 이 화면이
@@ -10,12 +23,139 @@ import { PageMain } from '@/shared/ui/PageMain';
  * 근거: `ia.md` §1 "홈·자산" 표.
  * API: `GET /api/v1/deposits/limit` · `POST /api/v1/deposits/ready` (멱등성 헤더 없음).
  *
- * 화면 UI 는 이 티켓의 범위가 아니다. 라우트 자리만 잡는다.
+ * **중복 호출 방어** — 서버는 `ready`를 연달아 불러도 정리·거절하지 않고 그냥
+ * 쌓는다(contracts C92 근거, 프롬프트). 그래서 여기서는 `useDepositReady()`의
+ * `isPending` 으로 확인 버튼을 잠근다 — 응답이 오기 전에는 두 번째 클릭 자체가
+ * 나가지 않는다.
  */
+const DEPOSIT_PRESETS = [10_000, 100_000, 1_000_000] as const;
+
+type Step = 'amount' | 'confirm';
+
 export function DepositPage() {
+  const [step, setStep] = useState<Step>('amount');
+  const [amount, setAmount] = useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
+    null,
+  );
+
+  const limitQuery = useDepositLimit();
+  const accountQuery = useAccount();
+  const readyMutation = useDepositReady();
+
+  const limit = limitQuery.data;
+  const amountError =
+    amount !== null && limit !== undefined
+      ? amount > limit.perRequestLimit
+        ? `한 번에 ${formatKrw(limit.perRequestLimit)}까지 충전할 수 있어요`
+        : amount > limit.remainingAmount
+          ? `충전할 수 있는 금액을 넘었어요. (잔여 한도: ${formatKrw(limit.remainingAmount)})`
+          : undefined
+      : undefined;
+
+  const canProceed = amount !== null && amount > 0 && amountError === undefined;
+
+  function handleReady() {
+    if (amount === null || paymentMethod === null || readyMutation.isPending) {
+      return;
+    }
+    readyMutation.mutate(
+      { amount, paymentMethod },
+      {
+        onSuccess: (data) => {
+          // 카카오 결제창이든 모의 이체 화면이든 checkoutUrl 하나로 이동한다(ia.md §1).
+          window.location.assign(data.checkoutUrl);
+        },
+      },
+    );
+  }
+
   return (
-    <PageMain>
-      <h1 className="text-lg font-semibold text-text-primary">충전</h1>
+    <PageMain className="pb-32">
+      <h1 className="text-title-3 text-text-primary">충전</h1>
+
+      {step === 'amount' && (
+        <div className="mt-6 flex flex-col gap-6">
+          <AmountInput
+            label="충전할 금액"
+            value={amount}
+            onChange={setAmount}
+            presets={DEPOSIT_PRESETS}
+            errorMessage={amountError}
+          />
+
+          {limit !== undefined && (
+            <SoftBox>
+              <SoftBoxRow
+                label="1회 충전 한도"
+                value={formatKrw(limit.perRequestLimit)}
+              />
+              <SoftBoxRow
+                label="남은 누적 한도"
+                value={formatKrw(limit.remainingAmount)}
+                divided
+              />
+            </SoftBox>
+          )}
+
+          <div>
+            <p className="mb-2.5 text-label text-text-secondary">결제 수단</p>
+            <PaymentMethodPicker
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+            />
+          </div>
+        </div>
+      )}
+
+      {step === 'confirm' && amount !== null && paymentMethod !== null && (
+        <div className="mt-6 flex flex-col gap-6">
+          <SoftBox>
+            <SoftBoxRow
+              label="결제 수단"
+              value={paymentMethod === 'KAKAOPAY' ? '카카오페이' : '계좌이체'}
+            />
+            <SoftBoxRow label="충전 금액" value={formatKrw(amount)} divided />
+            {accountQuery.data !== undefined && (
+              <SoftBoxRow
+                label="충전 후 예수금"
+                value={formatKrw(accountQuery.data.cashBalance + amount)}
+                divided
+              />
+            )}
+          </SoftBox>
+
+          <p className="text-caption text-text-muted">
+            충전은 취소할 수 없습니다.
+          </p>
+
+          {isHttpError(readyMutation.error) && (
+            <p className="text-caption text-danger">
+              {readyMutation.error.message}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setStep('amount')}
+            className="text-label text-text-secondary underline"
+          >
+            금액·수단 다시 선택
+          </button>
+        </div>
+      )}
+
+      <ActionBar>
+        {step === 'amount' ? (
+          <Button disabled={!canProceed} onClick={() => setStep('confirm')}>
+            다음
+          </Button>
+        ) : (
+          <Button disabled={readyMutation.isPending} onClick={handleReady}>
+            {readyMutation.isPending ? '확인하고 있어요' : '충전하기'}
+          </Button>
+        )}
+      </ActionBar>
     </PageMain>
   );
 }
