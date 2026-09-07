@@ -57,10 +57,15 @@ export function useHomeData() {
     [watchlist.data, quoteMap],
   );
 
+  // 시세를 모르는 종목은 합계에서 뺀다 — 분자와 분모를 함께 빼야 수익률이 왜곡되지 않는다
+  // (apiSpec v0.8.2 · 계약 C93. 서버의 evaluationAmount 합계도 같은 규칙이다).
   const evaluationTotals = useMemo(() => {
     let profit = 0;
     let cost = 0;
     for (const holding of holdings) {
+      if (holding.evaluationProfit === null) {
+        continue;
+      }
       profit += holding.evaluationProfit;
       cost += holding.avgBuyPrice * holding.quantity;
     }
