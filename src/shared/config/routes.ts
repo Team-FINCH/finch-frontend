@@ -27,9 +27,21 @@ export const STOCK_CODE_PARAM = 'stockCode';
  * **API 계약(`GET`·`POST`·`DELETE /watchlist`, 위키 3종)은 그대로 살아 있다** — 화면만 없다.
  * 되살릴 일이 생기면 ia.md §2 를 먼저 고친다.
  */
+/**
+ * 홈의 "내 종목 · 관심 종목" 탭을 정하는 쿼리 파라미터.
+ * 온보딩을 마치면 관심 종목 탭이 기본으로 열려야 한다 (design.md §7.16 "완료 후 홈").
+ * 값은 `holdings` · `watch` 둘이고, 없거나 모르는 값이면 내 종목이다.
+ */
+export const HOME_LIST_TAB_PARAM = 'list';
+
 export const ROUTES = {
   home: '/',
   login: '/login',
+  /**
+   * 온보딩 — 관심 종목 선택 (design.md §7.16).
+   * 신규 사용자가 카카오 로그인 직후 만나는 화면이라 탭바 밖이다.
+   */
+  onboarding: '/onboarding',
   oauthKakao: '/oauth/kakao',
   search: '/search',
   recent: '/recent',

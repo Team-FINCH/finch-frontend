@@ -102,6 +102,10 @@ const WithdrawPage = lazyPage(
   () => import('@/pages/WithdrawPage'),
   'WithdrawPage',
 );
+const OnboardingPage = lazyPage(
+  () => import('@/pages/OnboardingPage'),
+  'OnboardingPage',
+);
 
 export const router = createBrowserRouter([
   {
@@ -119,6 +123,12 @@ export const router = createBrowserRouter([
         // 이 파일은 배치만 한다.
         element: <RequireAuth />,
         children: [
+          {
+            // 온보딩은 탭바 밖이다. 신규 사용자가 로그인 직후 만나는 화면이라
+            // 아직 담을 것도 볼 것도 없다 (design.md §7.16).
+            path: ROUTES.onboarding,
+            element: <OnboardingPage />,
+          },
           {
             // 보호 + 하단 탭 (ia.md §3).
             element: <TabBarLayout />,
