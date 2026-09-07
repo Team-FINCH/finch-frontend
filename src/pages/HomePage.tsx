@@ -1,9 +1,9 @@
 import { BriefingSection } from '@/features/home/components/BriefingSection';
 import { HoldingsWatchlistPreview } from '@/features/home/components/HoldingsWatchlistPreview';
-import { HomeHeader } from '@/features/home/components/HomeHeader';
 import { TotalAssetsSummary } from '@/features/home/components/TotalAssetsSummary';
 import { useHomeData } from '@/features/home/model/useHomeData';
 import { useInboxItems } from '@/features/inbox';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { PageMain } from '@/shared/ui/PageMain';
 
 /**
@@ -52,7 +52,11 @@ export function HomePage() {
 
   return (
     <PageMain>
-      <HomeHeader unreadCount={inbox.data?.unreadCount ?? 0} />
+      <PageHeader
+        title="홈"
+        unreadCount={inbox.data?.unreadCount ?? 0}
+        className="pb-3.5"
+      />
       <BriefingSection hasNoStocks={hasNoStocks} />
       <TotalAssetsSummary
         account={account}
