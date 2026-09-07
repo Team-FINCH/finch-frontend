@@ -1,3 +1,11 @@
+import { useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
+import { useDepositConfirm } from '@/features/deposit/api/useDepositConfirm';
+import { DepositResultScreen } from '@/features/deposit/components/DepositResultScreen';
+import { isDepositExpiredErrorCode } from '@/features/deposit/lib/depositErrorMessages';
+import { isHttpError } from '@/shared/api';
+import { ROUTES } from '@/shared/config/routes';
 import { PageMain } from '@/shared/ui/PageMain';
 
 /**
@@ -15,12 +23,102 @@ import { PageMain } from '@/shared/ui/PageMain';
  * 근거: `ia.md` §1 "홈·자산" 절 "결제 복귀 화면과 모의 이체 화면(잠정)".
  * API: `POST /api/v1/deposits/confirm` (`Idempotency-Key` 안 씀 — `paymentKey` 가 멱등 기준).
  *
- * 화면 UI 는 이 티켓의 범위가 아니다. 라우트 자리만 잡는다.
+ * **만료 처리** — 시한이 지난 뒤 `confirm` 을 부르면 `DEPOSIT_NOT_APPROVED` 또는
+ * `DEPOSIT_PAYMENT_FAILED` 둘 중 하나가 온다(만료 정리 배치가 하루 1회만 돌아서
+ * DB 상태가 갈리기 때문). 이 화면은 `isDepositExpiredErrorCode` 로 둘을 같은
+ * 만료 화면(`DepositResultScreen` 의 `expired` 배리언트)으로 묶는다.
+ *
+ * 돌아갈 곳 — 예수금 부족으로 충전에 왔다가 원래 화면(주문 등)으로 복귀하는 경로는
+ * `redirect` 쿼리를 실어 보낼 수 있는지가 복귀 URL 형태에 달렸는데 그 값을 아직
+ * 받지 못했다(`ia.md` §3, 미확정 P23). 이 화면은 그 경로를 가정하지 않고 항상 홈으로
+ * 돌려보낸다 — 회신이 오면 그때 복귀 경로를 설계한다(ia.md 자체가 "불확실"로 적어 둔 자리다).
  */
 export function DepositCompletePage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const confirmMutation = useDepositConfirm();
+  const hasRequested = useRef(false);
+
+  const paymentId = searchParams.get('paymentId');
+  const paymentKey = searchParams.get('paymentKey');
+  const amountParam = searchParams.get('amount');
+  const amount = amountParam === null ? null : Number(amountParam);
+
+  useEffect(() => {
+    if (hasRequested.current) {
+      return;
+    }
+    if (paymentId === null || paymentKey === null || amount === null) {
+      return;
+    }
+    hasRequested.current = true;
+    confirmMutation.mutate({ paymentId, paymentKey, amount });
+    // confirmMutation 은 매 렌더 새 참조라 의존성에서 뺀다 — paymentId 등 쿼리값만 본다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentId, paymentKey, amount]);
+
+  if (paymentId === null || paymentKey === null || amount === null) {
+    return (
+      <PageMain>
+        <DepositResultScreen
+          variant="error"
+          errorMessage="결제 정보를 확인할 수 없어요."
+          primaryLabel="홈으로"
+          onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
+        />
+      </PageMain>
+    );
+  }
+
+  if (confirmMutation.isPending || confirmMutation.isIdle) {
+    return (
+      <PageMain>
+        <DepositResultScreen
+          variant="pending"
+          primaryLabel=""
+          onPrimaryAction={() => {}}
+        />
+      </PageMain>
+    );
+  }
+
+  if (confirmMutation.isError) {
+    const error = confirmMutation.error;
+    const code = isHttpError(error) ? error.code : null;
+
+    if (isDepositExpiredErrorCode(code)) {
+      return (
+        <PageMain>
+          <DepositResultScreen
+            variant="expired"
+            primaryLabel="다시 충전하기"
+            onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
+          />
+        </PageMain>
+      );
+    }
+
+    return (
+      <PageMain>
+        <DepositResultScreen
+          variant="error"
+          errorMessage={isHttpError(error) ? error.message : undefined}
+          primaryLabel="홈으로"
+          onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
+        />
+      </PageMain>
+    );
+  }
+
   return (
     <PageMain>
-      <h1 className="text-lg font-semibold text-text-primary">충전 완료</h1>
+      <DepositResultScreen
+        variant="success"
+        amount={confirmMutation.data.amount}
+        cashBalanceAfter={confirmMutation.data.cashBalanceAfter}
+        primaryLabel="확인"
+        onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
+      />
     </PageMain>
   );
 }
