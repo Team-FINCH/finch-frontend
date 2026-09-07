@@ -22,7 +22,12 @@ import { checkIdempotency } from '../lib/idempotency';
 import { requireAuth } from '../lib/session';
 import { findHolding, recordTransaction, store } from '../lib/store';
 import { nowKstIso } from '../lib/time';
-import { evaluationAmount, profitRate, totalAsset } from '../lib/valuation';
+import {
+  currentPriceOf,
+  evaluationAmount,
+  profitRate,
+  totalAsset,
+} from '../lib/valuation';
 
 /**
  * 주문 · 주문 가능 정보 · 잔고 · 매매 내역 (apiSpec §7 · §8).
@@ -315,11 +320,16 @@ export const tradingHandlers = [
       );
     }
 
+    // 시세가 없는 종목은 평가 네 필드가 전부 null 이고 정렬에서 뒤로 간다 (apiSpec v0.8.2).
+    // 목록에서 빠지지는 않는다 — 가진 주식은 시세를 모를 때에도 보여야 한다.
     const holdings = store.holdings
       .map((holding) => {
         const stock = findStock(holding.stockCode);
-        const currentPrice = stock?.currentPrice ?? holding.avgBuyPrice;
-        const profit = (currentPrice - holding.avgBuyPrice) * holding.quantity;
+        const currentPrice = currentPriceOf(holding.stockCode);
+        const profit =
+          currentPrice === null
+            ? null
+            : (currentPrice - holding.avgBuyPrice) * holding.quantity;
 
         return {
           stockCode: holding.stockCode,
@@ -327,19 +337,26 @@ export const tradingHandlers = [
           quantity: holding.quantity,
           avgBuyPrice: holding.avgBuyPrice,
           currentPrice,
-          evaluationAmount: currentPrice * holding.quantity,
+          evaluationAmount:
+            currentPrice === null ? null : currentPrice * holding.quantity,
           evaluationProfit: profit,
-          evaluationProfitRate: profitRate(
-            profit,
-            holding.avgBuyPrice * holding.quantity,
-          ),
+          evaluationProfitRate:
+            profit === null
+              ? null
+              : profitRate(profit, holding.avgBuyPrice * holding.quantity),
         };
       })
-      .sort((left, right) =>
-        sort === 'PROFIT_RATE'
-          ? right.evaluationProfitRate - left.evaluationProfitRate
-          : right.evaluationAmount - left.evaluationAmount,
-      );
+      .sort((left, right) => {
+        const key =
+          sort === 'PROFIT_RATE' ? 'evaluationProfitRate' : 'evaluationAmount';
+        const leftValue = left[key];
+        const rightValue = right[key];
+        if (leftValue === null || rightValue === null) {
+          // 값 없음은 언제나 마지막이다. 둘 다 없으면 원래 순서를 지킨다.
+          return leftValue === rightValue ? 0 : leftValue === null ? 1 : -1;
+        }
+        return rightValue - leftValue;
+      });
 
     return HttpResponse.json({
       cashBalance: store.cashBalance,

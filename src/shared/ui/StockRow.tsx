@@ -56,8 +56,9 @@ export type StockRowFigures =
     }
   | {
       kind: 'holding';
-      evaluationAmount: number;
-      evaluationProfitRate: number;
+      /** `null` 이면 값 없음으로 그린다 (시세 없는 보유 종목 · apiSpec v0.8.2 §8.1) */
+      evaluationAmount: number | null;
+      evaluationProfitRate: number | null;
       evaluationProfit?: number | null;
     };
 

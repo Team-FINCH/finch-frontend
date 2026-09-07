@@ -46,13 +46,18 @@ export type StockSummary = z.infer<typeof StockSummarySchema>;
 export const StockSearchResponseSchema = createItemsSchema(StockSummarySchema);
 export type StockSearchResponse = z.infer<typeof StockSearchResponseSchema>;
 
-/** 종목 상세의 보유 정보 (apiSpec §5.2 종목 상세). 보유하지 않으면 상위에서 `null` 이다. */
+/**
+ * 종목 상세의 보유 정보 (apiSpec §5.2 종목 상세). 보유하지 않으면 상위에서 `null` 이다.
+ *
+ * **현재가가 없으면 평가 두 필드가 `null` 이다** (apiSpec v0.8.2). 보유 목록(§8.1)과
+ * 같은 규칙이고, `quantity`·`avgBuyPrice` 는 그때에도 값이 나간다.
+ */
 export const StockHoldingSummarySchema = z.object({
   quantity: QuantitySchema,
   avgBuyPrice: KrwAmountSchema,
-  evaluationProfit: KrwAmountSchema,
+  evaluationProfit: KrwAmountSchema.nullable(),
   /** 백분율 */
-  evaluationProfitRate: PercentSchema,
+  evaluationProfitRate: PercentSchema.nullable(),
 });
 export type StockHoldingSummary = z.infer<typeof StockHoldingSummarySchema>;
 

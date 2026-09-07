@@ -25,7 +25,7 @@ import {
   touchRecentStock,
 } from '../lib/store';
 import { nowKstIso, toKstDateString } from '../lib/time';
-import { profitRate } from '../lib/valuation';
+import { currentPriceOf, profitRate } from '../lib/valuation';
 
 /**
  * 종목 조회 · 검색 · 차트 · 시세 (apiSpec §5).
@@ -251,10 +251,13 @@ export const stockHandlers = [
       touchRecentStock(stockCode);
 
       const holding = findHolding(stockCode);
+      // 현재가를 모르면 평가 두 필드가 null 이다 (apiSpec v0.8.2 · 보유 목록 §8.1 과 같은 규칙).
+      // quantity·avgBuyPrice 는 그때에도 나간다.
+      const holdingPrice = currentPriceOf(stockCode);
       const evaluationProfit =
-        holding === undefined
-          ? 0
-          : (stock.currentPrice - holding.avgBuyPrice) * holding.quantity;
+        holding === undefined || holdingPrice === null
+          ? null
+          : (holdingPrice - holding.avgBuyPrice) * holding.quantity;
 
       return HttpResponse.json({
         stockCode: stock.stockCode,
@@ -279,10 +282,13 @@ export const stockHandlers = [
                 quantity: holding.quantity,
                 avgBuyPrice: holding.avgBuyPrice,
                 evaluationProfit,
-                evaluationProfitRate: profitRate(
-                  evaluationProfit,
-                  holding.avgBuyPrice * holding.quantity,
-                ),
+                evaluationProfitRate:
+                  evaluationProfit === null
+                    ? null
+                    : profitRate(
+                        evaluationProfit,
+                        holding.avgBuyPrice * holding.quantity,
+                      ),
               },
       });
     },

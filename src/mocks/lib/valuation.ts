@@ -8,19 +8,31 @@ import { store } from './store';
  * 모두 원 단위 정수다. 나눗셈이 들어가는 수익률만 백분율이고 소수점 둘째 자리까지 반올림한다.
  */
 
-/** 보유 종목의 현재가. 카탈로그에 없으면 평균 매수가로 대신한다. */
-export function currentPriceOf(stockCode: string, fallback: number): number {
-  return findStock(stockCode)?.currentPrice ?? fallback;
+/**
+ * 보유 종목의 현재가. **시세를 모르면 `null` 이다** (apiSpec v0.8.2 · §5.4 값 없음).
+ *
+ * 전에는 평균 매수가로 메웠는데, 그러면 시세를 모르는 종목이 손익 0 으로 보인다.
+ * v0.8.2 가 그 자리를 `null` 로 정했으므로 목도 같은 모양으로 답한다.
+ */
+export function currentPriceOf(stockCode: string): number | null {
+  const stock = findStock(stockCode);
+  if (stock === undefined || stock.quoteState === 'missing') {
+    return null;
+  }
+  return stock.currentPrice;
 }
 
-/** 평가금액 = Σ(보유 수량 × 현재가) */
+/**
+ * 평가금액 = Σ(보유 수량 × 현재가)
+ *
+ * **시세가 없는 종목은 더하지 않는다** (apiSpec v0.8.2). 0 으로 치면 자산이 사라진
+ * 것처럼 보이므로 빼고, 그 종목의 평가 필드가 `null` 인 것으로 부분값임을 알린다.
+ */
 export function evaluationAmount(): number {
-  return store.holdings.reduce(
-    (sum, holding) =>
-      sum +
-      holding.quantity * currentPriceOf(holding.stockCode, holding.avgBuyPrice),
-    0,
-  );
+  return store.holdings.reduce((sum, holding) => {
+    const currentPrice = currentPriceOf(holding.stockCode);
+    return currentPrice === null ? sum : sum + holding.quantity * currentPrice;
+  }, 0);
 }
 
 /** 총자산 = 예수금 + 평가금액 */

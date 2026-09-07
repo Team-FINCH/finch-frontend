@@ -22,23 +22,39 @@ import {
 export const PortfolioSortSchema = z.enum(['EVALUATION', 'PROFIT_RATE']);
 export type PortfolioSort = z.infer<typeof PortfolioSortSchema>;
 
-/** 보유 종목 한 줄 (apiSpec §8.1). */
+/**
+ * 보유 종목 한 줄 (apiSpec §8.1).
+ *
+ * **시세가 없는 종목은 평가 네 필드가 전부 `null` 이다** (apiSpec v0.8.2).
+ * `stockCode`·`stockName`·`quantity`·`avgBuyPrice` 는 시세와 무관하게 언제나 값이 있다.
+ * §5.4 의 "값 없음" 이 보유 목록에서 갖는 모양이고, 그 종목이 목록에서 빠지지는 않는다 —
+ * 가진 주식은 시세를 모를 때에도 보여야 한다.
+ */
 export const HoldingSchema = z.object({
   stockCode: StockCodeSchema,
   stockName: z.string(),
   quantity: QuantitySchema,
   avgBuyPrice: KrwAmountSchema,
-  currentPrice: KrwAmountSchema,
+  currentPrice: KrwAmountSchema.nullable(),
   /** 보유 수량 x 현재가 */
-  evaluationAmount: KrwAmountSchema,
+  evaluationAmount: KrwAmountSchema.nullable(),
   /** (현재가 − 평균 매수가) x 보유 수량 */
-  evaluationProfit: KrwAmountSchema,
+  evaluationProfit: KrwAmountSchema.nullable(),
   /** 백분율. 평가손익 / (평균 매수가 x 보유 수량) x 100 */
-  evaluationProfitRate: PercentSchema,
+  evaluationProfitRate: PercentSchema.nullable(),
 });
 export type Holding = z.infer<typeof HoldingSchema>;
 
-/** `GET /portfolio` 응답 (apiSpec §8.1). 상단 요약과 보유 목록이 한 응답에 온다. */
+/**
+ * `GET /portfolio` 응답 (apiSpec §8.1). 상단 요약과 보유 목록이 한 응답에 온다.
+ *
+ * 상단 `evaluationAmount` 합계와 `totalAsset` 에는 **시세가 없는 종목이 더해지지 않는다**
+ * (apiSpec v0.8.2). 0 으로 치면 자산이 사라진 것처럼 보이므로 빼고, 대신 그 종목의 평가
+ * 필드가 `null` 이라 화면이 합계가 부분값임을 알 수 있다.
+ *
+ * `asOf` 는 보유 종목들의 시세 기준 시각 중 **가장 오래된 값**이다. 화면의 갱신 시각이
+ * 실제보다 신선해 보이지 않게 가장 보수적인 값을 쓴다.
+ */
 export const PortfolioResponseSchema = z.object({
   cashBalance: KrwAmountSchema,
   evaluationAmount: KrwAmountSchema,
