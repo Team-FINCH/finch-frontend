@@ -1,8 +1,13 @@
 import {
-  CANDLE_PERIOD_OPTIONS,
-  DEFAULT_CANDLE_PERIOD,
-} from '@/shared/types/candlePeriod';
-import { CandlePeriodSchema, type CandlePeriod } from '@/shared/types/stock';
+  CANDLE_INTERVAL_OPTIONS,
+  DEFAULT_CANDLE_INTERVAL,
+} from '@/shared/types/candleInterval';
+import {
+  CandleIntervalSchema,
+  CandlePeriodSchema,
+  type CandleInterval,
+  type CandlePeriod,
+} from '@/shared/types/stock';
 
 /**
  * 종목 상세의 쿼리 파라미터 (`ia.md` §2 "쿼리 파라미터로 둘 상태").
@@ -16,9 +21,18 @@ import { CandlePeriodSchema, type CandlePeriod } from '@/shared/types/stock';
  * 별도 매핑 표를 두지 않고 `CandlePeriodSchema` 를 그대로 재사용한다. 표를 두면
  * 계약이 두 벌이 되고 한쪽만 고쳐진다.
  *
- * **`period` 값 자체(`CANDLE_PERIOD_OPTIONS`·`DEFAULT_CANDLE_PERIOD`)는
- * `@/shared/types/candlePeriod.ts` 한 곳에서만 정의한다 — TODO(계약) 임시값
- * (이슈 #37). 여기서는 그 값을 가져다 재노출만 한다.**
+ * **`period` 는 ia.md 가 못박은 그대로(`1M`·`3M`·`1Y`)다. 지금 이 화면 어떤 탭도
+ * 이 값을 바꾸지 않는다** — 아래 `CANDLE_PERIOD_OPTIONS`·`DEFAULT_CANDLE_PERIOD`·
+ * `parseCandlePeriod` 는 그 계약을 그대로 살려 둔 것이고(회신 없이 임의로 지우지
+ * 않는다), 실제로 화면에 쓰는 건 봉 종류다.
+ *
+ * **봉 종류 탭(일봉·주봉·월봉)은 `period` 가 아니라 `interval` 을 고른다.**
+ * TODO(계약): 캔들 interval — 이슈 #37 회신 전 임시값. `interval` 값 자체
+ * (`CANDLE_INTERVAL_OPTIONS`·`DEFAULT_CANDLE_INTERVAL`)는
+ * `@/shared/types/candleInterval.ts` 한 곳에서만 정의한다 — 여기서는 재노출만
+ * 한다. `?interval=` 쿼리 파라미터는 ia.md 에 아직 없다 — 이 기능 자체가 그
+ * 문서를 앞질러 가는 임시 구현이라 새로 추가했다. 근거는
+ * `@/shared/types/candleInterval.ts` 머리 주석 참고.
  *
  * **`tab` 기본값은 ia.md 에 없다.** §2 표는 값의 목록만 정하고 기본값을 적지
  * 않아서 아래 상수는 우리가 고른 값이다 — 근거는 상수 주석에 적었다.
@@ -31,7 +45,10 @@ export type StockDetailTab = (typeof STOCK_DETAIL_TABS)[number];
 
 /** 쿼리 파라미터 이름. 문자열을 화면에 흩어 적지 않는다. */
 export const STOCK_DETAIL_TAB_PARAM = 'tab';
+/** ia.md §2 잠금(`1M`·`3M`·`1Y`). 지금은 어떤 탭도 이 파라미터를 바꾸지 않는다. */
 export const STOCK_DETAIL_PERIOD_PARAM = 'period';
+/** TODO(계약): 캔들 interval — 이슈 #37 회신 전 임시값. 봉 종류 탭이 쓰는 파라미터. */
+export const STOCK_DETAIL_INTERVAL_PARAM = 'interval';
 
 /**
  * 기본 탭. ia.md 가 정하지 않았고 프로토타입이 차트 탭을 먼저 그린다
@@ -39,8 +56,26 @@ export const STOCK_DETAIL_PERIOD_PARAM = 'period';
  */
 export const DEFAULT_STOCK_DETAIL_TAB: StockDetailTab = 'chart';
 
-/** `@/shared/types/candlePeriod.ts` 재노출. 정의는 그 파일 한 곳뿐이다. */
-export { CANDLE_PERIOD_OPTIONS, DEFAULT_CANDLE_PERIOD };
+/**
+ * 기본 기간. ia.md 가 정하지 않았다. **지금 화면에서 실제로 쓰이지는 않는다** —
+ * 봉 종류 탭은 `DEFAULT_CANDLE_INTERVAL` 을 쓴다. `period` 자체가 살아 있는 계약
+ * 이라 값과 목록은 지우지 않고 남겨 둔다.
+ */
+export const DEFAULT_CANDLE_PERIOD: CandlePeriod =
+  CandlePeriodSchema.parse('1M');
+
+/** 기간 목록과 라벨. ia.md §2 잠금 값 그대로다. */
+export const CANDLE_PERIOD_OPTIONS: readonly {
+  value: CandlePeriod;
+  label: string;
+}[] = [
+  { value: CandlePeriodSchema.parse('1M'), label: '1개월' },
+  { value: CandlePeriodSchema.parse('3M'), label: '3개월' },
+  { value: CandlePeriodSchema.parse('1Y'), label: '1년' },
+];
+
+/** `@/shared/types/candleInterval.ts` 재노출. 정의는 그 파일 한 곳뿐이다. */
+export { CANDLE_INTERVAL_OPTIONS, DEFAULT_CANDLE_INTERVAL };
 
 /** 모르는 값은 기본 탭으로 떨어뜨린다. 던지지 않는다 — 위 주석 참고. */
 export function parseStockDetailTab(value: string | null): StockDetailTab {
@@ -49,8 +84,14 @@ export function parseStockDetailTab(value: string | null): StockDetailTab {
     : DEFAULT_STOCK_DETAIL_TAB;
 }
 
-/** 모르는 값은 기본 봉 종류로 떨어뜨린다. */
+/** 모르는 값은 기본 기간으로 떨어뜨린다. 지금은 어디서도 호출하지 않는다(위 주석). */
 export function parseCandlePeriod(value: string | null): CandlePeriod {
   const parsed = CandlePeriodSchema.safeParse(value);
   return parsed.success ? parsed.data : DEFAULT_CANDLE_PERIOD;
+}
+
+/** 모르는 값은 기본 봉 종류로 떨어뜨린다. */
+export function parseCandleInterval(value: string | null): CandleInterval {
+  const parsed = CandleIntervalSchema.safeParse(value);
+  return parsed.success ? parsed.data : DEFAULT_CANDLE_INTERVAL;
 }

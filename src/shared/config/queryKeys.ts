@@ -57,9 +57,13 @@ export const queryKeys = {
     recentStocks: () => [...queryKeys.stocks.all(), 'recent'] as const,
     detail: (stockCode: string) =>
       [...queryKeys.stocks.all(), 'detail', stockCode] as const,
-    /** 캔들 (apiSpec §5.3). 기간이 키에 들어가야 기간 탭을 오갈 때 캐시가 산다. */
-    candles: (stockCode: string, period: string) =>
-      [...queryKeys.stocks.all(), 'candles', stockCode, period] as const,
+    /**
+     * 캔들 (apiSpec §5.3). 봉 종류(`interval`)가 키에 들어가야 봉 종류 탭을
+     * 오갈 때 캐시가 산다. TODO(계약): 캔들 interval — 이슈 #37 회신 전 임시값
+     * (`@/shared/types/candleInterval.ts` 참고).
+     */
+    candles: (stockCode: string, interval: string) =>
+      [...queryKeys.stocks.all(), 'candles', stockCode, interval] as const,
     /** 단건 현재가 (apiSpec §5.4). 상세 화면이 폴링으로 갱신한다. */
     quote: (stockCode: string) =>
       [...queryKeys.stocks.all(), 'quote', stockCode] as const,

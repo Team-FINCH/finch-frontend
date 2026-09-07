@@ -5,11 +5,12 @@ import {
   STOCK_PRICES_MAX_CODES,
   STOCK_SEARCH_MIN_KEYWORD_LENGTH,
 } from '@/shared/config/apiContract';
-import { CandlePeriodSchema } from '@/shared/types/candlePeriod';
+import { CandleIntervalSchema } from '@/shared/types/candleInterval';
 import {
   COMMON_ERROR_CODES,
   STOCK_ERROR_CODES,
 } from '@/shared/types/errorCodes';
+import { CandlePeriodSchema } from '@/shared/types/stock';
 
 import {
   ACTIVE_MOCK_STOCKS,
@@ -42,7 +43,7 @@ import { currentPriceOf, profitRate } from '../lib/valuation';
  * | 입력 | 응답 |
  * | --- | --- |
  * | 카탈로그에 없는 종목코드 | `404 STOCK_NOT_FOUND` |
- * | `keyword` 2글자 미만 · `period` 열거값 밖 · `stockCodes` 누락이나 50건 초과 | `400 INVALID_REQUEST` |
+ * | `keyword` 2글자 미만 · `period`·`interval` 열거값 밖 · `stockCodes` 누락이나 50건 초과 | `400 INVALID_REQUEST` |
  * | `036570`(엔씨소프트) | `suspended: true` — 뱃지와 주문 차단 렌더 |
  * | `010950`(에스오일) | `stale: true` + 마지막 수신 값 유지 |
  * | `900140`(엘브이엠씨홀딩스) | `stale: true` + 가격 3필드와 `asOf` 가 전부 `null` |
@@ -163,16 +164,21 @@ function aggregateCandles(
   });
 }
 
+/**
+ * `period` 는 무시하고 `interval` 별 전량을 준다 — 보이는 범위는 확대/축소가
+ * 맡으므로 `period`(1M·3M·1Y)로 서버 쪽에서 잘라 줄 이유가 없다. `period` 는
+ * 응답 봉투에만 그대로 실어 돌려준다(apiSpec §5.3 계약 유지).
+ */
 function buildCandles(
   stockCode: string,
-  period: string,
+  interval: string,
   lastClose: number,
 ): MockCandle[] {
   const daily = buildDailyCandles(stockCode, lastClose);
-  if (period === 'W') {
+  if (interval === 'WEEK') {
     return aggregateCandles(daily, weekKey);
   }
-  if (period === 'M') {
+  if (interval === 'MONTH') {
     return aggregateCandles(daily, monthKey);
   }
   return daily;
@@ -273,23 +279,43 @@ export const stockHandlers = [
         );
       }
 
-      // 값 자체는 `@/shared/types/candlePeriod.ts` 한 곳에서만 정의한다 (TODO(계약)
-      // 임시값 — 이슈 #37). 여기서는 그 스키마로만 검증한다.
-      const period = searchParam(request, 'period') ?? 'D';
-      if (!(CandlePeriodSchema.options as readonly string[]).includes(period)) {
+      // `period` 는 apiSpec §5.3 문서 그대로(1M·3M·1Y) 검증한다 — 손대지 않았다.
+      const period = searchParam(request, 'period') ?? '1M';
+      const periodValid = (
+        CandlePeriodSchema.options as readonly string[]
+      ).includes(period);
+
+      // `interval` 값 자체는 `@/shared/types/candleInterval.ts` 한 곳에서만
+      // 정의한다 (TODO(계약) 임시값 — 이슈 #37). 여기서는 그 스키마로만 검증한다.
+      const interval = searchParam(request, 'interval') ?? 'DAY';
+      const intervalValid = (
+        CandleIntervalSchema.options as readonly string[]
+      ).includes(interval);
+
+      if (!periodValid || !intervalValid) {
         return errorResponse(
           COMMON_ERROR_CODES.INVALID_REQUEST,
           '요청 값이 올바르지 않습니다',
           400,
-          { period: 'D(일봉) · W(주봉) · M(월봉) 중 하나여야 합니다' },
+          {
+            ...(periodValid
+              ? {}
+              : { period: '1M · 3M · 1Y 중 하나여야 합니다' }),
+            ...(intervalValid
+              ? {}
+              : {
+                  interval:
+                    'DAY(일봉) · WEEK(주봉) · MONTH(월봉) 중 하나여야 합니다',
+                }),
+          },
         );
       }
 
       return HttpResponse.json({
         stockCode,
         period,
-        interval: 'DAY',
-        candles: buildCandles(stockCode, period, stock.currentPrice),
+        interval,
+        candles: buildCandles(stockCode, interval, stock.currentPrice),
       });
     },
   ),
