@@ -1,69 +1,64 @@
 import { matchPath, useLocation } from 'react-router-dom';
 
-import {
-  ROUTES,
-  ROUTE_PATTERNS,
-  STOCK_CODE_PARAM,
-} from '@/shared/config/routes';
+import { ROUTES } from '@/shared/config/routes';
 import { useIsAnySheetOpen } from '@/shared/hooks/useSheetOverlayStore';
-import { StockCodeSchema } from '@/shared/types/primitives';
+import { AiEntryButton } from '@/shared/ui/AiEntryButton';
 
 /**
- * **AI 플로팅 버튼이 보일 화면을 판정하는 자리.** 판정은 이 파일 한 곳에만 있다.
+ * **AI 플로팅 버튼(`.fab`)이 보일 화면을 판정하는 자리.** 판정은 이 파일 한
+ * 곳에만 있다.
  *
- * ## 미확정이다 (ia.md §3 · §7)
+ * ## 프로토타입 재실측으로 좁혔다 (FINCH-28-ai-entry, 2026-09-07)
  *
- * PRD v1.0 이 정한 배치는 **종목 상세 · 포트폴리오 · 브리핑 · 뉴스 상세**이고
- * 주문 화면은 제외한다(제출 버튼을 가린다). 그런데 프로토타입
- * (`finch-screens.dc.html`)의 실제 구현은 `showFab: ["home","detail","portfolio","briefing"]`
- * 로 **홈이 들어가 있고 뉴스 상세가 없다.** 어느 쪽을 따를지 확정되지 않았고
- * ia.md §7 에 미확인 항목으로 올라가 있다 (AI 파트 · GitLab 이슈 #26 4번).
+ * 전에는 여기 종목 상세·포트폴리오·브리핑 세 화면을 넣어 뒀었다(PRD v1.0 문구를
+ * 그대로 옮긴 값, ia.md §1·§2). **직접 프로토타입(`finch-prototype.html`)의
+ * 상태 계산을 다시 읽은 결과 그 값이 틀렸다:**
  *
- * 지금은 **ia.md §1·§2 가 그대로 옮겨 적은 PRD 문구를 따른다** — 종목 상세 ·
- * 포트폴리오 · 브리핑 전체 셋이다. 뉴스 상세는 대응하는 화면 자체가 없어서 빼고,
- * 홈은 PRD 배치에 없어서 넣지 않았다. **답이 오면 아래 배열 한 곳만 고친다.**
+ * ```
+ * showTabs: !s.sheet && ["home","search","portfolio","mypage","detail"].includes(s.screen)
+ * showFab:  !s.sheet && ["briefing"].includes(s.screen)
+ * ```
  *
- * 버튼이 넘기는 맥락의 범위(종목 코드만인지 탭·기간까지인지)와 채팅 요청의
- * `context.screen` 열거값도 같은 이슈로 물어 둔 상태다 (ia.md §2).
+ * `.fab`(플로팅)는 **브리핑 하나뿐**이다. 종목 상세·포트폴리오는 `showTabs`
+ * 목록에 있어서 `.tabai`(탭 바 줄의 AI 버튼, `shared/ui/TabBar.tsx`)로 이미
+ * 버튼이 뜬다 — 종목 상세는 `TradeTabBar`, 포트폴리오는 `TabBar`(`TabBarLayout`
+ * 아래)를 통해서다. 옛 배열대로 두면 그 두 화면에 버튼이 **둘** 뜬다.
+ *
+ * **확인한 근거** — `pages/StockDetailPage.tsx`가 `TradeTabBar`를 페이지 안에서
+ * 직접 렌더한다(레이아웃이 아니라 페이지가 그린다, 그 파일 머리 주석 참고).
+ * `pages/PortfolioPage.tsx`는 `app/router.tsx`에서 `TabBarLayout`의 자식이라
+ * `TabBar`를 물려받는다. 두 화면 다 `.tabai`를 이미 갖고 있다는 뜻이라 여기서는
+ * 뺀다.
+ *
+ * 뉴스 상세는 대응하는 화면 자체가 없어서 전부터 빠져 있었고 지금도 넣지 않는다.
+ * 종목 코드 맥락 전달 범위(`context.screen` 등)는 여전히 GitLab 이슈 #26 4번
+ * 회신 대기다 — `AiEntryButton`이 지금 `/chat`으로만 이동하고 쿼리를 만들지
+ * 않는 이유이기도 하다.
  */
-const AI_FLOATING_PATTERNS: readonly string[] = [
-  ROUTE_PATTERNS.stockDetail,
-  ROUTES.portfolio,
-  ROUTES.briefing,
-];
+const AI_FLOATING_PATTERNS: readonly string[] = [ROUTES.briefing];
+
+/** 브리핑 화면 진입 시 라벨이 펼쳐진다(프로토타입 `fabLabel`). */
+const AI_FLOATING_EXPANDED_LABEL = '브리핑 물어보기';
 
 /**
- * `matchPath` 는 기본이 완전 일치라 `/stocks/:stockCode` 패턴이
- * `/stocks/000660/order` 에는 걸리지 않는다. 주문 화면 제외가 이것으로 얻어진다.
- *
- * **경로가 맞아도 화면이 404 인 경우가 있다.** `/stocks/12` 는 패턴에는 걸리지만
- * `StockCodeGuard` 가 형식을 보고 404 를 렌더한다(컨벤션 §10 경로 파라미터).
- * 이 레이어는 가드 바깥에 있어서 그 판정을 물려받지 못하므로 같은 스키마로 한 번 더
- * 본다. 오버레이가 라우트 트리 최상단에 있는 대가다.
+ * 지금은 `AI_FLOATING_PATTERNS`에 파라미터 있는 패턴(`/stocks/:stockCode` 같은)이
+ * 없다 — 브리핑 하나뿐인 정적 경로다. 그래도 `matchPath`로 판정하는 이유는
+ * 나중에 이 배열이 다시 늘어나도(예: 종목 상세가 도로 들어오는 회신이 오면)
+ * 이 함수를 고칠 필요가 없게 하기 위해서다.
  */
 function showsAiFloatingButton(pathname: string) {
-  const match = AI_FLOATING_PATTERNS.reduce<ReturnType<
-    typeof matchPath
-  > | null>((found, pattern) => found ?? matchPath(pattern, pathname), null);
-
-  if (match === null) {
-    return false;
-  }
-
-  const stockCode = match.params[STOCK_CODE_PARAM];
-  if (stockCode !== undefined) {
-    return StockCodeSchema.safeParse(stockCode).success;
-  }
-
-  return true;
+  return AI_FLOATING_PATTERNS.some(
+    (pattern) => matchPath(pattern, pathname) !== null,
+  );
 }
 
 /**
  * 전역 오버레이 레이어. **`RootLayout` 이 `Outlet` 위에 항상 렌더한다.**
  *
- * 플로팅 버튼은 하단 탭이 있는 화면(포트폴리오)과 없는 화면(종목 상세·브리핑)에
- * 모두 떠야 하므로 `TabBarLayout` 안이 아니라 라우트 트리 최상단에 자리를 둔다.
- * `TabBarLayout` 안에 두면 탭 밖 화면에서 사라진다.
+ * 지금은 `showsAiFloatingButton`이 브리핑(탭 없는 화면) 하나만 참이라 실제로는
+ * `TabBarLayout` 안에 둬도 동작할 자리지만, 배열이 다시 늘어 하단 탭이 있는
+ * 화면이 들어와도 이 레이어를 옮기지 않아도 되도록 라우트 트리 최상단에 둔다.
+ * `TabBarLayout` 안에 두면 그 레이아웃 밖 화면(브리핑 포함)에서 사라진다.
  *
  * **바텀시트가 하나라도 열려 있으면 이 레이어도 렌더에서 빠진다**
  * (`useIsAnySheetOpen`, FINCH-28) — 프로토타입의 `showFab: !s.sheet`와 같다.
@@ -71,16 +66,17 @@ function showsAiFloatingButton(pathname: string) {
  * `opacity:0`이 아니라 `null`을 반환한다 — 시트 위에 눌리지 않는 빈 자리조차
  * 남기지 않는다.
  *
- * **버튼 UI 는 여기서 그리지 않는다.** 공통 컴포넌트 티켓의 몫이고 이 파일은
- * 자리와 노출 판정만 갖는다. 버튼을 넣는 사람이 할 일은 둘이다.
+ * **버튼은 `AiEntryButton`(`shared/ui/AiEntryButton.tsx`) 하나다.** `TabBar.tsx`의
+ * `.tabai` 자리와 컴포넌트를 공유하고 여기서는 `.fab` 위치만 만든다 — 프로토타입
+ * `.fab{position:absolute;right:16px;bottom:16px}`을 이 컨테이너의 우측·하단
+ * 여백으로 옮겼다(버튼 자신은 크기·색만 갖고 위치는 갖지 않는다, 탭 바 줄
+ * 안에서도 같은 컴포넌트를 써야 해서다). 브리핑은 탭 바가 없는 화면이라
+ * safe-area 만 더하면 된다 — 탭 바가 있는 화면(포트폴리오)은 애초에 `.fab`가
+ * 아니라 `.tabai`로 뜨므로(`AI_FLOATING_PATTERNS` 주석 참고) 이 오버레이가
+ * 탭 바 높이를 신경 쓸 화면이 지금은 없다.
  *
- * - 아래 주석 자리에 버튼을 렌더한다. 버튼 자신은 `pointer-events-auto` 를 켠다
- *   (이 컨테이너는 `pointer-events-none` 이라 빈 자리가 본문 터치를 막지 않는다)
- * - **탭 바에 가리지 않게 하단 여백을 잡는다.** 탭 바 컴포넌트가 아직 없어서
- *   높이 값이 정해지지 않았다. 탭 바가 `fixed` 로 들어오면 그 높이 +
- *   `env(safe-area-inset-bottom)` 만큼을 이 컨테이너 하단에 더한다. 탭이 없는
- *   화면(종목 상세·브리핑)에서는 safe-area 만 남는다 — 두 경우가 갈리므로
- *   여백 값도 `BOTTOM_TAB_ROUTES` 매칭으로 갈라야 한다.
+ * 컨테이너가 `pointer-events-none`이라 빈 자리가 본문 터치를 막지 않는다 —
+ * `AiEntryButton`은 일반 `<button>`이라 자기 영역에서만 클릭을 받는다.
  */
 export function AiFloatingOverlay() {
   const location = useLocation();
@@ -92,10 +88,10 @@ export function AiFloatingOverlay() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-end"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-md justify-end pr-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
       data-testid="ai-floating-slot"
     >
-      {/* 여기에 AI 플로팅 버튼이 들어온다. 공통 컴포넌트 티켓 범위다. */}
+      <AiEntryButton expandedLabel={AI_FLOATING_EXPANDED_LABEL} />
     </div>
   );
 }
