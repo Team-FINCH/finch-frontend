@@ -18,6 +18,16 @@ type RequestOptions = {
    * 부르는 무한 루프가 된다 (컨벤션 §5).
    */
   shouldAttachSession?: boolean;
+  /**
+   * 요청별 추가 헤더. **멱등성 키를 실으려고 열었다** (apiSpec §1.4 · contracts C29) —
+   * `POST /orders` 와 `POST /deposits` 가 `Idempotency-Key` 를 필수로 요구하는데
+   * 그 값은 요청마다 달라서 클라이언트 안에 상수로 둘 수 없다.
+   *
+   * `Authorization` 과 `Content-Type` 은 여기서 덮어쓸 수 없다. 아래 `sendRequest`
+   * 가 이 값을 먼저 펼치고 그 둘을 나중에 얹는다 — 인증 헤더를 호출부가 갈아끼울 수
+   * 있으면 세션 재발급 경로가 조용히 어긋난다.
+   */
+  headers?: Record<string, string>;
 };
 
 /** 응답 본문을 검증할 Zod 스키마. 검증을 통과한 값만 밖으로 나간다. */
@@ -89,9 +99,17 @@ async function sendRequest(
   path: string,
   options: RequestOptions,
 ): Promise<SentRequest> {
-  const { method = 'GET', body, signal, shouldAttachSession = true } = options;
+  const {
+    method = 'GET',
+    body,
+    signal,
+    shouldAttachSession = true,
+    headers: extraHeaders,
+  } = options;
 
-  const headers: Record<string, string> = {};
+  // 호출부 헤더를 먼저 펼치고 우리가 관리하는 것을 뒤에 얹는다.
+  // 순서가 곧 우선순위다 — Content-Type 과 Authorization 은 덮이지 않는다.
+  const headers: Record<string, string> = { ...extraHeaders };
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
   }
