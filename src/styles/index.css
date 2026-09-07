@@ -131,14 +131,21 @@
   --color-ai-status-icon-surface: #f1f3f6;
 
   /* AI 액센트. 검정 면 위에서만, 한 카드에 최대 2~3곳만 쓴다 (design.md §4·§15).
-     디자인 확인이 필요하다 — 두 근거의 값이 다르다.
-       design.md v2 §4  --ai-accent  #E3B341   #24272C 위 대비 7.70
-       프로토타입 :root  --ai-acc     #E9C77F   #24272C 위 대비 9.23 (실사용 5곳)
-     둘 다 AA 를 넘긴다. 1차 근거인 design.md 값을 넣었다.
-     프로토타입 쪽이 맞다는 회신이 오면 이 줄만 #E9C77F 로 고친다.
-     흰 배경에서는 둘 다 대비가 2 미만이라 검정 면 밖에서 쓰지 않는다.
-     쓰는 컴포넌트가 아직 없다 — AI 슬롯을 만들 때 값을 다시 확인한다. */
-  --color-ai-accent: #e3b341;
+     한때 두 근거의 값이 갈렸다 —
+       design.md v2 §4  --ai-accent  #E3B341   (당시 대비 7.70, 아래 사유로 재계산 안 함)
+       프로토타입 :root  --ai-acc     #E9C77F   (당시 대비 9.23, 실사용 5곳)
+     이슈 #32 회신(2026-09-04)으로 프로토타입 값 #E9C77F 로 확정됐다.
+     위 대비 숫자 둘 다 확정 전에 잰 것이라 낡았다 — 새 값 기준으로 다시 재지 않았다.
+     흰 배경에서는 검정 면 밖에서 쓰지 않으므로 대비를 따지지 않는다.
+     쓰는 컴포넌트가 아직 없다 — AI 슬롯을 만들 때 대비를 다시 확인한다. */
+  --color-ai-accent: #e9c77f;
+
+  /* 알림함 미확인 점·뱃지 전용 (design.md §4 --notify · §7.11 "미확인 알림은
+     --notify 의 작은 Dot/Badge 만 사용"). 등락·에러 색과 값이 가깝지만
+     쓰이는 자리가 겹치지 않아 토큰을 따로 둔다.
+     다크 모드 값(#F26D6D, 이슈 #32 회신)은 넣지 않는다 — 이 파일 맨 위 안내대로
+     라이트 모드 하나만 쓰기로 정했고 dark 분기 블록이 아예 없다. */
+  --color-notify: #d94a4a;
 
   /* 구분선(프로토타입 --rule). --color-border 보다 반톤 진하다.
      프로토타입은 카드 테두리에 --border 를, 카드 안에서 내용 덩어리를 가르는
@@ -300,10 +307,10 @@
      지금은 StockRow(`.row`)만 쓴다. Segmented·아이콘 버튼 컴포넌트를 만들 때
      이 토큰을 재사용한다. */
   --radius-12: 12px;
-  --radius-card: 16px; /* Standard Card (.card) */
-  /* AI 박스. design.md 는 18px 이었지만 프로토타입 `.ai` 는 16px 로 카드와 같다.
-     값이 같아도 이름은 남긴다 — AI 면은 색(--color-ai-surface)이 따로 있고
-     카드와 갈라질 여지가 있는 자리다. */
+  --radius-card: 12px; /* Standard Card (.card). 이슈 #32 회신(2026-09-04)으로 16→12 확정 */
+  /* AI 박스. design.md 는 18px 이었지만 프로토타입 `.ai` 는 16px 로 카드와 같았다.
+     이슈 #32 회신은 --radius-card 를 12px 로 확정했지만 --radius-ai 도 12px 로
+     내리라는 확인은 아직 없다 — 두 값이 갈라졌을 수 있다. 확인 전까지 16px 유지. */
   --radius-ai: 16px;
   --radius-sheet: 24px; /* Bottom Sheet 상단 (.sheet) */
 
@@ -325,6 +332,32 @@
   --motion-fast: 140ms; /* 마이크로 인터랙션 */
   --motion-normal: 200ms; /* 탭, 아코디언 */
   --motion-sheet: 260ms; /* 바텀시트 */
+}
+
+/*
+ * 바텀시트 진입 애니메이션 (FINCH-28, `shared/ui/BottomSheet.tsx`).
+ * 프로토타입 `@keyframes fade`·`@keyframes up`을 그대로 옮겼다 — 이름만 바꿨다.
+ * Tailwind 유틸리티 `animate-[...]`는 클래스만으로 만들 수 없고 `@keyframes`가
+ * 전역에 있어야 해서 토큰 파일에 둔다. Radix 는 닫힘에서 별도 애니메이션을
+ * 감지하지 못하면 즉시 언마운트한다 — 프로토타입도 닫힘 애니메이션이 없어서
+ * 여는 방향만 정의했다.
+ */
+@keyframes sheet-scrim-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 html,

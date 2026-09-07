@@ -61,6 +61,47 @@ function lazyPage<Key extends string>(
 
 const HealthPage = lazyPage(() => import('@/pages/HealthPage'), 'HealthPage');
 const MyPage = lazyPage(() => import('@/pages/MyPage'), 'MyPage');
+const HomePage = lazyPage(() => import('@/pages/HomePage'), 'HomePage');
+const SearchPage = lazyPage(() => import('@/pages/SearchPage'), 'SearchPage');
+const StockDetailPage = lazyPage(
+  () => import('@/pages/StockDetailPage'),
+  'StockDetailPage',
+);
+const OrderPage = lazyPage(() => import('@/pages/OrderPage'), 'OrderPage');
+const PortfolioPage = lazyPage(
+  () => import('@/pages/PortfolioPage'),
+  'PortfolioPage',
+);
+const TransactionsPage = lazyPage(
+  () => import('@/pages/TransactionsPage'),
+  'TransactionsPage',
+);
+const BriefingPage = lazyPage(
+  () => import('@/pages/BriefingPage'),
+  'BriefingPage',
+);
+const InboxPage = lazyPage(() => import('@/pages/InboxPage'), 'InboxPage');
+const ChatPage = lazyPage(() => import('@/pages/ChatPage'), 'ChatPage');
+const DepositPage = lazyPage(
+  () => import('@/pages/DepositPage'),
+  'DepositPage',
+);
+const DepositCompletePage = lazyPage(
+  () => import('@/pages/DepositCompletePage'),
+  'DepositCompletePage',
+);
+const DepositFailPage = lazyPage(
+  () => import('@/pages/DepositFailPage'),
+  'DepositFailPage',
+);
+const DepositTransferPage = lazyPage(
+  () => import('@/pages/DepositTransferPage'),
+  'DepositTransferPage',
+);
+const WithdrawPage = lazyPage(
+  () => import('@/pages/WithdrawPage'),
+  'WithdrawPage',
+);
 
 export const router = createBrowserRouter([
   {
@@ -82,14 +123,14 @@ export const router = createBrowserRouter([
             // 보호 + 하단 탭 (ia.md §3).
             element: <TabBarLayout />,
             children: [
-              { path: ROUTES.home, element: <RoutePlaceholder screen="홈" /> },
+              { path: ROUTES.home, element: <HomePage /> },
               {
                 path: ROUTES.search,
-                element: <RoutePlaceholder screen="종목 검색" />,
+                element: <SearchPage />,
               },
               {
                 path: ROUTES.portfolio,
-                element: <RoutePlaceholder screen="포트폴리오" />,
+                element: <PortfolioPage />,
               },
               { path: ROUTES.my, element: <MyPage /> },
             ],
@@ -102,39 +143,70 @@ export const router = createBrowserRouter([
           },
           {
             path: ROUTES.transactions,
-            element: <RoutePlaceholder screen="매매 내역" />,
+            element: <TransactionsPage />,
           },
           {
             // 경로 미확정. `ROUTES.briefing` 주석과 ia.md §7 을 본다.
             path: ROUTES.briefing,
-            element: <RoutePlaceholder screen="브리핑 전체" />,
+            element: <BriefingPage />,
           },
           {
             path: ROUTES.deposit,
-            element: <RoutePlaceholder screen="충전" />,
+            element: <DepositPage />,
+          },
+          {
+            // 카카오페이 승인 성공 복귀. `ROUTES.depositComplete` 주석 — 백엔드
+            // `application.yaml` 의 `success-path` 와 짝이다 (FINCH-145).
+            path: ROUTES.depositComplete,
+            element: <DepositCompletePage />,
+          },
+          {
+            // 카카오페이 승인 실패 복귀. `fail-path` 와 짝이다 (FINCH-145).
+            path: ROUTES.depositFail,
+            element: <DepositFailPage />,
+          },
+          {
+            // `TRANSFER` 수단의 `checkoutUrl` 도착지. `transfer-checkout-path` 와
+            // 짝이다 (FINCH-146).
+            path: ROUTES.depositTransfer,
+            element: <DepositTransferPage />,
+          },
+          {
+            path: ROUTES.withdraw,
+            element: <WithdrawPage />,
           },
           {
             // 경로 미확정. `ROUTES.inbox` 주석과 ia.md §7 을 본다.
             // 라우트는 `/inbox` 지만 프로토타입 내부 식별자는 `isMail`·`goMail` 이다.
             path: ROUTES.inbox,
-            element: <RoutePlaceholder screen="알림함" />,
+            element: <InboxPage />,
           },
           {
             path: ROUTES.chat,
-            element: <RoutePlaceholder screen="AI 채팅" />,
+            element: <ChatPage />,
           },
 
           {
             // 형식이 틀린 종목코드를 여기서 한 번에 거른다.
+            //
+            // **종목 상세를 `TabBarLayout` 밖에 둔다.** ia.md:346 은 프로토타입의
+            // `showTabs` 조건(`home`·`search`·`portfolio`·`mypage`·`detail`)에 종목
+            // 상세가 들어 있다고 적지만, 그 자리에 나오는 것은 나브 탭 4개가 아니라
+            // 매수/매도 바(`.tabpill.trade`) 변형이다 — `TabBar.tsx` 의 `TradeTabBar`
+            // 와 `ActionBar.tsx` 의 "종목 상세는 하단 탭바가 그대로 매수/매도 바로
+            // 바뀐다" 코멘트가 근거다. `TabBarLayout` 은 `<TabBar/>`(나브 변형)만
+            // 렌더하므로 종목 상세를 그 아래 두면 나브 탭이 잘못 뜬다.
+            // `TradeTabBar` 를 다는 레이아웃은 아직 없다 — 그 배선은 이 티켓 범위
+            // 밖이라 만들지 않았다.
             element: <StockCodeGuard />,
             children: [
               {
                 path: ROUTE_PATTERNS.stockDetail,
-                element: <RoutePlaceholder screen="종목 상세" />,
+                element: <StockDetailPage />,
               },
               {
                 path: ROUTE_PATTERNS.stockOrder,
-                element: <RoutePlaceholder screen="주문" />,
+                element: <OrderPage />,
               },
             ],
           },

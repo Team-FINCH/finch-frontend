@@ -5,6 +5,7 @@ import {
   ROUTE_PATTERNS,
   STOCK_CODE_PARAM,
 } from '@/shared/config/routes';
+import { useIsAnySheetOpen } from '@/shared/hooks/useSheetOverlayStore';
 import { StockCodeSchema } from '@/shared/types/primitives';
 
 /**
@@ -64,6 +65,12 @@ function showsAiFloatingButton(pathname: string) {
  * 모두 떠야 하므로 `TabBarLayout` 안이 아니라 라우트 트리 최상단에 자리를 둔다.
  * `TabBarLayout` 안에 두면 탭 밖 화면에서 사라진다.
  *
+ * **바텀시트가 하나라도 열려 있으면 이 레이어도 렌더에서 빠진다**
+ * (`useIsAnySheetOpen`, FINCH-28) — 프로토타입의 `showFab: !s.sheet`와 같다.
+ * `TabBar`(`shared/ui/TabBar.tsx`)도 같은 스토어를 보고 같은 규칙으로 빠진다.
+ * `opacity:0`이 아니라 `null`을 반환한다 — 시트 위에 눌리지 않는 빈 자리조차
+ * 남기지 않는다.
+ *
  * **버튼 UI 는 여기서 그리지 않는다.** 공통 컴포넌트 티켓의 몫이고 이 파일은
  * 자리와 노출 판정만 갖는다. 버튼을 넣는 사람이 할 일은 둘이다.
  *
@@ -77,8 +84,9 @@ function showsAiFloatingButton(pathname: string) {
  */
 export function AiFloatingOverlay() {
   const location = useLocation();
+  const isAnySheetOpen = useIsAnySheetOpen();
 
-  if (!showsAiFloatingButton(location.pathname)) {
+  if (!showsAiFloatingButton(location.pathname) || isAnySheetOpen) {
     return null;
   }
 

@@ -45,6 +45,22 @@ export const ROUTES = {
    */
   briefing: '/briefing',
   deposit: '/deposit',
+  /**
+   * 카카오페이 승인 성공 뒤 돌아오는 자리 (ia.md §1 "결제 복귀 화면", FINCH-145).
+   * **이 값은 프론트가 혼자 정하지 않는다** — 백엔드 `application.yaml` 의
+   * `finch.payment.success-path` 와 같아야 한다. 카카오 승인 뒤 서버가 이 경로로
+   * `302` 를 보낸다. 바꾸면 백엔드와 먼저 맞춘다.
+   */
+  depositComplete: '/deposit/complete',
+  /** 카카오페이 승인 실패 뒤 돌아오는 자리. 근거·주의는 `depositComplete` 와 같다
+   * (`fail-path`, ia.md §1 "결제 복귀 화면", FINCH-145). */
+  depositFail: '/deposit/fail',
+  /**
+   * `TRANSFER` 수단의 `checkoutUrl` 도착지 — 모의 이체 화면
+   * (ia.md §1 "모의 이체 화면", FINCH-146).
+   * 백엔드 `application.yaml` 의 `finch.payment.transfer-checkout-path` 와 같아야 한다.
+   */
+  depositTransfer: '/deposit/transfer',
   chat: '/chat',
   /**
    * 알림함 — Finch 가 물어다 놓는 것 열람. **경로 미확정** (ia.md §1·§7).
@@ -54,6 +70,8 @@ export const ROUTES = {
    * **API 계약도 아직 없다** — GitLab 이슈 #26 1번으로 문의 중이다.
    */
   inbox: '/inbox',
+  /** 출금 (ia.md §1 "출금 화면", FINCH-138). 진입점은 마이페이지다. */
+  withdraw: '/withdraw',
   my: '/my',
   /** ia.md 에 없는 개발 전용 배선 점검 화면. 화면 16개에 포함되지 않는다. */
   health: '/health',

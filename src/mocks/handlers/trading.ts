@@ -44,8 +44,9 @@ import { evaluationAmount, profitRate, totalAsset } from '../lib/valuation';
  * | 예수금보다 큰 매수 | `409 ORDER_INSUFFICIENT_CASH` (`detail.required`·`detail.available`) |
  * | 보유 수량보다 큰 매도 | `409 ORDER_INSUFFICIENT_QUANTITY` |
  *
- * `ORDER_PRICE_CHANGED` 는 내지 않는다. 판정 조건이 apiSpec 13장 7번 확정 전까지
- * 발행하지 않기로 돼 있어(§11.2) 목이 먼저 만들면 화면이 없는 갈래를 그린다.
+ * `ORDER_PRICE_CHANGED` 는 내지 않는다. apiSpec v0.8 이 이 코드를 폐기했다 —
+ * 가격 변동으로 부족해진 것과 원래 부족했던 것을 서버가 구분하지 않고
+ * `ORDER_INSUFFICIENT_CASH` 하나로 응답하기로 확정했다 (§11.2, featureSpec §7.3).
  *
  * 거래 시간(09:00~15:30)은 시계로 판정하지 않는다. 그러면 장 밖에서 주문 화면을 아예
  * 만들 수 없다. `ORDER_MARKET_CLOSED` 는 위 전용 종목으로만 나온다 (`lib/catalog.ts`).
