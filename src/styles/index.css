@@ -327,6 +327,32 @@
   --motion-sheet: 260ms; /* 바텀시트 */
 }
 
+/*
+ * 바텀시트 진입 애니메이션 (FINCH-28, `shared/ui/BottomSheet.tsx`).
+ * 프로토타입 `@keyframes fade`·`@keyframes up`을 그대로 옮겼다 — 이름만 바꿨다.
+ * Tailwind 유틸리티 `animate-[...]`는 클래스만으로 만들 수 없고 `@keyframes`가
+ * 전역에 있어야 해서 토큰 파일에 둔다. Radix 는 닫힘에서 별도 애니메이션을
+ * 감지하지 못하면 즉시 언마운트한다 — 프로토타입도 닫힘 애니메이션이 없어서
+ * 여는 방향만 정의했다.
+ */
+@keyframes sheet-scrim-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 html,
 body,
 #root {
