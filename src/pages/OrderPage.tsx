@@ -241,9 +241,9 @@ export function OrderPage() {
         )}
 
         {/* 제출 실패. 문구는 서버가 완성해 준 message 를 그대로 쓴다 (컨벤션 §5).
-            `ORDER_PRICE_CHANGED` 는 체결 직전 재검증에서 값이 갈린 것이라
-            수량을 줄여 체결되지 않고 거부된다 — 다시 시도하도록 안내한다
-            (apiSpec §7.2 · shared/types/order.ts 끝 주석). */}
+            `ORDER_PRICE_CHANGED` 분기는 두지 않는다 — v0.8 에서 그 코드가 폐기됐고
+            체결 직전 재검증에서 예수금이 부족하면 `ORDER_INSUFFICIENT_CASH` 로 온다
+            (계약 C88 · apiSpec §7.2 · §13). */}
         {submitError !== null && (
           <div className="mt-6 rounded-card border border-border bg-danger-surface p-5">
             <p className="text-body-2 font-medium text-text-primary">
@@ -251,13 +251,6 @@ export function OrderPage() {
                 ? submitError.message
                 : '주문을 처리하지 못했어요.'}
             </p>
-            {isHttpError(submitError) &&
-              submitError.code === ORDER_ERROR_CODES.PRICE_CHANGED && (
-                <p className="mt-1.5 text-caption text-text-secondary">
-                  시세가 바뀌어 주문이 취소됐어요. 금액을 다시 확인하고 시도해
-                  주세요.
-                </p>
-              )}
           </div>
         )}
       </PageMain>
