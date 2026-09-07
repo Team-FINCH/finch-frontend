@@ -102,9 +102,20 @@ export const API_PATHS = {
   account: {
     summary: '/account',
   },
+  /**
+   * 충전 4단계 (FINCH-35). 단발 `POST /deposits`는 apiSpec v0.8에서 삭제됐다
+   * (`frontend/docs/contracts.md` C49 · C85). 이 워크트리 시점에는 `contracts.md`에
+   * C89~C92(오늘 등재된 충전 계약)가 아직 안 보여서, 아래 세 경로는 티켓 프롬프트가
+   * 확정값으로 준 것을 그대로 옮겼다 — 실제 계약 문서와 다르면 그쪽이 맞다.
+   */
   deposits: {
     limit: '/deposits/limit',
-    create: '/deposits',
+    ready: '/deposits/ready',
+    confirm: '/deposits/confirm',
+    mockApprove: (paymentId: string) => `/deposits/${paymentId}/mock-approve`,
+  },
+  withdrawals: {
+    create: '/withdrawals',
   },
   stocks: {
     search: '/stocks/search',

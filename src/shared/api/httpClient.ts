@@ -20,7 +20,7 @@ type RequestOptions = {
   shouldAttachSession?: boolean;
   /**
    * 요청별 추가 헤더. **멱등성 키를 실으려고 열었다** (apiSpec §1.4 · contracts C29) —
-   * `POST /orders` 와 `POST /deposits` 가 `Idempotency-Key` 를 필수로 요구하는데
+   * `POST /orders` 와 `POST /withdrawals` 가 `Idempotency-Key` 를 필수로 요구하는데
    * 그 값은 요청마다 달라서 클라이언트 안에 상수로 둘 수 없다.
    *
    * `Authorization` 과 `Content-Type` 은 여기서 덮어쓸 수 없다. 아래 `sendRequest`

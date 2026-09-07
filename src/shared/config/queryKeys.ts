@@ -88,4 +88,9 @@ export const queryKeys = {
     all: () => ['inbox'] as const,
     list: () => [...queryKeys.inbox.all(), 'list'] as const,
   },
+  deposits: {
+    all: () => ['deposits'] as const,
+    /** `GET /deposits/limit` (FINCH-35). */
+    limit: () => [...queryKeys.deposits.all(), 'limit'] as const,
+  },
 } as const;
