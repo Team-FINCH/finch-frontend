@@ -78,8 +78,10 @@ function TabBarShell({ children }: { children: ReactNode }) {
   }
 
   return (
+    // 가로 폭을 PageMain·ActionBar 와 같은 max-w-md 로 맞춘다. 이유는 ActionBar 주석에 있다 —
+    // 넓은 화면에서 본문은 가운데 정렬인데 바만 화면 끝까지 가면 둘이 어긋나 보인다.
     <nav
-      className="fixed inset-x-0 bottom-[env(safe-area-inset-bottom)] z-30 flex h-[98px] items-end gap-2.5 px-4 pb-4"
+      className="fixed inset-x-0 bottom-[env(safe-area-inset-bottom)] z-30 mx-auto flex h-[98px] w-full max-w-md items-end gap-2.5 px-4 pb-4"
       aria-label="주요 화면 전환"
     >
       <div
