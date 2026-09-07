@@ -134,6 +134,17 @@ export const API_PATHS = {
     briefing: '/ai/briefing',
     feedback: '/ai/feedback',
   },
+  /**
+   * 알림함 — **계약 없음. 이 블록 전체가 프론트 추정값이다**
+   * (FINCH-49, `ia.md` §1 "알림함" · GitLab 이슈 #26 1번 회신 대기).
+   * 목록 조회·읽음 처리·매수 이유 기록 셋 다 백엔드에 대응하는 엔드포인트가 없다.
+   * 회신이 오면 이 블록을 통째로 갈아 끼운다.
+   */
+  inbox: {
+    list: '/inbox',
+    read: (itemId: string) => `/inbox/${itemId}/read`,
+    record: (itemId: string) => `/inbox/${itemId}/record`,
+  },
 } as const;
 
 /**

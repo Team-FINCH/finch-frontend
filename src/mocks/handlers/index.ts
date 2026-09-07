@@ -2,6 +2,7 @@ import { accountHandlers } from './account';
 import { aiHandlers } from './ai';
 import { authHandlers } from './auth';
 import { healthHandlers } from './health';
+import { inboxHandlers } from './inbox';
 import { recentHandlers } from './recent';
 import { stockHandlers } from './stocks';
 import { tradingHandlers } from './trading';
@@ -42,4 +43,5 @@ export const handlers = [
   ...tradingHandlers,
   ...aiHandlers,
   ...healthHandlers,
+  ...inboxHandlers,
 ];
