@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { STOCK_PRICES_MAX_CODES } from '@/shared/config/apiContract';
 
+import { CandlePeriodSchema, type CandlePeriod } from './candlePeriod';
 import { createItemsSchema } from './pagination';
 import {
   type IsoDateTime,
@@ -14,6 +15,12 @@ import {
   QuantitySchema,
   StockCodeSchema,
 } from './primitives';
+
+// `CandlePeriod` 정의는 `./candlePeriod.ts` 한 곳뿐이다 (TODO(계약) 임시값 — 이슈 #37).
+// 여기서는 이 파일 안에서 쓰기 위해 들여오고, 기존 소비처(`@/shared/types/stock`
+// 에서 `CandlePeriod` 를 가져오던 자리)가 안 깨지도록 그대로 다시 내보낸다.
+export { CandlePeriodSchema };
+export type { CandlePeriod };
 
 /**
  * 종목 · 시세 · 관심 종목 (`docs/api/apiSpec.md` §5 종목 API · §6 최근 본 종목 ·
@@ -84,14 +91,13 @@ export const StockDetailResponseSchema = z.object({
 });
 export type StockDetailResponse = z.infer<typeof StockDetailResponseSchema>;
 
-/**
- * 캔들 기간 (apiSpec §5.3 캔들 차트). **셋 다 일봉이다.**
- * 분봉 도입 여부는 미확정이라(contracts P11) 탭 구성은 데이터 주도로 만든다.
+/** 캔들 간격 (apiSpec §5.3). 지금은 일봉뿐이다.
+ *
+ * TODO(계약): 캔들 period — 이슈 #37 회신 전 임시값. `period`(`./candlePeriod.ts`)가
+ * 이제 봉 종류(`D`·`W`·`M`)를 가리키게 되면서 이 필드와 뜻이 겹친다. 응답 형식
+ * 자체는 이번 작업 범위 밖이라 값도 그대로 `DAY` 하나만 둔다 — 회신이 오면
+ * 이 필드를 없앨지 같이 정리한다.
  */
-export const CandlePeriodSchema = z.enum(['1M', '3M', '1Y']);
-export type CandlePeriod = z.infer<typeof CandlePeriodSchema>;
-
-/** 캔들 간격 (apiSpec §5.3). 지금은 일봉뿐이다. */
 export const CandleIntervalSchema = z.enum(['DAY']);
 export type CandleInterval = z.infer<typeof CandleIntervalSchema>;
 

@@ -1,3 +1,7 @@
+import {
+  CANDLE_PERIOD_OPTIONS,
+  DEFAULT_CANDLE_PERIOD,
+} from '@/shared/types/candlePeriod';
 import { CandlePeriodSchema, type CandlePeriod } from '@/shared/types/stock';
 
 /**
@@ -12,8 +16,12 @@ import { CandlePeriodSchema, type CandlePeriod } from '@/shared/types/stock';
  * 별도 매핑 표를 두지 않고 `CandlePeriodSchema` 를 그대로 재사용한다. 표를 두면
  * 계약이 두 벌이 되고 한쪽만 고쳐진다.
  *
- * **기본값은 ia.md 에 없다.** §2 표는 값의 목록만 정하고 기본값을 적지 않아서
- * 아래 두 상수는 우리가 고른 값이다 — 근거는 각 상수 주석에 적었다.
+ * **`period` 값 자체(`CANDLE_PERIOD_OPTIONS`·`DEFAULT_CANDLE_PERIOD`)는
+ * `@/shared/types/candlePeriod.ts` 한 곳에서만 정의한다 — TODO(계약) 임시값
+ * (이슈 #37). 여기서는 그 값을 가져다 재노출만 한다.**
+ *
+ * **`tab` 기본값은 ia.md 에 없다.** §2 표는 값의 목록만 정하고 기본값을 적지
+ * 않아서 아래 상수는 우리가 고른 값이다 — 근거는 상수 주석에 적었다.
  * 잘못된 값이 오면 던지지 않고 기본값으로 떨어뜨린다. 남이 만든 링크가 들어오는
  * 자리라(위 `deeplink`) 오타 하나로 404 를 내면 안 된다.
  */
@@ -31,22 +39,8 @@ export const STOCK_DETAIL_PERIOD_PARAM = 'period';
  */
 export const DEFAULT_STOCK_DETAIL_TAB: StockDetailTab = 'chart';
 
-/**
- * 기본 기간. ia.md 가 정하지 않았다. 프로토타입의 기간 세그먼트가 `1개월` 을 맨 앞에
- * 두고, 목 서버도 `period` 가 없으면 `1M` 을 준다 — 둘이 일치해서 이 값을 골랐다.
- */
-export const DEFAULT_CANDLE_PERIOD: CandlePeriod =
-  CandlePeriodSchema.parse('1M');
-
-/** 기간 탭에 보일 목록과 라벨. 프로토타입 `.seg` 의 세 버튼 문구 그대로다. */
-export const CANDLE_PERIOD_OPTIONS: readonly {
-  value: CandlePeriod;
-  label: string;
-}[] = [
-  { value: CandlePeriodSchema.parse('1M'), label: '1개월' },
-  { value: CandlePeriodSchema.parse('3M'), label: '3개월' },
-  { value: CandlePeriodSchema.parse('1Y'), label: '1년' },
-];
+/** `@/shared/types/candlePeriod.ts` 재노출. 정의는 그 파일 한 곳뿐이다. */
+export { CANDLE_PERIOD_OPTIONS, DEFAULT_CANDLE_PERIOD };
 
 /** 모르는 값은 기본 탭으로 떨어뜨린다. 던지지 않는다 — 위 주석 참고. */
 export function parseStockDetailTab(value: string | null): StockDetailTab {
@@ -55,7 +49,7 @@ export function parseStockDetailTab(value: string | null): StockDetailTab {
     : DEFAULT_STOCK_DETAIL_TAB;
 }
 
-/** 모르는 값은 기본 기간으로 떨어뜨린다. */
+/** 모르는 값은 기본 봉 종류로 떨어뜨린다. */
 export function parseCandlePeriod(value: string | null): CandlePeriod {
   const parsed = CandlePeriodSchema.safeParse(value);
   return parsed.success ? parsed.data : DEFAULT_CANDLE_PERIOD;
