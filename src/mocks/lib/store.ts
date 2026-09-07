@@ -26,7 +26,11 @@ export interface MockHolding {
 
 export interface MockTransaction {
   transactionId: number;
-  type: 'INITIAL_GRANT' | 'DEPOSIT' | 'BUY' | 'SELL';
+  /**
+   * `WITHDRAWAL` 은 apiSpec v0.8 에서 추가됐다(contracts C87 · FINCH-138).
+   * 출금 원장에는 결제 수단이 없어 `paymentMethod` 가 항상 `null` 이다.
+   */
+  type: 'INITIAL_GRANT' | 'DEPOSIT' | 'WITHDRAWAL' | 'BUY' | 'SELL';
   occurredAt: string;
   stockCode: string | null;
   stockName: string | null;
@@ -36,7 +40,8 @@ export interface MockTransaction {
   realizedProfit: number | null;
   /** 백분율 */
   realizedProfitRate: number | null;
-  paymentMethod: 'VIRTUAL_CARD' | 'VIRTUAL_TRANSFER' | null;
+  /** "가상 카드/가상 계좌이체"에서 **카카오페이/계좌이체**로 바뀌었다 (ia.md §1, 충전 4단계 개편). */
+  paymentMethod: 'KAKAOPAY' | 'TRANSFER' | null;
 }
 
 export interface MockWatchlistEntry {
@@ -91,7 +96,10 @@ interface MockStore {
   transactions: MockTransaction[];
   nextTransactionId: number;
   nextOrderId: number;
-  nextDepositId: number;
+  /** 충전 `paymentId`(`pay_1`, `pay_2`, ...) 발급용 (`mocks/handlers/deposit.ts`). */
+  nextPaymentId: number;
+  /** 출금 `withdrawalId` 발급용 (`mocks/handlers/deposit.ts`). */
+  nextWithdrawalId: number;
 }
 
 export const store: MockStore = {
@@ -191,7 +199,7 @@ export const store: MockStore = {
       amount: 3_000_000,
       realizedProfit: null,
       realizedProfitRate: null,
-      paymentMethod: 'VIRTUAL_CARD',
+      paymentMethod: 'KAKAOPAY',
     },
     {
       transactionId: 300,
@@ -209,7 +217,8 @@ export const store: MockStore = {
   ],
   nextTransactionId: 306,
   nextOrderId: 101,
-  nextDepositId: 56,
+  nextPaymentId: 56,
+  nextWithdrawalId: 1,
 };
 
 /** 보유 종목을 찾는다. 없으면 `undefined` 다. */
