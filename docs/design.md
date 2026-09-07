@@ -100,12 +100,12 @@ Finch는 주식에 투자하는 사람을 위한 AI 투자 어시스턴트다.
 - AI Summary Header
 - AI Inline Insight
 - AI 진입점
-- AI Floating Button
+- 탭바 AI 버튼
 
 **Scale**
 
 - AI Inline / Header: **28~36px**
-- Floating Button 내부: **20~24px**
+- 탭바 AI 버튼 내부: **20~24px**
 - 랜딩 일러스트: **112~132px**
 
 ### AI Glyph Rules
@@ -379,7 +379,7 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 
 #### 탐색 화면에서 제거
 
-- AI Floating Button
+- 탭바 AI 버튼
 - 메일 아이콘 / 미확인 Badge
 
 ---
@@ -617,7 +617,7 @@ Rules:
 
 - Progress Bar 남발 금지
 - 영향 값이 단순 합산되지 않는 경우 오해 방지 안내
-- Bottom Sheet 활성 시 Bottom Navigation / Floating AI Button 숨김
+- Bottom Sheet 활성 시 탭바와 AI 버튼 숨김 (§6)
 - Summary의 긴 문장은 2줄 이내
 - Feedback은 Neutral Compact Button
 
