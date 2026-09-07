@@ -144,6 +144,15 @@ export const API_PATHS = {
     orderPreview: '/ai/orders/preview',
     briefing: '/ai/briefing',
     feedback: '/ai/feedback',
+    /**
+     * 위키 3종 (contracts C80). 경로 파라미터 이름은 프론트 쪽 `stockCode`로
+     * 통일한다 — AI 원본은 `ticker`다(ia.md §1 "AI가 이해한 나 — 위키 화면").
+     */
+    wiki: {
+      get: '/ai/wiki',
+      updateThesis: (stockCode: string) => `/ai/wiki/theses/${stockCode}`,
+      deleteFact: (factId: string) => `/ai/wiki/facts/${factId}`,
+    },
   },
   /**
    * 알림함 — **계약 없음. 이 블록 전체가 프론트 추정값이다**

@@ -1,3 +1,4 @@
+export { toAiResult, type AiResult } from './aiResponse';
 export { setAuthBridge, type AuthBridge } from './authBridge';
 export {
   HttpError,

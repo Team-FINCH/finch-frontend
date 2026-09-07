@@ -8,6 +8,7 @@ import { recentHandlers } from './recent';
 import { stockHandlers } from './stocks';
 import { tradingHandlers } from './trading';
 import { watchlistHandlers } from './watchlist';
+import { wikiHandlers } from './wiki';
 
 /**
  * MSW 핸들러 모음. 이 디렉토리의 코드는 프로덕션 번들에 들어가면 안 되므로
@@ -19,12 +20,10 @@ import { watchlistHandlers } from './watchlist';
  *
  * ## 목이 없는 경로
  *
- * - AI 위키 3종(`GET /ai/wiki` · `PUT /ai/wiki/theses/{stockCode}` · `DELETE /ai/wiki/facts/{factId}`)
- *   — 중계 경로는 확정됐지만(contracts C80) `shared/config/apiContract.ts` 에 경로 상수부터 없다.
- *   위키를 쓰는 화면이 아직 없어 경로 상수와 목을 함께 만들 자리다
  * - 웹소켓(`/ws`)·STOMP, `/internal/v1/*` 2종 — 프론트 범위 밖
  *
- * **`API_PATHS` 에 있는 경로는 전부 목이 있다.**
+ * **`API_PATHS` 에 있는 경로는 전부 목이 있다.** AI 위키 3종(`wikiHandlers`,
+ * FINCH-49)도 이제 포함된다 — 예전에는 여기 "목이 없는 경로"로 적혀 있었다.
  *
  * ## 공통 규칙
  *
@@ -44,6 +43,7 @@ export const handlers = [
   ...watchlistHandlers,
   ...tradingHandlers,
   ...aiHandlers,
+  ...wikiHandlers,
   ...healthHandlers,
   ...inboxHandlers,
 ];

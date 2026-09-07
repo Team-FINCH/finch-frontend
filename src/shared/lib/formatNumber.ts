@@ -51,6 +51,20 @@ export function formatSignedPercent(ratio: number, fractionDigits = 2): string {
 }
 
 /**
+ * 0~1 사이 소수인 비율(`Ratio`)을 부호 없는 퍼센트로 바꾼다.
+ * 0.4168 → `41.68%`
+ *
+ * **방향이 없는 크기(집중도·비중)에 쓴다.** `formatSignedPercent`는 등락처럼 방향이
+ * 뜻을 갖는 값(수익률 분해 등)에 쓰고, 이쪽은 "얼마나 큰가"만 말하는 값 —
+ * AI 진단의 `top1Weight`·`sectorHhi` 같은 지표(`shared/types/ai/diagnosis.ts`)나
+ * 보유 종목 비중처럼 음수가 나오지 않는 자리에 쓴다. 음수 지표(`maxDrawdown1y`)는
+ * 방향이 뜻을 가지므로 `formatSignedPercent`를 쓴다.
+ */
+export function formatPercent(ratio: number, fractionDigits = 2): string {
+  return `${(ratio * 100).toFixed(fractionDigits)}%`;
+}
+
+/**
  * 이미 백분율인 등락률·수익률(`Percent`)을 부호 붙여 표시한다 (컨벤션 §11).
  * **100 을 곱하지 않는다.** -1.21 → `-1.21%` · 0 → `0.00%`
  *

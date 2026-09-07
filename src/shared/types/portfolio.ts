@@ -70,28 +70,36 @@ export type PortfolioResponse = z.infer<typeof PortfolioResponseSchema>;
  *
  * **apiSpec v0.7 에서 6종 → 4종이 됐다** — 투자 회차가 없어지면서
  * `ROUND_OPEN`·`ROUND_CLOSE` 가 삭제됐다 (이슈 #27).
+ * **v0.8 에서 다시 5종이 됐다** — 출금이 신설되며 `WITHDRAWAL` 이 추가됐다
+ * (`frontend/docs/contracts.md` C87). `INITIAL_GRANT` 는 v0.7.2 부터 발행되지
+ * 않지만(C47) 값 자체는 스키마에 남아 있다.
  */
 export const TransactionTypeSchema = z.enum([
   'INITIAL_GRANT',
   'DEPOSIT',
+  'WITHDRAWAL',
   'BUY',
   'SELL',
 ]);
 export type TransactionType = z.infer<typeof TransactionTypeSchema>;
 
 /**
- * `GET /transactions` 의 `type` 필터 (apiSpec §8.2). 원장 유형 전체와 값이 다르다 —
- * `ALL` 이 더 있고 `INITIAL_GRANT` 가 없다.
+ * `GET /transactions` 의 `type` 필터 (apiSpec §8.2 v0.8). 원장 유형 전체와 값이 다르다 —
+ * `ALL` 이 더 있고 `INITIAL_GRANT` 가 없다. 화면 필터 이름은 "전체 / 매수 / 매도 /
+ * 충전 / 출금" 다섯이다 — "충전"을 "입금"으로 부르지 않는다(C83).
  *
  * **`type=DEPOSIT` 은 `INITIAL_GRANT` 행을 포함하지 않는다** (apiSpec §8.2, 커밋 `af96862`).
  * 원장 유형 `DEPOSIT`(모의 결제 충전)만 걷어 온다 (`mocks/handlers/trading.ts`
  * `TRANSACTION_FILTER_LEDGER_TYPES`). `INITIAL_GRANT` 1건은 `type=ALL` 에서만 나온다.
+ *
+ * **`type=WITHDRAWAL` 은 원장 유형 `WITHDRAWAL` 만이다**(C87). v0.8 신설분이다.
  */
 export const TransactionFilterSchema = z.enum([
   'ALL',
   'BUY',
   'SELL',
   'DEPOSIT',
+  'WITHDRAWAL',
 ]);
 export type TransactionFilter = z.infer<typeof TransactionFilterSchema>;
 
@@ -100,6 +108,9 @@ export type TransactionFilter = z.infer<typeof TransactionFilterSchema>;
  *
  * 유형마다 채워지는 필드가 다르다. 충전 행은 종목·가격·수량이 전부 `null` 이고
  * `paymentMethod` 가 차며, 매매 행은 그 반대다. **키가 빠지는 것이 아니라 `null` 로 온다.**
+ *
+ * **출금 행은 `paymentMethod` 도 `null` 이다** — 출금은 수단을 받지 않는다(C86).
+ * `amount` 는 출금도 양수 절대값으로 오고, 화면은 `type` 으로만 방향을 표시한다(C87).
  */
 export const TransactionSchema = z.object({
   transactionId: z.number().int(),

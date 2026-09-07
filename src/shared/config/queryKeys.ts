@@ -23,10 +23,23 @@ export const queryKeys = {
     all: () => ['account'] as const,
     summary: () => [...queryKeys.account.all(), 'summary'] as const,
   },
-  /** `GET /portfolio` (FINCH-49). 홈은 항상 기본 정렬(`EVALUATION`)만 쓴다. */
+  /**
+   * `GET /portfolio` (apiSpec §8.1). **정렬이 키에 들어간다** — 서버가 다시 정렬해
+   * 내려주므로 정렬을 바꿨는데 이전 정렬의 캐시가 나오면 안 된다.
+   *
+   * **홈과 포트폴리오 화면이 같은 키를 공유한다**(ia.md §1). 둘은 같은 엔드포인트를
+   * 같은 응답 스키마로 읽고, 홈은 정렬 UI 가 없어 서버 기본값 `EVALUATION` 을 받는다.
+   * 그래서 기본값을 두어 홈은 인자 없이 부른다 — 두 화면이 같은 응답을 두 번 받지 않는다.
+   */
   portfolio: {
     all: () => ['portfolio'] as const,
-    summary: () => [...queryKeys.portfolio.all(), 'summary'] as const,
+    summary: (sort: string = 'EVALUATION') =>
+      [...queryKeys.portfolio.all(), sort] as const,
+  },
+  /** `GET /transactions`. 커서 페이징이라 커서는 키에 넣지 않고 `type` 필터만 넣는다. */
+  transactions: {
+    all: () => ['transactions'] as const,
+    list: (type: string) => [...queryKeys.transactions.all(), type] as const,
   },
   stocks: {
     all: () => ['stocks'] as const,
@@ -79,6 +92,13 @@ export const queryKeys = {
     /** 종목 AI 분석 (apiSpec §10.1). `POST` 지만 읽기라 쿼리로 다룬다 — 아래 훅 주석 참고. */
     stockAnalysis: (stockCode: string) =>
       [...queryKeys.ai.all(), 'stocks', stockCode, 'analysis'] as const,
+    /** `POST /ai/portfolio/diagnosis`. 요청 본문이 없어 키에 더할 파라미터가 없다. */
+    diagnosis: () => [...queryKeys.ai.all(), 'diagnosis'] as const,
+    /** `POST /ai/portfolio/attribution`. */
+    attribution: (period: string) =>
+      [...queryKeys.ai.all(), 'attribution', period] as const,
+    /** `GET /ai/wiki`. */
+    wiki: () => [...queryKeys.ai.all(), 'wiki'] as const,
   },
   /**
    * 알림함 (FINCH-49). **API 계약 자체가 프론트 추정값이다**

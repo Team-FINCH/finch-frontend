@@ -44,6 +44,33 @@ export interface MockTransaction {
   paymentMethod: 'KAKAOPAY' | 'TRANSFER' | null;
 }
 
+/**
+ * 위키 사실 · 논지 (AI 명세 §9, `shared/types/ai/wiki.ts`).
+ * `store.wiki`가 처음부터 비어 있지 않은 이유 — 포트폴리오 탭 화면을 만드는 시점에
+ * 빈 상태만 볼 수 있으면 확정·확인 필요·매수 이유 세 섹션을 눈으로 확인할 방법이
+ * 없다. 실제 계정은 apiSpec v0.7.2부터 위키도 빈 채로 시작한다(ia.md §1 "빈 상태").
+ */
+export interface MockWikiFact {
+  id: string;
+  text: string;
+  source: 'user_stated' | 'derived_from_trades' | 'ai_inferred';
+  confidence: 'low' | 'medium' | 'high';
+  asOf: string;
+  evidence: Record<string, unknown>;
+  editable: boolean;
+}
+
+export interface MockWikiThesis {
+  id: string;
+  ticker: string;
+  text: string;
+  source: 'user_stated' | 'derived_from_trades' | 'ai_inferred';
+  status: 'active' | 'closed';
+  recordedAt: string;
+  horizon: 'short' | 'mid' | 'long' | null;
+  linkedTradeId: string | null;
+}
+
 export interface MockWatchlistEntry {
   stockCode: string;
   registeredAt: string;
@@ -100,6 +127,7 @@ interface MockStore {
   nextPaymentId: number;
   /** 출금 `withdrawalId` 발급용 (`mocks/handlers/deposit.ts`). */
   nextWithdrawalId: number;
+  wiki: { profile: MockWikiFact[]; theses: MockWikiThesis[] };
 }
 
 export const store: MockStore = {
@@ -136,6 +164,20 @@ export const store: MockStore = {
   nextSearchKeywordId: 43,
   aiFeedback: {},
   transactions: [
+    {
+      transactionId: 306,
+      type: 'WITHDRAWAL',
+      occurredAt: '2026-09-02T11:05:44+09:00',
+      stockCode: null,
+      stockName: null,
+      price: null,
+      quantity: null,
+      amount: 200_000,
+      realizedProfit: null,
+      realizedProfitRate: null,
+      // 출금은 수단을 받지 않는다 (contracts C86·C87).
+      paymentMethod: null,
+    },
     {
       transactionId: 305,
       type: 'SELL',
@@ -215,10 +257,66 @@ export const store: MockStore = {
       paymentMethod: null,
     },
   ],
-  nextTransactionId: 306,
+  nextTransactionId: 307,
   nextOrderId: 101,
   nextPaymentId: 56,
   nextWithdrawalId: 1,
+  wiki: {
+    // 확정된 사실 둘 — user_stated 하나, derived_from_trades 하나.
+    profile: [
+      {
+        id: 'fact_1',
+        text: '배당보다 성장성을 더 중요하게 봐요.',
+        source: 'user_stated',
+        confidence: 'high',
+        asOf: '2026-08-14T10:00:00+09:00',
+        evidence: { type: 'conversation', ref: 'conv_01JQZ3M1' },
+        editable: true,
+      },
+      {
+        id: 'fact_2',
+        text: '반도체 업종에 관심이 높은 편이에요.',
+        source: 'derived_from_trades',
+        confidence: 'high',
+        asOf: '2026-08-26T09:30:00+09:00',
+        evidence: { type: 'trade_history' },
+        editable: true,
+      },
+      // ai_inferred(확인 필요) 하나. "맞아요/아니에요" 동작은 아직 경로가 없어
+      // 화면에 카드만 그리고 버튼은 만들지 않는다 (ia.md §1, 이슈 #26 2번).
+      {
+        id: 'fact_3',
+        text: '손실이 10%를 넘으면 정리하는 편인가요?',
+        source: 'ai_inferred',
+        confidence: 'medium',
+        asOf: '2026-08-27T21:00:00+09:00',
+        evidence: { type: 'trade_history' },
+        editable: false,
+      },
+    ],
+    theses: [
+      {
+        id: 'thesis_1',
+        ticker: '005930',
+        text: 'HBM 증설로 고부가 제품 비중이 늘어날 것으로 보고 담았어요.',
+        source: 'user_stated',
+        status: 'active',
+        recordedAt: '2026-08-20T20:00:00+09:00',
+        horizon: 'mid',
+        linkedTradeId: null,
+      },
+      {
+        id: 'thesis_2',
+        ticker: '000660',
+        text: '메모리 업황 반등이 이어질 것 같아서 담았어요.',
+        source: 'user_stated',
+        status: 'active',
+        recordedAt: '2026-08-28T09:50:00+09:00',
+        horizon: 'long',
+        linkedTradeId: null,
+      },
+    ],
+  },
 };
 
 /** 보유 종목을 찾는다. 없으면 `undefined` 다. */

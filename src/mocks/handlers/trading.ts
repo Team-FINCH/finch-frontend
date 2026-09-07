@@ -60,19 +60,22 @@ import {
 const ORDER_SIDES = ['BUY', 'SELL'];
 const PORTFOLIO_SORTS = ['EVALUATION', 'PROFIT_RATE'];
 /**
- * `type` 필터 한 값이 어느 원장 유형을 걷어 오는가 (apiSpec §8.2).
- * 필터 값 4종은 이 표의 키가 전부다.
+ * `type` 필터 한 값이 어느 원장 유형을 걷어 오는가 (apiSpec §8.2 v0.8).
+ * 필터 값 5종은 이 표의 키가 전부다 — 화면 이름은 "전체 / 매수 / 매도 / 충전 / 출금".
  *
  * **`DEPOSIT` 은 `INITIAL_GRANT` 를 포함하지 않는다** (apiSpec §8.2, 커밋 `af96862`).
  * `type=DEPOSIT` 은 원장 유형 `DEPOSIT`(모의 결제 충전)만이다. 이 필터의 합계가
  * `GET /deposits/limit` 의 `depositedAmount`(초기 지급 제외)와 같아야 하기 때문이다.
  * `INITIAL_GRANT` 1건은 `type=ALL` 에서만 나온다.
+ *
+ * **`WITHDRAWAL` 은 v0.8 신설분이다**(C87). "충전"필터에는 섞이지 않는다(C83).
  */
 const TRANSACTION_FILTER_LEDGER_TYPES = {
-  ALL: ['INITIAL_GRANT', 'DEPOSIT', 'BUY', 'SELL'],
+  ALL: ['INITIAL_GRANT', 'DEPOSIT', 'WITHDRAWAL', 'BUY', 'SELL'],
   BUY: ['BUY'],
   SELL: ['SELL'],
   DEPOSIT: ['DEPOSIT'],
+  WITHDRAWAL: ['WITHDRAWAL'],
 } as const satisfies Record<string, readonly string[]>;
 
 type TransactionFilterValue = keyof typeof TRANSACTION_FILTER_LEDGER_TYPES;
@@ -379,7 +382,7 @@ export const tradingHandlers = [
         COMMON_ERROR_CODES.INVALID_REQUEST,
         '요청 값이 올바르지 않습니다',
         400,
-        { type: 'ALL · BUY · SELL · DEPOSIT 중 하나여야 합니다' },
+        { type: 'ALL · BUY · SELL · DEPOSIT · WITHDRAWAL 중 하나여야 합니다' },
       );
     }
 
