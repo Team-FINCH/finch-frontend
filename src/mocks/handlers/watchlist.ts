@@ -6,7 +6,7 @@ import {
   STOCK_ERROR_CODES,
 } from '@/shared/types/errorCodes';
 
-import { changeAmountOf, changeRateOf, findStock } from '../lib/catalog';
+import { changeAmountOf, changeRateOf, findActiveStock } from '../lib/catalog';
 import {
   errorResponse,
   mockPath,
@@ -61,9 +61,15 @@ export const watchlistHandlers = [
       );
     }
 
+    /*
+     * **상장폐지 종목은 목록에서 빠지고 한도 계산에도 안 들어간다** (계약 C94,
+     * 백엔드 MR !107 커밋 `ed003ce`). 목록에 남기면 탭했을 때 404 가 나고,
+     * 목록만 거르고 한도는 전체 행을 세면 "47/50 인데 왜 못 담지" 가 된다.
+     * 등록 행 자체는 지우지 않는다 — 재상장되면 목록과 한도에 함께 돌아온다.
+     */
     const items = store.watchlist
       .map((entry) => {
-        const stock = findStock(entry.stockCode);
+        const stock = findActiveStock(entry.stockCode);
         return stock === undefined
           ? null
           : {
@@ -112,7 +118,7 @@ export const watchlistHandlers = [
       );
     }
 
-    if (findStock(stockCode) === undefined) {
+    if (findActiveStock(stockCode) === undefined) {
       return errorResponse(
         STOCK_ERROR_CODES.STOCK_NOT_FOUND,
         '종목을 찾을 수 없습니다',

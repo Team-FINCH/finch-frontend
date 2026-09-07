@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 
 import { API_PATHS } from '@/shared/config/apiContract';
 
-import { changeRateOf, findStock } from '../lib/catalog';
+import { changeRateOf, findActiveStock } from '../lib/catalog';
 import { mockPath } from '../lib/http';
 import { requireAuth } from '../lib/session';
 import { store } from '../lib/store';
@@ -48,7 +48,8 @@ export const recentHandlers = [
 
     const items = store.recentStocks
       .map((entry) => {
-        const stock = findStock(entry.stockCode);
+        // 상장폐지 종목은 최근 본 목록에서도 빠진다 (계약 C94).
+        const stock = findActiveStock(entry.stockCode);
         return stock === undefined
           ? null
           : {

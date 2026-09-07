@@ -11,8 +11,9 @@ import {
 } from '@/shared/types/errorCodes';
 
 import {
+  ACTIVE_MOCK_STOCKS,
+  findActiveStock,
   findStock,
-  MOCK_STOCKS,
   toStockQuote,
   toStockSummary,
 } from '../lib/catalog';
@@ -133,7 +134,8 @@ export const stockHandlers = [
      */
     touchRecentSearchKeyword(keyword);
 
-    const items = MOCK_STOCKS.filter(
+    // 상장폐지 종목은 검색 결과에서 빠진다 (계약 C77 · 백엔드 is_active 조건).
+    const items = ACTIVE_MOCK_STOCKS.filter(
       (stock) =>
         stock.stockName.includes(keyword) || stock.stockCode.includes(keyword),
     )
@@ -180,7 +182,8 @@ export const stockHandlers = [
       }
 
       const stockCode = String(params.stockCode);
-      const stock = findStock(stockCode);
+      // 상장폐지 종목은 상세에서도 없는 종목이다 (계약 C94).
+      const stock = findActiveStock(stockCode);
       if (stock === undefined) {
         return errorResponse(
           STOCK_ERROR_CODES.STOCK_NOT_FOUND,
@@ -238,7 +241,8 @@ export const stockHandlers = [
       }
 
       const stockCode = String(params.stockCode);
-      const stock = findStock(stockCode);
+      // 상장폐지 종목은 상세에서도 없는 종목이다 (계약 C94).
+      const stock = findActiveStock(stockCode);
       if (stock === undefined) {
         return errorResponse(
           STOCK_ERROR_CODES.STOCK_NOT_FOUND,
