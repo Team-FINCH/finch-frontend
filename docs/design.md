@@ -747,8 +747,8 @@ Rules:
 1. 프로필
 2. 투자 계좌 Summary
 3. 거래 내역
-4. 입금 · 결제
-5. 나의 투자 기준
+4. 충전
+5. 출금
 6. AI 상태(시연용)
 7. 로그아웃
 
@@ -756,8 +756,8 @@ Rules:
 
 - 프로필 / 계좌 영역 Compact
 - 투자 계좌는 Light Surface
-- 거래 내역 / 입금·결제는 Flat Navigation Row
-- `나의 투자 기준`은 큰 Dark Card보다 **AIInline + 실제 기준 Preview**
+- 거래 내역 / 충전 / 출금은 Flat Navigation Row
+- **`나의 투자 기준` 진입점을 여기 두지 않는다.** 진입점은 포트폴리오 탭 · 종목 상세 AI 탭 · 알림함 셋이다 (§7.12)
 - AI 상태(시연용)는 최하단 별도 Demo Section
 - 로그아웃은 Secondary Text Action
 - **계좌 초기화는 제공하지 않는다** (이슈 #27로 삭제, `POST /account/reset` 없음)
