@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDepositConfirm } from '@/features/deposit/api/useDepositConfirm';
 import { DepositResultScreen } from '@/features/deposit/components/DepositResultScreen';
 import { isDepositExpiredErrorCode } from '@/features/deposit/lib/depositErrorMessages';
+import { parsePositiveIntParam } from '@/features/deposit/lib/queryParams';
 import { isHttpError } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
 import { PageMain } from '@/shared/ui/PageMain';
@@ -39,10 +40,11 @@ export function DepositCompletePage() {
   const confirmMutation = useDepositConfirm();
   const hasRequested = useRef(false);
 
-  const paymentId = searchParams.get('paymentId');
+  // `paymentId`·`amount` 는 서버 계약이 숫자다(apiSpec §4.4). 쿼리는 언제나 문자열로
+  // 오므로 여기서 한 번 바꾸고, 바꿀 수 없는 값은 아래 "결제 정보를 확인할 수 없어요" 로 떨군다.
+  const paymentId = parsePositiveIntParam(searchParams.get('paymentId'));
   const paymentKey = searchParams.get('paymentKey');
-  const amountParam = searchParams.get('amount');
-  const amount = amountParam === null ? null : Number(amountParam);
+  const amount = parsePositiveIntParam(searchParams.get('amount'));
 
   useEffect(() => {
     if (hasRequested.current) {

@@ -10,11 +10,11 @@ import { IsoDateTimeSchema, KrwAmountSchema } from './primitives';
  * **충전 확정(`confirm`)은 `Idempotency-Key` 헤더를 쓰지 않는다** — 멱등 기준이
  * PG 발급 `paymentKey` 다(C29·C85). **충전 취소 API 는 없다.**
  *
- * 이 워크트리 시점에는 `contracts.md` 에 C89~C92(오늘 등재된 충전 계약)가 아직
- * 안 보인다 — 다른 브랜치에만 있는 것으로 보인다. 아래 요청·응답 필드 이름은
- * 티켓 프롬프트가 준 값(엔드포인트 3개·`checkoutUrl` 단일 필드·`{paymentId,
- * paymentKey, amount}`)을 최대한 그대로 옮기고, 명시되지 않은 나머지 필드는 기존
- * `DepositResponseSchema`(단발 버전) 관례를 따라 채웠다. 실제 계약과 다르면 그쪽이 맞다.
+ * **필드 이름과 타입은 `apiSpec.md` §4 응답 예시와 백엔드 DTO 를 대조해 맞췄다.**
+ * 처음에는 티켓 프롬프트가 준 값으로 채워 두고 "실제 계약과 다르면 그쪽이 맞다" 고
+ * 적어 두었는데, 실제로 세 군데가 달라 계좌이체가 1단계에서 멈췄다(FINCH-160).
+ * `paymentId` 는 숫자이고 `confirm` 응답만 `depositId`·`depositedAt` 이라는 다른
+ * 이름을 쓴다 — 그 응답은 v0.7 의 단발 `POST /deposits` 응답을 그대로 물려받았다.
  */
 
 /** 결제 수단. "가상 카드/가상 계좌이체"에서 **카카오페이/계좌이체**로 바뀌었다 (ia.md §1). */
@@ -49,7 +49,8 @@ export type DepositReadyRequest = z.infer<typeof DepositReadyRequestSchema>;
  * 카카오페이면 카카오 결제창, 계좌이체면 `/deposit/transfer` 모의 이체 화면 주소가 온다.
  */
 export const DepositReadyResponseSchema = z.object({
-  paymentId: z.string(),
+  /** 서버 채번이라 숫자다 (apiSpec §4.2 `"paymentId": 77`). 주문의 `orderId` 와 같은 모양이다. */
+  paymentId: z.number().int(),
   checkoutUrl: z.string(),
 });
 export type DepositReadyResponse = z.infer<typeof DepositReadyResponseSchema>;
@@ -60,7 +61,7 @@ export type DepositReadyResponse = z.infer<typeof DepositReadyResponseSchema>;
  * 최초 응답 본문이 온다(C85). `Idempotency-Key` 헤더는 쓰지 않는다.
  */
 export const DepositConfirmRequestSchema = z.object({
-  paymentId: z.string(),
+  paymentId: z.number().int(),
   paymentKey: z.string(),
   amount: z.number().int().positive(),
 });
@@ -68,11 +69,17 @@ export type DepositConfirmRequest = z.infer<typeof DepositConfirmRequestSchema>;
 
 /** `POST /deposits/confirm` 응답. 이 호출 하나만 예수금을 실제로 늘린다(ia.md §1). */
 export const DepositConfirmResponseSchema = z.object({
-  paymentId: z.string(),
+  /**
+   * **`paymentId` 가 아니라 `depositId` 다.** 이 응답만 v0.7 의 단발 `POST /deposits`
+   * 응답 모양을 그대로 물려받았다(apiSpec §4.4). 요청은 `paymentId` 로 보내고 응답은
+   * `depositId` 로 받는 비대칭이라 눈에 걸리지만 계약이 그렇다.
+   */
+  depositId: z.number().int(),
   amount: KrwAmountSchema,
   paymentMethod: PaymentMethodSchema,
   cashBalanceAfter: KrwAmountSchema,
-  confirmedAt: IsoDateTimeSchema,
+  /** 같은 이유로 `confirmedAt` 이 아니라 `depositedAt` 이다. */
+  depositedAt: IsoDateTimeSchema,
 });
 export type DepositConfirmResponse = z.infer<
   typeof DepositConfirmResponseSchema
@@ -101,7 +108,7 @@ export type DepositMockApproveRequest = z.infer<
 
 /** `POST /deposits/{paymentId}/mock-approve` 응답. 이어서 `confirm` 을 부르는 재료다. */
 export const DepositMockApproveResponseSchema = z.object({
-  paymentId: z.string(),
+  paymentId: z.number().int(),
   paymentKey: z.string(),
   amount: KrwAmountSchema,
 });

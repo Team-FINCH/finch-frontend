@@ -5,7 +5,7 @@ import { useDepositLimit } from '@/features/deposit/api/useDepositLimit';
 import { useDepositReady } from '@/features/deposit/api/useDepositReady';
 import { AmountInput } from '@/features/deposit/components/AmountInput';
 import { PaymentMethodPicker } from '@/features/deposit/components/PaymentMethodPicker';
-import { isHttpError } from '@/shared/api';
+import { isHttpError, isSchemaError } from '@/shared/api';
 import { formatKrw } from '@/shared/lib/formatNumber';
 import { type PaymentMethod } from '@/shared/types/deposit';
 import { ActionBar } from '@/shared/ui/ActionBar';
@@ -31,6 +31,27 @@ import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
 const DEPOSIT_PRESETS = [10_000, 100_000, 1_000_000] as const;
 
 type Step = 'amount' | 'confirm';
+
+/**
+ * `ready` 실패 문구.
+ *
+ * **`HttpError` 만 그리면 안 된다.** 응답 스키마가 어긋나면 `SchemaError` 가 나오는데,
+ * 그것만 걸러 내면 화면에 아무것도 뜨지 않고 버튼만 되돌아와 "눌러도 아무 일이 없다"가
+ * 된다. 실제로 그 상태로 배포됐다(FINCH-160). 원인을 사용자에게 설명할 수는 없어도
+ * **실패했다는 사실은 반드시 보여야 한다.**
+ */
+function readyErrorMessage(error: unknown): string {
+  if (isHttpError(error)) {
+    // 서버가 완성해 준 문구를 그대로 쓴다 (컨벤션 §5).
+    return error.message;
+  }
+  if (isSchemaError(error)) {
+    // 사용자가 할 수 있는 일이 없다. 계약 불일치는 우리가 고쳐야 하는 것이라
+    // 재시도를 권하지 않고 문의로 보낸다.
+    return '충전을 시작하지 못했어요. 문제가 계속되면 알려 주세요.';
+  }
+  return '충전을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.';
+}
 
 export function DepositPage() {
   const [step, setStep] = useState<Step>('amount');
@@ -129,9 +150,9 @@ export function DepositPage() {
             충전은 취소할 수 없습니다.
           </p>
 
-          {isHttpError(readyMutation.error) && (
+          {readyMutation.error !== null && (
             <p className="text-caption text-danger">
-              {readyMutation.error.message}
+              {readyErrorMessage(readyMutation.error)}
             </p>
           )}
 

@@ -75,7 +75,7 @@ const MOCK_APPROVE_SCENARIOS = [
 type PendingPaymentStatus = 'READY' | 'CONFIRMED';
 
 interface PendingPayment {
-  paymentId: string;
+  paymentId: number;
   amount: number;
   paymentMethod: 'KAKAOPAY' | 'TRANSFER';
   status: PendingPaymentStatus;
@@ -86,10 +86,15 @@ interface PendingPayment {
   confirmedResponse: JsonBodyType | null;
 }
 
-const pendingPayments = new Map<string, PendingPayment>();
+const pendingPayments = new Map<number, PendingPayment>();
 
-function issuePaymentId(): string {
-  const paymentId = `pay_${store.nextPaymentId}`;
+/**
+ * 서버는 DB 채번이라 숫자를 준다 (apiSpec §4.2 `"paymentId": 77`).
+ * **한때 목만 `pay_1` 같은 문자열을 냈다** — 프론트 Zod 스키마도 같이 틀려 있어서
+ * 목에서는 통과하고 실제 백엔드에서만 깨졌다(FINCH-160). 목이 계약을 따른다.
+ */
+function issuePaymentId(): number {
+  const paymentId = store.nextPaymentId;
   store.nextPaymentId += 1;
   return paymentId;
 }
@@ -189,7 +194,7 @@ export const depositHandlers = [
         return unauthorized;
       }
 
-      const paymentId = String(params.paymentId);
+      const paymentId = Number(params.paymentId);
       const payment = pendingPayments.get(paymentId);
       if (payment === undefined) {
         return errorResponse(
@@ -243,7 +248,8 @@ export const depositHandlers = [
 
     const { paymentId, paymentKey, amount } = body;
     if (
-      typeof paymentId !== 'string' ||
+      typeof paymentId !== 'number' ||
+      !Number.isSafeInteger(paymentId) ||
       typeof paymentKey !== 'string' ||
       typeof amount !== 'number'
     ) {
@@ -343,11 +349,12 @@ export const depositHandlers = [
 
     payment.status = 'CONFIRMED';
     const responseBody: JsonBodyType = {
-      paymentId,
+      // 이 응답만 `depositId` 다 — v0.7 단발 `POST /deposits` 응답을 물려받았다(apiSpec §4.4).
+      depositId: paymentId,
       amount,
       paymentMethod: payment.paymentMethod,
       cashBalanceAfter: store.cashBalance,
-      confirmedAt,
+      depositedAt: confirmedAt,
     };
     payment.confirmedResponse = responseBody;
 
