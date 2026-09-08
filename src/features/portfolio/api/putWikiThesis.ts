@@ -2,25 +2,30 @@ import { request, toAiResult, type AiResult } from '@/shared/api';
 import { API_PATHS } from '@/shared/config/apiContract';
 import {
   UpdateWikiThesisResponseSchema,
+  type UpdateWikiThesisInput,
   type UpdateWikiThesisRequest,
   type WikiThesis,
 } from '@/shared/types/ai/wiki';
+import { type StockCode } from '@/shared/types/primitives';
 
 /**
  * `PUT /ai/wiki/theses/{stockCode}` (contracts C80). 논지 수정.
  *
- * **지금 화면의 어느 버튼도 이 함수를 직접 호출하지 않는다.** ia.md §1이 프로토타입
- * 실측으로 확정한 "기록 수정하기" 버튼의 실제 동작은 인라인 편집이 아니라 알림함
- * (`/inbox`)으로 이동하는 것이다 — 계약(`PUT .../theses/{stockCode}`)과 프로토타입
- * UI가 이 지점에서 갈리고, "컴포넌트는 하나이므로 동작도 한 곳에만" 있으면 된다는
- * 원칙에 따라 프로토타입 쪽을 택했다. 이 함수는 계약이 확정돼 있고 목도 구현돼 있어
- * (`mocks/handlers/wiki.ts`) 인라인 편집 UI가 붙을 때 바로 쓸 수 있도록 남겨 둔다.
+ * **2026-09-07부터 호출하는 곳이 생겼다** — 위키 탭 "종목별 매수 이유"의 종목
+ * 행에서 여는 논지 수정 시트(`features/portfolio/components/ThesisEditSheet.tsx`,
+ * FINCH-28-ai-entry)가 이 함수를 부른다. 그 전까지는 "기록 수정하기"
+ * 버튼이 알림함(`/inbox`)으로 이동하기만 해서 어느 화면도 부르지 않았다.
+ *
+ * **요청 본문에 `ticker`를 채운다.** `stockCode`(경로)와 같은 값이고, 서버가
+ * 본문의 `ticker`를 무시한다는 걸 알면서도 호환을 위해 채운다(contracts C60) —
+ * 호출부가 `ticker`를 따로 넘기지 않도록 여기서 `stockCode`를 그대로 채워 준다.
  */
 export function putWikiThesis(
-  stockCode: string,
-  body: UpdateWikiThesisRequest,
+  stockCode: StockCode,
+  input: UpdateWikiThesisInput,
   signal?: AbortSignal,
 ): Promise<AiResult<WikiThesis>> {
+  const body: UpdateWikiThesisRequest = { ticker: stockCode, ...input };
   return request(API_PATHS.ai.wiki.updateThesis(stockCode), {
     method: 'PUT',
     body,

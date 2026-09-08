@@ -30,12 +30,16 @@ export { StockSearchResultList } from './components/StockSearchResultList';
 export { useDebouncedValue } from './hooks/useDebouncedValue';
 
 export {
+  CANDLE_INTERVAL_OPTIONS,
   CANDLE_PERIOD_OPTIONS,
+  DEFAULT_CANDLE_INTERVAL,
   DEFAULT_CANDLE_PERIOD,
   DEFAULT_STOCK_DETAIL_TAB,
+  STOCK_DETAIL_INTERVAL_PARAM,
   STOCK_DETAIL_PERIOD_PARAM,
   STOCK_DETAIL_TAB_PARAM,
   STOCK_DETAIL_TABS,
+  parseCandleInterval,
   parseCandlePeriod,
   parseStockDetailTab,
   type StockDetailTab,

@@ -14,6 +14,8 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import { useDeleteWikiFact } from '../api/useDeleteWikiFact';
 import { useWiki } from '../api/useWiki';
 
+import { ThesisEditSheet } from './ThesisEditSheet';
+
 const SOURCE_LABEL: Record<WikiFact['source'], string> = {
   user_stated: '직접 말한 내용',
   derived_from_trades: '거래 내역에서 도출',
@@ -42,6 +44,7 @@ export function WikiTab() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WikiFact | null>(null);
   const deleteFact = useDeleteWikiFact();
+  const [editTarget, setEditTarget] = useState<WikiThesis | null>(null);
 
   if (isPending) {
     return (
@@ -227,16 +230,16 @@ export function WikiTab() {
           </span>
         </div>
         <p className="mb-2.5 text-caption text-text-secondary">
-          왜 샀는지 다시 볼 수 있어요.
+          왜 샀는지 적어두면 AI가 근거로 삼아 더 맞는 추천을 해줘요.
         </p>
         {theses.length === 0 ? (
           <p className="pt-3 pb-0 text-body-1 leading-6 text-pretty text-text-secondary">
             아직 기록한 매수 이유가 없어요.
             <br />
-            매수 이유를 남겨두면 다음 투자 판단에서 다시 볼 수 있어요.
+            매수 이유를 남겨두면 AI가 그 기록을 근거로 더 맞는 추천을 해줘요.
           </p>
         ) : (
-          <ThesisList theses={theses} />
+          <ThesisList theses={theses} onEditThesis={setEditTarget} />
         )}
 
         <div className="mt-0.5 border-t border-border/40 pt-4">
@@ -297,11 +300,37 @@ export function WikiTab() {
           </Button>
         </div>
       </BottomSheet>
+
+      {/*
+        `key`로 논지가 바뀔 때마다 새로 마운트한다 — `ThesisRecordSheet`가
+        `initialText`를 마운트 시점에만 읽는다(`ThesisEditSheet.tsx` 머리 주석).
+      */}
+      <ThesisEditSheet
+        key={editTarget?.id ?? 'none'}
+        thesis={editTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditTarget(null);
+          }
+        }}
+      />
     </div>
   );
 }
 
-function ThesisList({ theses }: { theses: WikiThesis[] }) {
+/**
+ * 종목별 매수 이유 목록. 행을 누르면 아코디언으로 펼쳐 기존 텍스트를 보여주고,
+ * 펼친 안의 "기록 수정하기"를 누르면 `onEditThesis`(→ `ThesisEditSheet`)로 그
+ * 종목의 기록 시트를 바로 연다 — 알림함(`/inbox`)으로 보내던 이전 동작을
+ * FINCH-28-ai-entry에서 바꿨다. 이 섹션은 종목이 이미 정해져 있어(각 행이
+ * 자기 `ticker`를 이미 안다) 알림함을 거칠 이유가 없다는 것이 사용자 결정이다.
+ */
+type ThesisListProps = {
+  theses: WikiThesis[];
+  onEditThesis: (thesis: WikiThesis) => void;
+};
+
+function ThesisList({ theses, onEditThesis }: ThesisListProps) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
@@ -348,16 +377,16 @@ function ThesisList({ theses }: { theses: WikiThesis[] }) {
                 <p className="text-body-2 leading-6 text-pretty text-text-secondary">
                   {thesis.text}
                 </p>
-                <LinkButton
-                  to={ROUTES.inbox}
-                  variant="secondary"
-                  className="mt-3 h-auto w-auto gap-1.5 border-0 p-0 text-label font-medium text-text-primary"
+                <button
+                  type="button"
+                  onClick={() => onEditThesis(thesis)}
+                  className="mt-3 flex w-auto items-center gap-1.5 text-label font-medium text-text-primary"
                 >
                   기록 수정하기
                   <span aria-hidden="true" className="text-text-muted">
                     ›
                   </span>
-                </LinkButton>
+                </button>
               </div>
             )}
           </div>

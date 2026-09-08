@@ -1,12 +1,13 @@
+import { useInboxItems } from '@/features/inbox';
 import {
   CauseTab,
   DiagnosisTab,
   HoldingsTab,
-  PortfolioHeader,
   PortfolioTabBar,
   usePortfolioTabState,
   WikiTab,
 } from '@/features/portfolio';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { PageMain } from '@/shared/ui/PageMain';
 
 /**
@@ -30,13 +31,23 @@ import { PageMain } from '@/shared/ui/PageMain';
  *
  * `GET /stocks/prices`(시세 폴링)는 이 티켓의 범위가 아니다 — `GET /portfolio`가
  * 내려주는 `currentPrice` 스냅샷을 그대로 쓴다.
+ *
+ * **헤더는 `shared/ui/PageHeader.tsx` 를 쓴다** (FINCH-28, 내 정보 화면 작업 중
+ * 헤더 중복을 셋으로 확인하고 공용화했다). 예전 `PortfolioHeader` 는 알림함 API 가
+ * 없어 뱃지 카운트를 못 달았는데, 지금은 `useInboxItems` 가 있어 실제 미읽음 개수를
+ * 연결한다.
  */
 export function PortfolioPage() {
   const { tab, sort, setTab, setSort } = usePortfolioTabState();
+  const inbox = useInboxItems();
 
   return (
     <PageMain>
-      <PortfolioHeader />
+      <PageHeader
+        title="포트폴리오"
+        unreadCount={inbox.data?.unreadCount ?? 0}
+        className="mb-1"
+      />
       <PortfolioTabBar tab={tab} onChange={setTab} />
 
       {tab === 'holdings' && <HoldingsTab sort={sort} onSortChange={setSort} />}

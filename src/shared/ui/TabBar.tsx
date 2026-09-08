@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 
 import { BOTTOM_TAB_ROUTES, ROUTES } from '@/shared/config/routes';
 import { useIsAnySheetOpen } from '@/shared/hooks/useSheetOverlayStore';
+import { AiEntryButton } from '@/shared/ui/AiEntryButton';
 
 /**
  * 하단 탭 바 (ia.md §3 · FINCH-28).
@@ -12,18 +13,24 @@ import { useIsAnySheetOpen } from '@/shared/hooks/useSheetOverlayStore';
  * `.tabbar` 높이 98px · `.tabpill` 높이 58px 캡슐(안쪽 버튼 48px) ·
  * 선택된 탭 `flex:2.2`, 나머지 `flex:1`.
  *
- * **`.tabai`(AI 버튼, 58x58 · 배경 `--t1`)는 의도적으로 만들지 않는다. 확정된
- * 결정이다(감독관 확인, 2026-09-07).** 프로토타입은 `.tabbar` 안에
- * `.tabpill`(또는 `.tabpill.trade`)과 `.tabai`를 나란히 그리지만 —
- * - AI 진입점은 탭 바 안이 아니라 플로팅 버튼(`AiFloatingOverlay.tsx`)이다.
- *   근거는 `ia.md` §3("PRD 는 AI 를 탭에서 빼고 플로팅 버튼으로 옮겼다")
- * - **다만 `ia.md:295`(AI 플로팅 버튼 절)가 이 항목을 아직 미확정으로 적어
- *   둔다.** 프로토타입은 지금도 탭바 안 `.tabai`로 그리고 플로팅 버튼(`.fab`)은
- *   브리핑 화면에만 두어서, 문서(PRD·§1·§2)와 프로토타입 실제 구현이 다르다고
- *   기록돼 있다 — 어느 쪽을 따를지는 GitLab 이슈 #26 4번 회신 대기다
+ * **`.tabai`(AI 버튼, 58x58 · 배경 `--t1`)는 2026-09-07에 만든다 — 뒤집힌
+ * 결정이다.** 이 자리에는 원래 "의도적으로 만들지 않는다"는 주석이 있었다.
+ * 그때 근거는 `ia.md` §3("PRD 는 AI 를 탭에서 빼고 플로팅 버튼으로 옮겼다")였고,
+ * `ia.md:295`가 이 항목을 GitLab 이슈 #26 4번 회신 대기로 미확정 표시해 둔
+ * 상태였다 — 문서(PRD·§1·§2)는 탭 안 AI 버튼을 뺐다고 적지만 프로토타입
+ * (`finch-prototype.html`)의 실제 구현(`showTabs`/`.tabai` 마크업)은 계속
+ * 탭 바 안에 그렸다는 어긋남이었다.
  *
- * 다음에 프로토타입만 보고 "AI 버튼이 빠졌다"며 조용히 넣지 않도록 이 코멘트를
- * 남긴다. 플로팅 버튼 UI 자체는 별도 티켓 범위라 이 파일이 그리지 않는다.
+ * 그 어긋남이 오늘(FINCH-28-ai-entry) 프로토타입 쪽으로 확정됐다 —
+ * 감독관이 프로토타입을 다시 실측해 "모든 화면에 AI 버튼을 둔다"(`showTabs`
+ * 목록의 화면은 `.tabai`로, `showFab`의 브리핑만 `.fab`로)는 사실을 재확인했고,
+ * 문서와 프로토타입이 갈릴 때 어느 쪽을 최종 근거로 삼을지가 이번에 프로토타입
+ * 실측 쪽으로 정리됐다. 컴포넌트는 `.tabai`·`.fab`를 하나로 합친
+ * `AiEntryButton`(`shared/ui/AiEntryButton.tsx`)이고, 이 파일은 `TabBarShell`의
+ * 탭 목록 줄 마지막에 그 컴포넌트를 놓는 자리만 맡는다.
+ *
+ * 다음에 이 결정이 또 뒤집힐 수 있으니, 프로토타입만 보고 조용히 고치지 말고
+ * 문서(`ia.md` §3·§7)와 어긋나면 먼저 보고한다.
  *
  * 탭 목록은 새로 정의하지 않는다. `BOTTOM_TAB_ROUTES`(홈·탐색·포트폴리오·내 정보)
  * 를 그대로 쓴다. 아이콘은 그 배열에 없는 값이라 이 파일이 프로토타입 `.n1`~`.n4`
@@ -70,8 +77,19 @@ function tabIconMaskStyle(path: string) {
  * **바텀시트가 하나라도 열려 있으면 렌더 자체에서 빠진다** — 프로토타입의
  * `showTabs: !s.sheet`와 같다. `opacity:0`/`visibility:hidden`이 아니라 `null`을
  * 반환한다. 두 변형(`TabBar`·`TradeTabBar`)이 이 셸을 통해 같이 적용받는다.
+ *
+ * `aiExpandedLabel`은 `AiEntryButton`에 그대로 넘긴다 — 나브 변형(`TabBar`)은
+ * 넘기지 않아 원형 아이콘으로 고정되고, 매수/매도 변형(`TradeTabBar`)만
+ * `"이 종목 물어보기"`를 넘겨 라벨이 펼쳐진다(프로토타입 `tabaiCls`가
+ * `screen==="detail"`에서만 `peek`가 되는 것과 같다).
  */
-function TabBarShell({ children }: { children: ReactNode }) {
+function TabBarShell({
+  children,
+  aiExpandedLabel,
+}: {
+  children: ReactNode;
+  aiExpandedLabel?: string;
+}) {
   const isAnySheetOpen = useIsAnySheetOpen();
   if (isAnySheetOpen) {
     return null;
@@ -89,6 +107,7 @@ function TabBarShell({ children }: { children: ReactNode }) {
         className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg/70 to-bg/0 [mask-image:linear-gradient(to_top,#000_58%,transparent)] [backdrop-filter:blur(14px)] [-webkit-backdrop-filter:blur(14px)] [-webkit-mask-image:linear-gradient(to_top,#000_58%,transparent)]"
       />
       {children}
+      <AiEntryButton expandedLabel={aiExpandedLabel} />
     </nav>
   );
 }
@@ -166,10 +185,16 @@ type TradeTabBarProps = {
  *
  * `.tstop`(거래정지·주문 불가) 변형은 만들지 않는다. 티켓이 요청한 것은
  * 매수/매도 둘뿐이다.
+ *
+ * **AI 버튼도 이 변형에 들어간다.** 프로토타입 `showTabs`는 `screen==="detail"`을
+ * 포함하고, 그 화면에서 그리는 것은 나브 탭이 아니라 이 매수/매도 바
+ * (`.tabpill.trade`)지만 `.tabai` 자체는 `showTabs` 화면 공통이라 종목 상세에도
+ * 그대로 뜬다. 라벨은 `tabaiLabel`이 `screen==="detail"`일 때만
+ * `"이 종목 물어보기"`로 펼쳐지므로 여기서만 `aiExpandedLabel`을 넘긴다.
  */
 export function TradeTabBar({ onBuy, onSell }: TradeTabBarProps) {
   return (
-    <TabBarShell>
+    <TabBarShell aiExpandedLabel="이 종목 물어보기">
       <div className={`${PILL_BASE_CLASS} gap-1.5`}>
         <button
           type="button"

@@ -5,10 +5,12 @@ import {
   STOCK_PRICES_MAX_CODES,
   STOCK_SEARCH_MIN_KEYWORD_LENGTH,
 } from '@/shared/config/apiContract';
+import { CandleIntervalSchema } from '@/shared/types/candleInterval';
 import {
   COMMON_ERROR_CODES,
   STOCK_ERROR_CODES,
 } from '@/shared/types/errorCodes';
+import { CandlePeriodSchema } from '@/shared/types/stock';
 
 import {
   ACTIVE_MOCK_STOCKS,
@@ -41,7 +43,7 @@ import { currentPriceOf, profitRate } from '../lib/valuation';
  * | 입력 | 응답 |
  * | --- | --- |
  * | 카탈로그에 없는 종목코드 | `404 STOCK_NOT_FOUND` |
- * | `keyword` 2글자 미만 · `period` 열거값 밖 · `stockCodes` 누락이나 50건 초과 | `400 INVALID_REQUEST` |
+ * | `keyword` 2글자 미만 · `period`·`interval` 열거값 밖 · `stockCodes` 누락이나 50건 초과 | `400 INVALID_REQUEST` |
  * | `036570`(엔씨소프트) | `suspended: true` — 뱃지와 주문 차단 렌더 |
  * | `010950`(에스오일) | `stale: true` + 마지막 수신 값 유지 |
  * | `900140`(엘브이엠씨홀딩스) | `stale: true` + 가격 3필드와 `asOf` 가 전부 `null` |
@@ -49,14 +51,26 @@ import { currentPriceOf, profitRate } from '../lib/valuation';
  * 시세 없음은 에러가 아니다 (apiSpec §11.2) — 위 두 종목이 그 두 상태를 재현한다.
  */
 
-const CANDLE_PERIODS = ['1M', '3M', '1Y'];
+/**
+ * 일봉 개수. 넉넉히 둔다 — 확대/축소가 이번에 들어갔는데 일봉이 몇십 개뿐이면
+ * 줌아웃했을 때 볼 것이 없어 기능 확인이 안 된다. 1000개면 대략 2.7년치라
+ * 주봉으로 묶어도 100개 이상, 월봉으로 묶어도 30개 안팎이 남는다.
+ */
+const BASE_DAILY_COUNT = 1000;
 
-/** 기간별 캔들 개수. 셋 다 일봉이다 (apiSpec §5.3). */
-const CANDLE_COUNTS: Record<string, number> = { '1M': 22, '3M': 66, '1Y': 248 };
+type MockCandle = {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
 
 /**
- * 결정적 의사난수. 같은 종목·같은 기간이면 항상 같은 차트가 나온다.
- * 새로고침할 때마다 캔들이 요동치면 차트 렌더 문제인지 데이터 문제인지 가릴 수 없다.
+ * 결정적 의사난수. 같은 종목이면 항상 같은 일봉 시계열이 나온다 — 봉 종류가
+ * 바뀌어도(주봉·월봉은 이 일봉을 묶어 만들므로) 시드가 같다. 새로고침할 때마다
+ * 캔들이 요동치면 차트 렌더 문제인지 데이터 문제인지 가릴 수 없다.
  */
 function seededRandom(seed: number): () => number {
   let state = seed;
@@ -66,13 +80,12 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function buildCandles(stockCode: string, period: string, lastClose: number) {
-  const count = CANDLE_COUNTS[period] ?? 22;
-  const random = seededRandom(Number(stockCode) + count);
+/** 일봉 시계열 하나를 만든다. 과거로 거슬러 올라가며 마지막 종가를 현재가에 맞춘다. */
+function buildDailyCandles(stockCode: string, lastClose: number): MockCandle[] {
+  const random = seededRandom(Number(stockCode) + BASE_DAILY_COUNT);
 
-  // 마지막 캔들의 종가가 현재가와 맞도록 과거로 거슬러 올라가며 만든다.
   const closes: number[] = [lastClose];
-  for (let index = 1; index < count; index += 1) {
+  for (let index = 1; index < BASE_DAILY_COUNT; index += 1) {
     const previous = closes[0] ?? lastClose;
     const drift = (random() - 0.48) * 0.03;
     closes.unshift(Math.max(100, Math.round(previous * (1 - drift))));
@@ -84,7 +97,7 @@ function buildCandles(stockCode: string, period: string, lastClose: number) {
     const high = Math.max(open, close) + Math.round(close * random() * 0.008);
     const low = Math.min(open, close) - Math.round(close * random() * 0.008);
     // 주말을 건너뛰지 않는다. 목 차트의 목적은 렌더 확인이지 거래일 달력이 아니다.
-    const date = new Date(Date.now() - (count - 1 - index) * dayMs);
+    const date = new Date(Date.now() - (BASE_DAILY_COUNT - 1 - index) * dayMs);
 
     return {
       date: toKstDateString(date),
@@ -95,6 +108,80 @@ function buildCandles(stockCode: string, period: string, lastClose: number) {
       volume: 1_000_000 + Math.round(random() * 20_000_000),
     };
   });
+}
+
+/** 그 주의 월요일 날짜(`YYYY-MM-DD`)를 그룹 키로 쓴다. */
+function weekKey(date: string): string {
+  const monday = new Date(`${date}T00:00:00Z`);
+  const dayOfWeek = monday.getUTCDay(); // 0=일 .. 6=토
+  monday.setUTCDate(monday.getUTCDate() - ((dayOfWeek + 6) % 7));
+  return toKstDateString(monday);
+}
+
+/** 그 달(`YYYY-MM`)을 그룹 키로 쓴다. */
+function monthKey(date: string): string {
+  return date.slice(0, 7);
+}
+
+/**
+ * 일봉을 봉 하나로 묶는다. 난수를 따로 굴려 주봉·월봉을 새로 만들지 않는다 —
+ * 그러면 같은 종목인데 봉마다 시가·종가·고저가 서로 다른 이야기를 하게 된다.
+ * 시가는 그룹의 첫 일봉, 종가는 마지막 일봉 값이고, 고가·저가는 그룹 안 최대·
+ * 최소, 거래량은 합이다 — 실제 봉 집계와 같은 규칙이다.
+ */
+function aggregateCandles(
+  daily: readonly MockCandle[],
+  keyOf: (date: string) => string,
+): MockCandle[] {
+  const groups = new Map<string, MockCandle[]>();
+  for (const candle of daily) {
+    const key = keyOf(candle.date);
+    const group = groups.get(key);
+    if (group === undefined) {
+      groups.set(key, [candle]);
+    } else {
+      group.push(candle);
+    }
+  }
+
+  // `Map` 은 삽입 순서를 지킨다. `daily` 를 과거→현재 순으로 순회했으니 그룹도
+  // 같은 순서로 나온다 — lightweight-charts 가 요구하는 오름차순 그대로다.
+  return [...groups.values()].map((group) => {
+    const first = group[0];
+    const last = group[group.length - 1];
+    // `first`·`last` 는 그룹에 최소 한 원소가 있어야만 만들어지므로 항상 존재한다.
+    if (first === undefined || last === undefined) {
+      throw new Error('빈 캔들 그룹은 만들어지지 않는다');
+    }
+    return {
+      date: first.date,
+      open: first.open,
+      close: last.close,
+      high: Math.max(...group.map((candle) => candle.high)),
+      low: Math.min(...group.map((candle) => candle.low)),
+      volume: group.reduce((sum, candle) => sum + candle.volume, 0),
+    };
+  });
+}
+
+/**
+ * `period` 는 무시하고 `interval` 별 전량을 준다 — 보이는 범위는 확대/축소가
+ * 맡으므로 `period`(1M·3M·1Y)로 서버 쪽에서 잘라 줄 이유가 없다. `period` 는
+ * 응답 봉투에만 그대로 실어 돌려준다(apiSpec §5.3 계약 유지).
+ */
+function buildCandles(
+  stockCode: string,
+  interval: string,
+  lastClose: number,
+): MockCandle[] {
+  const daily = buildDailyCandles(stockCode, lastClose);
+  if (interval === 'WEEK') {
+    return aggregateCandles(daily, weekKey);
+  }
+  if (interval === 'MONTH') {
+    return aggregateCandles(daily, monthKey);
+  }
+  return daily;
 }
 
 export const stockHandlers = [
@@ -192,21 +279,43 @@ export const stockHandlers = [
         );
       }
 
+      // `period` 는 apiSpec §5.3 문서 그대로(1M·3M·1Y) 검증한다 — 손대지 않았다.
       const period = searchParam(request, 'period') ?? '1M';
-      if (!CANDLE_PERIODS.includes(period)) {
+      const periodValid = (
+        CandlePeriodSchema.options as readonly string[]
+      ).includes(period);
+
+      // `interval` 값 자체는 `@/shared/types/candleInterval.ts` 한 곳에서만
+      // 정의한다 (TODO(계약) 임시값 — 이슈 #37). 여기서는 그 스키마로만 검증한다.
+      const interval = searchParam(request, 'interval') ?? 'DAY';
+      const intervalValid = (
+        CandleIntervalSchema.options as readonly string[]
+      ).includes(interval);
+
+      if (!periodValid || !intervalValid) {
         return errorResponse(
           COMMON_ERROR_CODES.INVALID_REQUEST,
           '요청 값이 올바르지 않습니다',
           400,
-          { period: '1M · 3M · 1Y 중 하나여야 합니다' },
+          {
+            ...(periodValid
+              ? {}
+              : { period: '1M · 3M · 1Y 중 하나여야 합니다' }),
+            ...(intervalValid
+              ? {}
+              : {
+                  interval:
+                    'DAY(일봉) · WEEK(주봉) · MONTH(월봉) 중 하나여야 합니다',
+                }),
+          },
         );
       }
 
       return HttpResponse.json({
         stockCode,
         period,
-        interval: 'DAY',
-        candles: buildCandles(stockCode, period, stock.currentPrice),
+        interval,
+        candles: buildCandles(stockCode, interval, stock.currentPrice),
       });
     },
   ),

@@ -8,32 +8,38 @@ import {
   StockDetailTabNav,
   StockHoldingBox,
   StockInfoTab,
-  parseCandlePeriod,
+  parseCandleInterval,
   parseStockDetailTab,
   useStockDetail,
   useStockQuote,
   useToggleWatchlist,
-  STOCK_DETAIL_PERIOD_PARAM,
+  STOCK_DETAIL_INTERVAL_PARAM,
   STOCK_DETAIL_TAB_PARAM,
   type StockDetailTab,
 } from '@/features/stocks';
 import { ROUTES, STOCK_CODE_PARAM } from '@/shared/config/routes';
-import { type CandlePeriod } from '@/shared/types/stock';
+import { type CandleInterval } from '@/shared/types/stock';
 import { PageMain } from '@/shared/ui/PageMain';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { TradeTabBar } from '@/shared/ui/TabBar';
 
 /**
- * 종목 상세 — 시세·차트·기업정보·AI 분석. `?tab=chart|info|ai` · `?period=1M|3M|1Y`.
+ * 종목 상세 — 시세·차트·기업정보·AI 분석. `?tab=chart|info|ai` · `?interval=DAY|WEEK|MONTH`.
  *
  * **`/stocks/:stockCode` 와 `?tab=ai` 는 프론트 혼자 정하는 값이 아니다** — 브리핑
  * 응답의 `deeplink` 를 AI 서버가 이 경로 문자열로 만들어 내려보낸다 (`ia.md` §2).
+ *
+ * **`?interval=` 은 ia.md 에 없는 TODO(계약) 임시 파라미터다** — 봉 종류 탭이 쓴다.
+ * ia.md §2 가 잠근 `?period=1M|3M|1Y` 는 이 화면 어디서도 바꾸지 않는다(근거는
+ * `@/shared/types/candleInterval.ts` · `features/stocks/lib/stockDetailParams.ts`
+ * 머리 주석 참고).
  *
  * 티켓: FINCH-38, FINCH-50.
  *
  * 근거: `ia.md` §1 "탐색·거래" 표, §2 라우트 트리(쿼리 파라미터 표) ·
  * 프로토타입 `finch-prototype.html` 의 `isDetail` 블록.
- * API: `GET /api/v1/stocks/{stockCode}` · `GET /api/v1/stocks/{stockCode}/candles?period=` ·
+ * API: `GET /api/v1/stocks/{stockCode}` ·
+ * `GET /api/v1/stocks/{stockCode}/candles?period=&interval=` ·
  * `GET /api/v1/stocks/{stockCode}/price` · `POST`/`DELETE /api/v1/watchlist`.
  *
  * ## 하단 바를 이 페이지가 직접 렌더하는 이유
@@ -70,15 +76,18 @@ export function StockDetailPage() {
   const activeTab = parseStockDetailTab(
     searchParams.get(STOCK_DETAIL_TAB_PARAM),
   );
-  const period = parseCandlePeriod(searchParams.get(STOCK_DETAIL_PERIOD_PARAM));
+  const interval = parseCandleInterval(
+    searchParams.get(STOCK_DETAIL_INTERVAL_PARAM),
+  );
 
   const detail = useStockDetail(stockCode);
   const quote = useStockQuote(stockCode);
   const toggleWatch = useToggleWatchlist();
 
   /**
-   * 탭·기간은 URL 에 쓴다 (ia.md §2). `replace: true` 로 덮어써서 탭을 오간 횟수만큼
-   * 히스토리가 쌓이지 않게 한다 — 뒤로가기는 종목 상세를 떠나는 동작이어야 한다.
+   * 탭·봉 종류는 URL 에 쓴다 (탭은 ia.md §2, 봉 종류는 TODO(계약) — 위 주석 참고).
+   * `replace: true` 로 덮어써서 탭을 오간 횟수만큼 히스토리가 쌓이지 않게 한다 —
+   * 뒤로가기는 종목 상세를 떠나는 동작이어야 한다.
    */
   const setParam = useCallback(
     (key: string, value: string) => {
@@ -97,8 +106,8 @@ export function StockDetailPage() {
   const handleTabChange = (tab: StockDetailTab) => {
     setParam(STOCK_DETAIL_TAB_PARAM, tab);
   };
-  const handlePeriodChange = (next: CandlePeriod) => {
-    setParam(STOCK_DETAIL_PERIOD_PARAM, next);
+  const handleIntervalChange = (next: CandleInterval) => {
+    setParam(STOCK_DETAIL_INTERVAL_PARAM, next);
   };
 
   if (detail.isPending) {
@@ -157,8 +166,8 @@ export function StockDetailPage() {
         {activeTab === 'chart' && (
           <StockChartTab
             stockCode={stockCode}
-            period={period}
-            onPeriodChange={handlePeriodChange}
+            interval={interval}
+            onIntervalChange={handleIntervalChange}
             avgBuyPrice={data.holding?.avgBuyPrice ?? null}
           />
         )}

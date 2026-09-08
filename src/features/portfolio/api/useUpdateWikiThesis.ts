@@ -1,12 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@/shared/config/queryKeys';
-import { type UpdateWikiThesisRequest } from '@/shared/types/ai/wiki';
+import { type UpdateWikiThesisInput } from '@/shared/types/ai/wiki';
+import { type StockCode } from '@/shared/types/primitives';
 
 import { putWikiThesis } from './putWikiThesis';
 
-type UpdateWikiThesisVariables = UpdateWikiThesisRequest & {
-  stockCode: string;
+type UpdateWikiThesisVariables = UpdateWikiThesisInput & {
+  stockCode: StockCode;
 };
 
 /**
@@ -15,7 +16,8 @@ type UpdateWikiThesisVariables = UpdateWikiThesisRequest & {
  * 쿼리 무효화 한 줄이라 가장 싸고, 값이 확정된 뒤에도 굳이 낙관적 갱신으로 바꿀
  * 이유가 생기지 않았다.
  *
- * 지금 UI 에서 호출하는 곳은 없다 — `putWikiThesis.ts` 머리 주석을 본다.
+ * 호출하는 곳 — `features/portfolio/components/ThesisEditSheet.tsx`
+ * (FINCH-28-ai-entry). `putWikiThesis.ts` 머리 주석을 본다.
  */
 export function useUpdateWikiThesis() {
   const queryClient = useQueryClient();

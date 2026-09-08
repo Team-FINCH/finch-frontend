@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { STOCK_PRICES_MAX_CODES } from '@/shared/config/apiContract';
 
+import { CandleIntervalSchema, type CandleInterval } from './candleInterval';
 import { createItemsSchema } from './pagination';
 import {
   type IsoDateTime,
@@ -14,6 +15,13 @@ import {
   QuantitySchema,
   StockCodeSchema,
 } from './primitives';
+
+// `CandleInterval` 정의는 `./candleInterval.ts` 한 곳뿐이다 (TODO(계약) 임시값 —
+// 이슈 #37). 여기서는 이 파일 안에서(`CandlesResponseSchema`) 쓰기 위해 들여오고,
+// 기존 소비처(`@/shared/types/stock` 에서 `CandleInterval` 를 가져오던 자리)가
+// 안 깨지도록 그대로 다시 내보낸다.
+export { CandleIntervalSchema };
+export type { CandleInterval };
 
 /**
  * 종목 · 시세 · 관심 종목 (`docs/api/apiSpec.md` §5 종목 API · §6 최근 본 종목 ·
@@ -85,15 +93,11 @@ export const StockDetailResponseSchema = z.object({
 export type StockDetailResponse = z.infer<typeof StockDetailResponseSchema>;
 
 /**
- * 캔들 기간 (apiSpec §5.3 캔들 차트). **셋 다 일봉이다.**
- * 분봉 도입 여부는 미확정이라(contracts P11) 탭 구성은 데이터 주도로 만든다.
+ * 캔들 기간 (apiSpec §5.3 캔들 차트 · ia.md §2 "쿼리 파라미터로 둘 상태" 잠금).
+ * `1M`·`3M`·`1Y` 셋 다 일봉 기준이다 — 이 범위 자체는 확정 값이라 그대로 둔다.
  */
 export const CandlePeriodSchema = z.enum(['1M', '3M', '1Y']);
 export type CandlePeriod = z.infer<typeof CandlePeriodSchema>;
-
-/** 캔들 간격 (apiSpec §5.3). 지금은 일봉뿐이다. */
-export const CandleIntervalSchema = z.enum(['DAY']);
-export type CandleInterval = z.infer<typeof CandleIntervalSchema>;
 
 /** 캔들 한 개 (apiSpec §5.3). `date` 는 시각이 아니라 날짜다. */
 export const CandleSchema = z.object({
