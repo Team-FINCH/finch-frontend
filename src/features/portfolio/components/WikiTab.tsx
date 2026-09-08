@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { isHttpError } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
@@ -40,7 +39,6 @@ const HORIZON_LABEL: Record<NonNullable<WikiThesis['horizon']>, string> = {
  */
 export function WikiTab() {
   const { data, isPending, isError, error, refetch } = useWiki();
-  const navigate = useNavigate();
   const [infoOpen, setInfoOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WikiFact | null>(null);
   const deleteFact = useDeleteWikiFact();
@@ -241,24 +239,6 @@ export function WikiTab() {
         ) : (
           <ThesisList theses={theses} onEditThesis={setEditTarget} />
         )}
-
-        <div className="mt-0.5 border-t border-border/40 pt-4">
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.inbox)}
-            className="flex w-full items-center gap-3 py-1 text-left"
-          >
-            <span className="flex-1 text-body-2 font-semibold text-text-primary">
-              알림함에서 기록 확인하기
-            </span>
-            <span
-              aria-hidden="true"
-              className="flex-none text-body-2 text-text-muted"
-            >
-              ›
-            </span>
-          </button>
-        </div>
       </section>
 
       <BottomSheet
