@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
-import { ROUTES } from '@/shared/config/routes';
+import { HOME_LIST_TAB_PARAM, ROUTES } from '@/shared/config/routes';
 import { formatKrw } from '@/shared/lib/formatNumber';
 import { LinkButton } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
@@ -46,7 +47,17 @@ export function HoldingsWatchlistPreview({
   watchError,
   watchRefetch,
 }: HoldingsWatchlistPreviewProps) {
-  const [tab, setTab] = useState<Tab>('holdings');
+  /**
+   * 기본 탭은 내 종목이다. 온보딩을 마치고 오면 관심 종목 탭이 열려야 하므로
+   * (design.md §7.16 "완료 후 홈") 쿼리 파라미터로 첫 탭을 받는다.
+   * 모르는 값이면 내 종목이다 — 주소를 손으로 고친 경우다.
+   */
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(
+    searchParams.get(HOME_LIST_TAB_PARAM) === 'watch'
+      ? 'watchlist'
+      : 'holdings',
+  );
 
   return (
     <section className="mt-8.5">

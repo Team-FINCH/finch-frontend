@@ -29,12 +29,26 @@ function describeFailure(failure: CallbackFailure): string {
   }
 }
 
+type KakaoCallbackProps = {
+  /**
+   * 로그인 성공 후 갈 곳을 부르는 쪽이 고른다.
+   *
+   * **인증이 온보딩을 알지 않게 하는 자리다** (컨벤션 — feature 끼리 직접
+   * import 하지 않고 `pages` 에서 조립한다). 넘기지 않으면 로그인 전에 보려던
+   * 화면(`redirectTo`)으로 간다.
+   */
+  resolveDestination?: (result: {
+    isNewUser: boolean;
+    redirectTo: string;
+  }) => string;
+};
+
 /**
  * 카카오가 되돌려보낸 인가 코드를 세션으로 바꾼다 (`/oauth/kakao`).
  * 대부분 즉시 지나가지만 라우트를 갖는 이유는 카카오에 등록한 redirect URI 가
  * 실제로 열리는 주소여야 하기 때문이다.
  */
-export function KakaoCallback() {
+export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { mutate } = useKakaoLogin();
@@ -71,7 +85,14 @@ export function KakaoCallback() {
       {
         // replace 로 이동한다. 기록에 남기면 뒤로가기로 이미 소진된 코드가 붙은
         // URL 로 되돌아와 실패 화면을 본다.
-        onSuccess: () => navigate(preflight.redirectTo, { replace: true }),
+        onSuccess: (data) =>
+          navigate(
+            resolveDestination?.({
+              isNewUser: data.isNewUser,
+              redirectTo: preflight.redirectTo,
+            }) ?? preflight.redirectTo,
+            { replace: true },
+          ),
         onError: (error) =>
           setExchangeFailure({
             kind: 'exchangeFailed',
@@ -81,7 +102,7 @@ export function KakaoCallback() {
           }),
       },
     );
-  }, [mutate, navigate, preflight]);
+  }, [mutate, navigate, preflight, resolveDestination]);
 
   const failure =
     preflight.kind === 'failed' ? preflight.failure : exchangeFailure;
