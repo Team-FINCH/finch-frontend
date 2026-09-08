@@ -123,7 +123,7 @@ interface MockStore {
   transactions: MockTransaction[];
   nextTransactionId: number;
   nextOrderId: number;
-  /** 충전 `paymentId`(`pay_1`, `pay_2`, ...) 발급용 (`mocks/handlers/deposit.ts`). */
+  /** 충전 `paymentId`(56, 57, ...) 발급용. 서버가 DB 채번한 숫자다 (`mocks/handlers/deposit.ts`). */
   nextPaymentId: number;
   /** 출금 `withdrawalId` 발급용 (`mocks/handlers/deposit.ts`). */
   nextWithdrawalId: number;
