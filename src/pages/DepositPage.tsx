@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { useAccount } from '@/features/deposit/api/useAccount';
 import { useDepositLimit } from '@/features/deposit/api/useDepositLimit';
 import { useDepositReady } from '@/features/deposit/api/useDepositReady';
 import { AmountInput } from '@/features/deposit/components/AmountInput';
 import { PaymentMethodPicker } from '@/features/deposit/components/PaymentMethodPicker';
+import { toSameOriginPath } from '@/features/deposit/lib/queryParams';
 import { isHttpError, isSchemaError } from '@/shared/api';
 import { formatKrw } from '@/shared/lib/formatNumber';
 import { type PaymentMethod } from '@/shared/types/deposit';
@@ -60,6 +62,7 @@ export function DepositPage() {
     null,
   );
 
+  const navigate = useNavigate();
   const limitQuery = useDepositLimit();
   const accountQuery = useAccount();
   const readyMutation = useDepositReady();
@@ -85,7 +88,13 @@ export function DepositPage() {
       {
         onSuccess: (data) => {
           // 카카오 결제창이든 모의 이체 화면이든 checkoutUrl 하나로 이동한다(ia.md §1).
-          window.location.assign(data.checkoutUrl);
+          // 다만 우리 화면이면 라우터로 간다 — 전체 새로고침은 목 상태를 날린다.
+          const path = toSameOriginPath(data.checkoutUrl);
+          if (path === null) {
+            window.location.assign(data.checkoutUrl);
+            return;
+          }
+          void navigate(path);
         },
       },
     );

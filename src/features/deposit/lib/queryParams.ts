@@ -13,3 +13,29 @@ export function parsePositiveIntParam(value: string | null): number | null {
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
+
+/**
+ * `checkoutUrl` 이 우리 화면인가.
+ *
+ * **같은 오리진이면 전체 새로고침을 하면 안 된다.** `window.location.assign` 은
+ * 앱을 통째로 다시 띄우는데, 그러면 (1) MSW 목의 인메모리 상태가 날아가 방금
+ * 만든 결제 건을 다음 단계가 못 찾고, (2) 서비스 워커 재등록과 첫 요청이 경합해
+ * 요청이 목을 비껴 나간다. 실제로 목에서는 충전이 끝까지 흐르지 않았다.
+ *
+ * 카카오 결제창은 외부 주소라 `assign` 이 맞다. 계좌이체의 `checkoutUrl` 은
+ * 우리 `/deposit/transfer` 이고 배포도 같은 오리진이다(이슈 #35 회신).
+ *
+ * 파싱에 실패하면 외부로 본다 — 우리 라우터에 못 넘길 주소를 넘기는 것보다
+ * 브라우저에 맡기는 쪽이 안전하다.
+ */
+export function toSameOriginPath(checkoutUrl: string): string | null {
+  try {
+    const url = new URL(checkoutUrl, window.location.origin);
+    if (url.origin !== window.location.origin) {
+      return null;
+    }
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}

@@ -17,7 +17,10 @@ import '@/styles/index.css';
 async function enableMocking(): Promise<void> {
   if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MSW !== 'false') {
     const { worker } = await import('@/mocks/browser');
-    await worker.start({ onUnhandledRequest: 'bypass' });
+    // 'bypass' 면 목이 못 잡은 요청이 조용히 프록시로 새어 나간다. 개발에는 백엔드가
+    // 없어서 그 요청은 응답이 오지 않고, 화면은 영영 로딩에 갇힌다 — 원인이 콘솔
+    // 어디에도 안 남는다. 경고를 남기고 통과시킨다.
+    await worker.start({ onUnhandledRequest: 'warn' });
   }
 }
 
