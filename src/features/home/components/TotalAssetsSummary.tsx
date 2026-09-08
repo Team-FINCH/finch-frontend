@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom';
+
+import { ROUTES } from '@/shared/config/routes';
 import {
   formatKrw,
   formatSignedAmount,
@@ -69,21 +72,53 @@ export function TotalAssetsSummary({
 
   const direction = getPriceDirection(evaluationTotals.rate);
 
+  /**
+   * 총자산이 0원이면 평가손익과 기준 시각을 그리지 않는다 (프로토타입 `acctEmpty`).
+   * `평가손익 0원 · 0.00%` 는 계산 결과가 아니라 아직 아무것도 없다는 뜻인데,
+   * 숫자로 적으면 손익이 0으로 확정된 것처럼 읽힌다. 기준 시각도 같다 —
+   * 갱신할 값이 없는데 시각만 있으면 무엇의 시각인지 알 수 없다.
+   *
+   * **입금 CTA 는 검정 버튼이 아니라 회색 액션 로우다** (design.md §7.16
+   * "완료 후 홈"). 입금이 첫 행동처럼 보이지 않게 낮춘다 — 온보딩이 유도하는
+   * 첫 행동은 관심 종목 담기다.
+   */
+  const isEmpty = account.data.totalAsset === 0;
+
   return (
     <div className="pt-1.5">
       <p className="text-caption font-medium text-text-secondary">총자산</p>
       <p className="mt-3 text-[33px] leading-[41px] font-semibold text-text-primary tabular-nums">
         {formatKrw(account.data.totalAsset)}
       </p>
-      <p
-        className={`mt-2.5 text-body-2 font-medium tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
-      >
-        평가손익 {formatSignedAmount(evaluationTotals.profit)}원 ·{' '}
-        {formatSignedRate(evaluationTotals.rate)}
-      </p>
-      <p className="mt-2 text-caption text-text-muted">
-        {formatAsOfTime(account.data.asOf)} 기준
-      </p>
+
+      {isEmpty ? (
+        <div className="mt-2.5 flex items-center gap-3">
+          <p className="min-w-0 flex-1 text-caption text-text-secondary">
+            입금하면 매매를 시작할 수 있어요.
+          </p>
+          <Link
+            to={ROUTES.deposit}
+            className="inline-flex h-8.5 flex-none items-center gap-1.5 rounded-12 bg-primary-soft pr-3 pl-3.5 text-label font-medium text-text-primary"
+          >
+            입금하기
+            <span aria-hidden="true" className="text-text-muted">
+              ›
+            </span>
+          </Link>
+        </div>
+      ) : (
+        <>
+          <p
+            className={`mt-2.5 text-body-2 font-medium tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
+          >
+            평가손익 {formatSignedAmount(evaluationTotals.profit)}원 ·{' '}
+            {formatSignedRate(evaluationTotals.rate)}
+          </p>
+          <p className="mt-2 text-caption text-text-muted">
+            {formatAsOfTime(account.data.asOf)} 기준
+          </p>
+        </>
+      )}
     </div>
   );
 }
