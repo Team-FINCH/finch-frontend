@@ -82,14 +82,40 @@ export const AI_SERVICE_ERROR_CODES = {
 export type AiServiceErrorCode =
   (typeof AI_SERVICE_ERROR_CODES)[keyof typeof AI_SERVICE_ERROR_CODES];
 
-/** 충전 (apiSpec §11 충전 · §4.2). 접두사는 `DEPOSIT_` 다 (contracts C49). */
+/**
+ * 충전 (apiSpec §11 충전 · §4.2). 접두사는 `DEPOSIT_` 다 (contracts C49).
+ *
+ * 아래 다섯(`NOT_FOUND`~`NOT_APPROVED`)은 충전이 4단계(준비→결제창→승인→확정)로
+ * 바뀌면서 늘어난 것이다. 이 워크트리 시점에는 `contracts.md` C89~C92 가 아직
+ * 안 보여서 티켓 프롬프트가 준 값을 그대로 옮겼다(`DepositFailPage` 의 `code` 5종 +
+ * 만료 판정의 `NOT_APPROVED`).
+ */
 export const DEPOSIT_ERROR_CODES = {
   AMOUNT_INVALID: 'DEPOSIT_AMOUNT_INVALID',
   PER_REQUEST_LIMIT_EXCEEDED: 'DEPOSIT_PER_REQUEST_LIMIT_EXCEEDED',
   LIMIT_EXCEEDED: 'DEPOSIT_LIMIT_EXCEEDED',
+  NOT_FOUND: 'DEPOSIT_NOT_FOUND',
+  INVALID_STATE: 'DEPOSIT_INVALID_STATE',
+  PAYMENT_FAILED: 'DEPOSIT_PAYMENT_FAILED',
+  PG_UNAVAILABLE: 'DEPOSIT_PG_UNAVAILABLE',
+  AMOUNT_MISMATCH: 'DEPOSIT_AMOUNT_MISMATCH',
+  /**
+   * confirm 을 만료 뒤에 부르면 오는 코드 중 하나 (`PAYMENT_FAILED` 가 나머지 하나다).
+   * 만료 정리 배치가 하루 1회(새벽 4:30)만 돌아서 낮에는 이 코드가 훨씬 자주 온다 —
+   * 화면은 둘을 같은 만료 화면으로 묶는다.
+   */
+  NOT_APPROVED: 'DEPOSIT_NOT_APPROVED',
 } as const;
 export type DepositErrorCode =
   (typeof DEPOSIT_ERROR_CODES)[keyof typeof DEPOSIT_ERROR_CODES];
+
+/** 출금 (apiSpec §11 출금). 접두사는 `WITHDRAWAL_` 다 (`ia.md` §1 "출금 화면"). */
+export const WITHDRAWAL_ERROR_CODES = {
+  AMOUNT_INVALID: 'WITHDRAWAL_AMOUNT_INVALID',
+  INSUFFICIENT_CASH: 'WITHDRAWAL_INSUFFICIENT_CASH',
+} as const;
+export type WithdrawalErrorCode =
+  (typeof WITHDRAWAL_ERROR_CODES)[keyof typeof WITHDRAWAL_ERROR_CODES];
 
 /** 종목 · 관심 종목 (apiSpec §11 종목 · 관심 종목). */
 export const STOCK_ERROR_CODES = {
@@ -157,6 +183,7 @@ export const KNOWN_ERROR_CODES = [
   ...Object.values(AI_RELAY_ERROR_CODES),
   ...Object.values(AI_SERVICE_ERROR_CODES),
   ...Object.values(DEPOSIT_ERROR_CODES),
+  ...Object.values(WITHDRAWAL_ERROR_CODES),
   ...Object.values(STOCK_ERROR_CODES),
   ...Object.values(ORDER_ERROR_CODES),
 ] as const;
