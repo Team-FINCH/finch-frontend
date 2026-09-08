@@ -66,7 +66,8 @@ export function BottomSheet({
         <Dialog.Content
           aria-describedby={undefined}
           className={
-            'fixed inset-x-0 bottom-0 z-50 flex max-h-[80%] w-full flex-col rounded-t-sheet ' +
+            // 가로 폭은 ActionBar·TabBar 와 같은 max-w-md 다 (ActionBar 주석 참고).
+            'fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[80%] w-full max-w-md flex-col rounded-t-sheet ' +
             'bg-surface px-5 pt-2 pb-[calc(1.5rem+env(safe-area-inset-bottom))] ' +
             'data-[state=open]:animate-[sheet-slide-up_var(--motion-sheet)_var(--ease-standard)] ' +
             className
