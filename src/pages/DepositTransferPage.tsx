@@ -38,7 +38,7 @@ import { PageMain } from '@/shared/ui/PageMain';
 const SCENARIO_LABELS: Record<DepositMockApproveScenario, string> = {
   SUCCESS: '정상 승인',
   INSUFFICIENT_BALANCE: '잔액 부족으로 실패',
-  LIMIT_EXCEEDED: '충전 한도 초과로 실패',
+  LIMIT_EXCEEDED: '입금 한도 초과로 실패',
   TIMEOUT: '시간 초과로 실패',
 };
 
@@ -98,7 +98,7 @@ export function DepositTransferPage() {
         <DepositResultScreen
           variant="error"
           errorMessage="이체할 결제를 찾을 수 없어요."
-          primaryLabel="충전으로"
+          primaryLabel="입금으로"
           onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
         />
       </PageMain>
@@ -136,7 +136,7 @@ export function DepositTransferPage() {
       <PageMain>
         <DepositResultScreen
           variant="expired"
-          primaryLabel="다시 충전하기"
+          primaryLabel="다시 입금하기"
           onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
         />
       </PageMain>

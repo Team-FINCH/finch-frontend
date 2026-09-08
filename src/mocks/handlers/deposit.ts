@@ -136,7 +136,7 @@ export const depositHandlers = [
     ) {
       return errorResponse(
         DEPOSIT_ERROR_CODES.AMOUNT_INVALID,
-        '충전 금액을 확인해 주세요',
+        '입금 금액을 확인해 주세요',
         400,
       );
     }
@@ -144,7 +144,7 @@ export const depositHandlers = [
     if (amount > DEPOSIT_PER_REQUEST_LIMIT) {
       return errorResponse(
         DEPOSIT_ERROR_CODES.PER_REQUEST_LIMIT_EXCEEDED,
-        '한 번에 1,000만 원까지 충전할 수 있어요',
+        '한 번에 1,000만 원까지 입금할 수 있어요',
         409,
       );
     }
@@ -153,7 +153,7 @@ export const depositHandlers = [
     if (amount > remainingAmount) {
       return errorResponse(
         DEPOSIT_ERROR_CODES.LIMIT_EXCEEDED,
-        '충전할 수 있는 금액을 넘었어요',
+        '입금할 수 있는 금액을 넘었어요',
         409,
         { remainingAmount },
       );
@@ -199,7 +199,7 @@ export const depositHandlers = [
       if (payment === undefined) {
         return errorResponse(
           DEPOSIT_ERROR_CODES.NOT_FOUND,
-          '충전 요청을 찾을 수 없어요',
+          '입금 요청을 찾을 수 없어요',
           404,
         );
       }
@@ -207,7 +207,7 @@ export const depositHandlers = [
       if (payment.status !== 'READY') {
         return errorResponse(
           DEPOSIT_ERROR_CODES.INVALID_STATE,
-          '이미 처리된 충전이에요',
+          '이미 처리된 입금이에요',
           409,
         );
       }
@@ -264,7 +264,7 @@ export const depositHandlers = [
     if (payment === undefined) {
       return errorResponse(
         DEPOSIT_ERROR_CODES.NOT_FOUND,
-        '충전 요청을 찾을 수 없어요',
+        '입금 요청을 찾을 수 없어요',
         404,
       );
     }
@@ -276,7 +276,7 @@ export const depositHandlers = [
       }
       return errorResponse(
         DEPOSIT_ERROR_CODES.INVALID_STATE,
-        '이미 처리된 충전이에요',
+        '이미 처리된 입금이에요',
         409,
       );
     }
@@ -315,7 +315,7 @@ export const depositHandlers = [
     if (payment.scenario === 'LIMIT_EXCEEDED') {
       return errorResponse(
         DEPOSIT_ERROR_CODES.LIMIT_EXCEEDED,
-        '충전할 수 있는 금액을 넘었어요',
+        '입금할 수 있는 금액을 넘었어요',
         409,
         { remainingAmount: 0 },
       );
@@ -325,7 +325,7 @@ export const depositHandlers = [
     if (amount > remainingAmount) {
       return errorResponse(
         DEPOSIT_ERROR_CODES.LIMIT_EXCEEDED,
-        '충전할 수 있는 금액을 넘었어요',
+        '입금할 수 있는 금액을 넘었어요',
         409,
         { remainingAmount },
       );

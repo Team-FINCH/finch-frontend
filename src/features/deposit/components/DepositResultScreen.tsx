@@ -30,14 +30,14 @@ const CONTENT: Record<
 > = {
   success: {
     glyph: '✓',
-    title: '충전이 완료됐어요',
+    title: '입금이 완료됐어요',
     description: '예수금에 반영됐어요.',
   },
   expired: {
     glyph: '◌',
     title: '결제 확인 시간이 지났어요',
     description:
-      '결제창이 열려 있던 사이 시간이 초과됐어요. 다시 충전해 주세요.',
+      '결제창이 열려 있던 사이 시간이 초과됐어요. 다시 입금해 주세요.',
   },
 };
 
@@ -68,7 +68,7 @@ export function DepositResultScreen({
     variant === 'error'
       ? {
           glyph: '!',
-          title: '충전을 확정하지 못했어요',
+          title: '입금을 확정하지 못했어요',
           description: errorMessage ?? '잠시 후 다시 시도해 주세요.',
         }
       : CONTENT[variant];
@@ -90,10 +90,10 @@ export function DepositResultScreen({
 
       {variant === 'success' && amount !== undefined && (
         <SoftBox className="mt-6 w-full text-left">
-          <SoftBoxRow label="충전 금액" value={formatKrw(amount)} />
+          <SoftBoxRow label="입금 금액" value={formatKrw(amount)} />
           {cashBalanceAfter !== undefined && (
             <SoftBoxRow
-              label="충전 후 예수금"
+              label="입금 후 예수금"
               value={formatKrw(cashBalanceAfter)}
               divided
             />
