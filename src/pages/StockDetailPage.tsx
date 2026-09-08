@@ -179,19 +179,20 @@ export function StockDetailPage() {
 
       {/*
         거래정지면 매수·매도 진입 자체를 막는다 (contracts C46 · ia.md §1:130).
-        바를 비활성 상태로 남기지 않고 렌더하지 않는다 — `TradeTabBar` 에 비활성
-        변형(`.tstop`)이 없고, 사유는 헤더의 거래정지 안내가 이미 말하고 있다.
+        **바를 숨기지 않고 비활성 캡슐로 바꾼다** — 전에는 렌더 자체를 걷어냈는데
+        `TradeTabBar` 에 비활성 변형이 없어서였다. design.md v2.2 가 그 변형을
+        명세로 올려 만들었다(FINCH-166). 바가 사라지면 하단 여백만 남아
+        화면이 잘린 것처럼 보이고, 왜 살 수 없는지도 바 자리에서 말해 주는 편이 낫다.
       */}
-      {!data.suspended && (
-        <TradeTabBar
-          onBuy={() => {
-            void navigate(`${ROUTES.stockOrder(stockCode)}?side=buy`);
-          }}
-          onSell={() => {
-            void navigate(`${ROUTES.stockOrder(stockCode)}?side=sell`);
-          }}
-        />
-      )}
+      <TradeTabBar
+        suspended={data.suspended}
+        onBuy={() => {
+          void navigate(`${ROUTES.stockOrder(stockCode)}?side=buy`);
+        }}
+        onSell={() => {
+          void navigate(`${ROUTES.stockOrder(stockCode)}?side=sell`);
+        }}
+      />
     </>
   );
 }

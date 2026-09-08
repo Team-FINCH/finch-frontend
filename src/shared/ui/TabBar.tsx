@@ -118,10 +118,23 @@ const PILL_BASE_CLASS =
   'bg-surface/72 p-[5px] shadow-[0_8px_24px_rgba(31,35,40,0.1)] ' +
   '[-webkit-backdrop-filter:blur(18px)_saturate(1.6)] [backdrop-filter:blur(18px)_saturate(1.6)]';
 
+/**
+ * 탭바 교체 순차 등장 (design.md v2.2 "Tab Bar 변형" · 프로토타입 `tin`).
+ *
+ * 지연은 호출부가 `style` 로 준다 — Tailwind 클래스로는 항목 수만큼 임의 값을
+ * 만들 수 없다. `both` 라 시작 전에도 첫 프레임 상태로 있어서 깜빡이지 않는다.
+ *
+ * `motion-reduce:animate-none` 은 필수다. 화면 하단에서 네 개가 순차로 튀어
+ * 오르는 움직임이라 `prefers-reduced-motion` 을 켠 사람에게 그대로 두면 안 된다.
+ */
+const TAB_ITEM_IN_CLASS =
+  'animate-[tab-item-in_var(--motion-tab-swap)_var(--ease-standard)_both] motion-reduce:animate-none';
+
 function navButtonClass(isActive: boolean) {
   return [
     'flex h-12 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-full text-label',
     'transition-[flex,background-color,color] duration-(--motion-normal) ease-standard',
+    TAB_ITEM_IN_CLASS,
     isActive
       ? 'flex-[2.2] bg-primary-soft text-text-primary'
       : 'flex-1 text-text-muted',
@@ -140,11 +153,13 @@ export function TabBar() {
   return (
     <TabBarShell>
       <div className={`${PILL_BASE_CLASS} gap-1`}>
-        {BOTTOM_TAB_ROUTES.map((tab) => (
+        {BOTTOM_TAB_ROUTES.map((tab, index) => (
           <NavLink
             key={tab.path}
             to={tab.path}
             end
+            // 좌->우 50ms 간격. 첫 탭은 지연 없음 (프로토타입 nth-child(2)부터).
+            style={{ animationDelay: `${index * 50}ms` }}
             className={({ isActive }) => navButtonClass(isActive)}
           >
             {({ isActive }) => (
@@ -165,6 +180,8 @@ export function TabBar() {
 }
 
 type TradeTabBarProps = {
+  /** 거래정지면 매수·매도 대신 비활성 캡슐 한 줄을 그린다 (contracts C46). */
+  suspended?: boolean;
   onBuy: () => void;
   onSell: () => void;
 };
@@ -183,8 +200,14 @@ type TradeTabBarProps = {
  * 낡은 팔레트라 `bg-stock-up/8` · `bg-stock-down/8`로 함께 옮겼다 — 프로토타입이
  * 테두리만 지적한 것과 별개로 같은 잔재라고 판단했다.
  *
- * `.tstop`(거래정지·주문 불가) 변형은 만들지 않는다. 티켓이 요청한 것은
- * 매수/매도 둘뿐이다.
+ * **`.tstop`(거래정지·주문 불가) 변형은 2026-09-08에 만든다 — 뒤집힌 결정이다.**
+ * 이 자리에는 "만들지 않는다. 티켓이 요청한 것은 매수/매도 둘뿐이다" 는 주석이
+ * 있었다. 그 판단은 당시 티켓 범위로는 맞았지만 `design.md` v2.2 가 이 변형을
+ * "Tab Bar 변형" 표에 명세로 올렸다(FINCH-166).
+ *
+ * 라벨은 프로토타입 실측인 `거래정지 · 주문 불가` 다 — `design.md` 표는
+ * `거래정지` 한 줄로 적었지만, 문서와 프로토타입이 갈릴 때 프로토타입 실측을
+ * 따르기로 한 선례가 이 파일 위쪽 AI 버튼 주석에 있다.
  *
  * **AI 버튼도 이 변형에 들어간다.** 프로토타입 `showTabs`는 `screen==="detail"`을
  * 포함하고, 그 화면에서 그리는 것은 나브 탭이 아니라 이 매수/매도 바
@@ -192,24 +215,38 @@ type TradeTabBarProps = {
  * 그대로 뜬다. 라벨은 `tabaiLabel`이 `screen==="detail"`일 때만
  * `"이 종목 물어보기"`로 펼쳐지므로 여기서만 `aiExpandedLabel`을 넘긴다.
  */
-export function TradeTabBar({ onBuy, onSell }: TradeTabBarProps) {
+export function TradeTabBar({ onBuy, onSell, suspended }: TradeTabBarProps) {
   return (
     <TabBarShell aiExpandedLabel="이 종목 물어보기">
       <div className={`${PILL_BASE_CLASS} gap-1.5`}>
-        <button
-          type="button"
-          onClick={onBuy}
-          className="h-12 flex-1 rounded-full border border-stock-up/40 text-[16px] font-bold text-stock-up transition-colors duration-(--motion-fast) ease-standard active:bg-stock-up/8"
-        >
-          매수
-        </button>
-        <button
-          type="button"
-          onClick={onSell}
-          className="h-12 flex-1 rounded-full border border-stock-down/35 text-[16px] font-bold text-stock-down transition-colors duration-(--motion-fast) ease-standard active:bg-stock-down/8"
-        >
-          매도
-        </button>
+        {suspended === true ? (
+          <button
+            type="button"
+            disabled
+            className={`h-12 flex-1 rounded-full border border-border text-[15px] font-medium text-text-muted ${TAB_ITEM_IN_CLASS}`}
+          >
+            거래정지 · 주문 불가
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onBuy}
+              className={`h-12 flex-1 rounded-full border border-stock-up/40 text-[16px] font-bold text-stock-up transition-colors duration-(--motion-fast) ease-standard active:bg-stock-up/8 ${TAB_ITEM_IN_CLASS}`}
+            >
+              매수
+            </button>
+            <button
+              type="button"
+              onClick={onSell}
+              // 매수/매도는 70ms 간격이다 — 4탭(50ms)과 다르다.
+              style={{ animationDelay: '70ms' }}
+              className={`h-12 flex-1 rounded-full border border-stock-down/35 text-[16px] font-bold text-stock-down transition-colors duration-(--motion-fast) ease-standard active:bg-stock-down/8 ${TAB_ITEM_IN_CLASS}`}
+            >
+              매도
+            </button>
+          </>
+        )}
       </div>
     </TabBarShell>
   );

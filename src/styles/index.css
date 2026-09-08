@@ -331,6 +331,7 @@
 :root {
   --motion-fast: 140ms; /* 마이크로 인터랙션 */
   --motion-normal: 200ms; /* 탭, 아코디언 */
+  --motion-tab-swap: 420ms; /* 탭바 교체 순차 등장 (프로토타입 `tin`) */
   --motion-sheet: 260ms; /* 바텀시트 */
 }
 
@@ -364,6 +365,24 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+/*
+ * 탭바 교체 순차 등장 (FINCH-166, `shared/ui/TabBar.tsx`).
+ * 프로토타입 `@keyframes tin` 을 그대로 옮겼다 — 이름만 바꿨다.
+ * 지연값은 두 갈래다. 4탭 내비게이션은 50ms 간격(2·3·4번째), 매수/매도 두
+ * 버튼은 70ms 다. `design.md` 는 "420ms, 70ms 지연" 이라고만 적었는데 70ms 는
+ * 뒤쪽 값이고 앞쪽은 50ms 다 — 프로토타입 실측을 따랐다.
+ */
+@keyframes tab-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
