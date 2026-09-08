@@ -386,6 +386,21 @@
   }
 }
 
+/*
+ * 위키 "확인이 필요해요" 카드 등장 (FINCH-154, `WikiGuessCarousel`).
+ * 프로토타입 `@keyframes gin` 을 그대로 옮겼다 — 장을 넘길 때마다 다시 탄다.
+ */
+@keyframes wiki-guess-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes sheet-slide-up {
   from {
     transform: translateY(100%);

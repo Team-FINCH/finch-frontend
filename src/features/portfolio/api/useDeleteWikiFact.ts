@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@/shared/config/queryKeys';
+import { type WikiDeleteReason } from '@/shared/types/ai/wiki';
 
 import { deleteWikiFact } from './deleteWikiFact';
 
@@ -9,7 +10,13 @@ export function useDeleteWikiFact() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (factId: string) => deleteWikiFact(factId),
+    mutationFn: ({
+      factId,
+      reason,
+    }: {
+      factId: string;
+      reason: WikiDeleteReason;
+    }) => deleteWikiFact(factId, reason),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.ai.wiki() });
     },

@@ -73,6 +73,15 @@ export type WikiFact = z.infer<typeof WikiFactSchema>;
 export const WikiThesisSchema = z.object({
   id: z.string(),
   ticker: StockCodeSchema,
+  /**
+   * 종목 표시명 (openapi `WikiThesisOut.name`, MR !137 신설 — 미확정 P33 해소).
+   *
+   * **이름을 못 찾으면 `ticker` 와 같은 값이 온다.** AI 서버가 원장에서 표시명을
+   * 찾는데, 원장이 없거나 그 종목이 원장에 없으면 티커를 그 자리에 넣는다
+   * (`ai/app/api/routes/wiki.py` `_thesis_names`). 그래서 화면은 `name === ticker`
+   * 인 경우에 코드를 두 번 찍지 않아야 한다.
+   */
+  name: z.string(),
   text: z.string(),
   source: WikiSourceSchema,
   status: ThesisStatusSchema,
@@ -129,10 +138,25 @@ export type UpdateWikiThesisResponse = z.infer<
   typeof UpdateWikiThesisResponseSchema
 >;
 
+/**
+ * 사실을 지운 이유 (openapi `DeleteReason`, MR !140 신설).
+ *
+ * `user_deleted` 는 확정된 사실을 사용자가 지운 것이고, `guess_rejected` 는 AI
+ * 추측에 **"아니에요"** 라고 답한 것이다. 서버는 아직 기록만 한다 — 추측 생성기가
+ * 없어서 이 값을 되먹일 곳이 없다(이슈 #41).
+ */
+export const WikiDeleteReasonSchema = z.enum([
+  'user_deleted',
+  'guess_rejected',
+]);
+export type WikiDeleteReason = z.infer<typeof WikiDeleteReasonSchema>;
+
 /** `DELETE /wiki/facts/{factId}` 본문 (openapi `DeletedFactContent`). */
 export const DeletedFactContentSchema = z.object({
   id: z.string(),
   deletedAt: IsoDateTimeSchema,
+  /** 삭제 사유 (MR !140 에서 필수 필드가 됐다). */
+  reason: WikiDeleteReasonSchema,
 });
 export type DeletedFactContent = z.infer<typeof DeletedFactContentSchema>;
 

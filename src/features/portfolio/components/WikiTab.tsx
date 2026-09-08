@@ -11,9 +11,12 @@ import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useDeleteWikiFact } from '../api/useDeleteWikiFact';
+import { usePortfolio } from '../api/usePortfolio';
 import { useWiki } from '../api/useWiki';
 
 import { ThesisEditSheet } from './ThesisEditSheet';
+import { UnrecordedStockList } from './UnrecordedStockList';
+import { WikiGuessCarousel } from './WikiGuessCarousel';
 
 const SOURCE_LABEL: Record<WikiFact['source'], string> = {
   user_stated: '직접 말한 내용',
@@ -39,6 +42,12 @@ const HORIZON_LABEL: Record<NonNullable<WikiThesis['horizon']>, string> = {
  */
 export function WikiTab() {
   const { data, isPending, isError, error, refetch } = useWiki();
+  /**
+   * "아직 적지 않은 종목" 을 만들려면 보유 목록이 필요하다. 홈·보유 탭과 같은
+   * 쿼리 키라 대개 캐시에 이미 있다(`staleTime` 30초). 실패해도 이 섹션만
+   * 빠지게 두고 위키 본문을 막지 않는다 — 곁가지가 본문을 가리면 안 된다.
+   */
+  const portfolio = usePortfolio('EVALUATION');
   const [infoOpen, setInfoOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WikiFact | null>(null);
   const deleteFact = useDeleteWikiFact();
@@ -98,6 +107,12 @@ export function WikiTab() {
     (fact) => fact.source !== 'ai_inferred',
   );
   const guessFacts = profile.filter((fact) => fact.source === 'ai_inferred');
+
+  // 논지가 있는 종목은 뺀다. 보유를 못 받았으면 빈 배열이라 섹션이 통째로 빠진다.
+  const recordedTickers = new Set(theses.map((thesis) => thesis.ticker));
+  const unrecordedHoldings = (portfolio.data?.holdings ?? []).filter(
+    (holding) => !recordedTickers.has(holding.stockCode),
+  );
 
   return (
     <div className="pt-3.5 pb-6">
@@ -194,27 +209,16 @@ export function WikiTab() {
           <p className="mb-3.5 text-caption text-text-secondary">
             아직 확인하지 않은 기준이 있어요.
           </p>
-          <div className="flex flex-col gap-3">
-            {guessFacts.map((fact) => (
-              <div key={fact.id} className="rounded-md bg-surface-soft p-4">
-                <p className="mb-1.5 text-caption font-semibold text-text-secondary">
-                  확인이 필요해요
-                </p>
-                <p className="text-body-1 leading-6 font-semibold text-pretty text-text-primary">
-                  {fact.text}
-                </p>
-                <p className="mt-1.5 text-caption text-text-secondary">
-                  투자 기록을 보고 이렇게 이해했어요.
-                </p>
-                {/*
-                 * TODO(계약): "맞아요"/"아니에요" 확인 버튼을 만들지 않는다.
-                 * 추측을 사실로 승격("맞아요")하는 경로가 아직 없다 — 이슈 #26
-                 * 2번, ia.md §1 "AI 추측 확인 동작에는 아직 경로가 없다". 회신이
-                 * 오기 전까지 카드는 표시만 한다.
-                 */}
-              </div>
-            ))}
-          </div>
+          <WikiGuessCarousel
+            facts={guessFacts}
+            onReject={(fact) =>
+              deleteFact.mutate({
+                factId: fact.id,
+                reason: 'guess_rejected',
+              })
+            }
+            isRejecting={deleteFact.isPending}
+          />
         </section>
       )}
 
@@ -239,6 +243,8 @@ export function WikiTab() {
         ) : (
           <ThesisList theses={theses} onEditThesis={setEditTarget} />
         )}
+
+        <UnrecordedStockList holdings={unrecordedHoldings} />
       </section>
 
       <BottomSheet
@@ -271,7 +277,10 @@ export function WikiTab() {
               if (deleteTarget === null) {
                 return;
               }
-              deleteFact.mutate(deleteTarget.id);
+              deleteFact.mutate({
+                factId: deleteTarget.id,
+                reason: 'user_deleted',
+              });
               setDeleteTarget(null);
             }}
             className="flex-1"
@@ -330,7 +339,16 @@ function ThesisList({ theses, onEditThesis }: ThesisListProps) {
                   isClosed ? 'text-text-muted' : 'text-text-primary'
                 }`}
               >
-                {thesis.ticker}
+                {/*
+                  이름을 못 찾으면 `name` 에 티커가 그대로 온다. 그때 코드를 두 번
+                  찍지 않는다 — `005930 · 005930` 은 정보가 아니라 잡음이다.
+                */}
+                {thesis.name}
+                {thesis.name !== thesis.ticker && (
+                  <span className="ml-1.5 text-caption font-normal text-text-muted">
+                    {thesis.ticker}
+                  </span>
+                )}
                 {isClosed && (
                   <span className="ml-1.5 text-caption font-normal text-text-muted">
                     (비활성)
