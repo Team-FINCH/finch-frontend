@@ -116,7 +116,7 @@ function SuspendedBadge() {
 }
 
 /** 값이 없는 자리. 색만으로 알리지 않으려고 화면 낭독용 문구를 함께 둔다. */
-function NoValue({ label }: { label: string }) {
+export function NoValue({ label }: { label: string }) {
   return (
     <>
       <span aria-hidden="true">{NO_VALUE}</span>
