@@ -137,9 +137,17 @@ export const wikiHandlers = [
         (entry) => entry.id !== factId,
       );
       const deletedAt = nowKstIso();
+      /*
+       * `reason` 은 선택 파라미터이고 기본은 `user_deleted` 다 (openapi
+       * `DeleteReason`, MR !140). 열거값 밖은 400 이 맞지만 이 목은 화면이
+       * 항상 둘 중 하나를 싣는 것을 전제로 기본값으로만 접는다.
+       */
+      const reasonParam = new URL(request.url).searchParams.get('reason');
+      const reason =
+        reasonParam === 'guess_rejected' ? 'guess_rejected' : 'user_deleted';
 
       return HttpResponse.json(
-        aiResponse({ id: factId, deletedAt }, nextAiRequestId()),
+        aiResponse({ id: factId, deletedAt, reason }, nextAiRequestId()),
       );
     },
   ),

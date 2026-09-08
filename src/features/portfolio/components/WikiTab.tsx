@@ -209,7 +209,16 @@ export function WikiTab() {
           <p className="mb-3.5 text-caption text-text-secondary">
             아직 확인하지 않은 기준이 있어요.
           </p>
-          <WikiGuessCarousel facts={guessFacts} />
+          <WikiGuessCarousel
+            facts={guessFacts}
+            onReject={(fact) =>
+              deleteFact.mutate({
+                factId: fact.id,
+                reason: 'guess_rejected',
+              })
+            }
+            isRejecting={deleteFact.isPending}
+          />
         </section>
       )}
 
@@ -268,7 +277,10 @@ export function WikiTab() {
               if (deleteTarget === null) {
                 return;
               }
-              deleteFact.mutate(deleteTarget.id);
+              deleteFact.mutate({
+                factId: deleteTarget.id,
+                reason: 'user_deleted',
+              });
               setDeleteTarget(null);
             }}
             className="flex-1"

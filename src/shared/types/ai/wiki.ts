@@ -138,10 +138,25 @@ export type UpdateWikiThesisResponse = z.infer<
   typeof UpdateWikiThesisResponseSchema
 >;
 
+/**
+ * 사실을 지운 이유 (openapi `DeleteReason`, MR !140 신설).
+ *
+ * `user_deleted` 는 확정된 사실을 사용자가 지운 것이고, `guess_rejected` 는 AI
+ * 추측에 **"아니에요"** 라고 답한 것이다. 서버는 아직 기록만 한다 — 추측 생성기가
+ * 없어서 이 값을 되먹일 곳이 없다(이슈 #41).
+ */
+export const WikiDeleteReasonSchema = z.enum([
+  'user_deleted',
+  'guess_rejected',
+]);
+export type WikiDeleteReason = z.infer<typeof WikiDeleteReasonSchema>;
+
 /** `DELETE /wiki/facts/{factId}` 본문 (openapi `DeletedFactContent`). */
 export const DeletedFactContentSchema = z.object({
   id: z.string(),
   deletedAt: IsoDateTimeSchema,
+  /** 삭제 사유 (MR !140 에서 필수 필드가 됐다). */
+  reason: WikiDeleteReasonSchema,
 });
 export type DeletedFactContent = z.infer<typeof DeletedFactContentSchema>;
 

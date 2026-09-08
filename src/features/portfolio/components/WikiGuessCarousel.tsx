@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { type WikiFact } from '@/shared/types/ai/wiki';
+import { Button } from '@/shared/ui/Button';
 
 /**
  * "FINCH가 이해한 투자 기준" — 확인이 필요한 추측 카드 (프로토타입 `.gwrap`,
@@ -26,9 +27,16 @@ const NAV_BUTTON_CLASS =
 
 type WikiGuessCarouselProps = {
   facts: WikiFact[];
+  /** "아니에요" — 추측을 지운다(`DELETE /wiki/facts?reason=guess_rejected`). */
+  onReject: (fact: WikiFact) => void;
+  isRejecting: boolean;
 };
 
-export function WikiGuessCarousel({ facts }: WikiGuessCarouselProps) {
+export function WikiGuessCarousel({
+  facts,
+  onReject,
+  isRejecting,
+}: WikiGuessCarouselProps) {
   const [index, setIndex] = useState(0);
 
   // 항목이 지워져 길이가 줄면 인덱스가 범위를 넘는다. 렌더 시점에 접어 둔다.
@@ -101,11 +109,21 @@ export function WikiGuessCarousel({ facts }: WikiGuessCarouselProps) {
           </p>
 
           {/*
-           * TODO(계약): "맞아요"/"아니에요" 확인 버튼을 만들지 않는다.
-           * 추측을 사실로 승격("맞아요")하는 경로가 아직 없다 — 이슈 #26
-           * 2번, ia.md §1 "AI 추측 확인 동작에는 아직 경로가 없다". 회신이
-           * 오기 전까지 카드는 표시만 한다.
-           */}
+            "아니에요" 만 있다. MR !140 이 `reason=guess_rejected` 를 열어 거절은
+            보낼 수 있게 됐지만, **추측을 사실로 승격하는 "맞아요" 경로는 아직
+            없다** — 이슈 #26 2번·#41 대기. 한쪽만 있는 것이 어색해 보여도 없는
+            버튼을 만들어 아무 일도 안 하게 두는 것보다 낫다.
+          */}
+          <div className="mt-4.5 flex">
+            <Button
+              variant="secondary"
+              disabled={isRejecting}
+              onClick={() => onReject(fact)}
+              className="h-10.5 flex-1 rounded-[11px] text-[15px]"
+            >
+              아니에요
+            </Button>
+          </div>
         </div>
       </div>
 
