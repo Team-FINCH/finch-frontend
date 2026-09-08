@@ -34,6 +34,14 @@ export interface MockStock {
   suspendedReason: string | null;
   quoteState: MockQuoteState;
   /**
+   * 활성 종목인지. `false` 는 상장폐지다 (ERD `stock.is_active`).
+   *
+   * **상장폐지 종목은 검색·상세·최근 본 종목·관심 목록 네 곳에서 전부 빠진다**
+   * (계약 C77·C94. 백엔드 MR !107 커밋 `ed003ce`). 주문할 수 없는 종목은
+   * 없는 종목과 같게 다룬다 — 상세는 `STOCK_NOT_FOUND` 다.
+   */
+  active: boolean;
+  /**
    * `GET /orders/available` 이 `tradable: false` 로 답할 때의 `reason` 이고
    * `POST /orders` 가 그대로 거절 코드로 쓴다. `null` 이면 거래 가능하다.
    *
@@ -54,6 +62,7 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     suspended: false,
     suspendedReason: null,
     quoteState: 'live',
+    active: true,
     orderRejection: null,
   },
   {
@@ -66,6 +75,7 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     suspended: false,
     suspendedReason: null,
     quoteState: 'live',
+    active: true,
     orderRejection: null,
   },
   {
@@ -78,6 +88,7 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     suspended: false,
     suspendedReason: null,
     quoteState: 'live',
+    active: true,
     orderRejection: null,
   },
   {
@@ -90,6 +101,7 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     suspended: false,
     suspendedReason: null,
     quoteState: 'live',
+    active: true,
     orderRejection: null,
   },
   {
@@ -102,6 +114,7 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     suspended: false,
     suspendedReason: null,
     quoteState: 'live',
+    active: true,
     orderRejection: null,
   },
   {
@@ -114,6 +127,7 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     suspended: true,
     suspendedReason: '조회공시 요구 (풍문 또는 보도)',
     quoteState: 'live',
+    active: true,
     orderRejection: ORDER_ERROR_CODES.STOCK_SUSPENDED,
   },
   {
@@ -126,6 +140,7 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     suspended: false,
     suspendedReason: null,
     quoteState: 'stale',
+    active: true,
     orderRejection: ORDER_ERROR_CODES.MARKET_CLOSED,
   },
   {
@@ -138,14 +153,49 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     suspended: false,
     suspendedReason: null,
     quoteState: 'missing',
+    active: true,
     orderRejection: ORDER_ERROR_CODES.PRICE_UNAVAILABLE,
+  },
+  /**
+   * 상장폐지 전용 픽스처. 검색·상세·최근 본 종목·관심 목록에서 빠지는 것을
+   * 화면에서 확인하려면 관심 목록에 이 코드를 넣어 두고 목록을 조회한다.
+   */
+  {
+    stockCode: '037440',
+    stockName: '희림',
+    market: 'KOSDAQ',
+    sector: '건설',
+    previousClose: 7800,
+    currentPrice: 7800,
+    suspended: false,
+    suspendedReason: null,
+    quoteState: 'stale',
+    active: false,
+    orderRejection: null,
   },
 ];
 
-/** 카탈로그에서 종목을 찾는다. 없으면 `undefined` 다 → 호출부가 `STOCK_NOT_FOUND` 로 답한다. */
+/**
+ * 카탈로그에서 종목을 찾는다. 없으면 `undefined` 다 → 호출부가 `STOCK_NOT_FOUND` 로 답한다.
+ *
+ * **상장폐지 종목도 찾힌다.** 보유·원장처럼 지난 기록을 보여줘야 하는 자리는
+ * 이름과 가격이 필요하다. 사용자에게 노출되는 목록에서 거르는 것은
+ * `findActiveStock`·`isActiveStock` 을 쓰는 쪽의 일이다.
+ */
 export function findStock(stockCode: string): MockStock | undefined {
   return MOCK_STOCKS.find((stock) => stock.stockCode === stockCode);
 }
+
+/** 활성 종목만 찾는다. 상장폐지면 `undefined` — 없는 종목과 같게 다룬다 (계약 C94). */
+export function findActiveStock(stockCode: string): MockStock | undefined {
+  const stock = findStock(stockCode);
+  return stock === undefined || !stock.active ? undefined : stock;
+}
+
+/** 활성 종목 목록. 검색·랭킹처럼 카탈로그를 훑는 자리가 쓴다. */
+export const ACTIVE_MOCK_STOCKS: readonly MockStock[] = MOCK_STOCKS.filter(
+  (stock) => stock.active,
+);
 
 /** 전일 대비 변동액. 보합이면 0 이다. */
 export function changeAmountOf(stock: MockStock): number {
