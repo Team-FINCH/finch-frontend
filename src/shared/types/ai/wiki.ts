@@ -73,6 +73,15 @@ export type WikiFact = z.infer<typeof WikiFactSchema>;
 export const WikiThesisSchema = z.object({
   id: z.string(),
   ticker: StockCodeSchema,
+  /**
+   * 종목 표시명 (openapi `WikiThesisOut.name`, MR !137 신설 — 미확정 P33 해소).
+   *
+   * **이름을 못 찾으면 `ticker` 와 같은 값이 온다.** AI 서버가 원장에서 표시명을
+   * 찾는데, 원장이 없거나 그 종목이 원장에 없으면 티커를 그 자리에 넣는다
+   * (`ai/app/api/routes/wiki.py` `_thesis_names`). 그래서 화면은 `name === ticker`
+   * 인 경우에 코드를 두 번 찍지 않아야 한다.
+   */
+  name: z.string(),
   text: z.string(),
   source: WikiSourceSchema,
   status: ThesisStatusSchema,

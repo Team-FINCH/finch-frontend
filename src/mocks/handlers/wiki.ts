@@ -7,9 +7,10 @@ import {
 } from '@/shared/types/errorCodes';
 
 import { aiResponse, nextAiRequestId } from '../lib/ai';
+import { findStock } from '../lib/catalog';
 import { errorResponse, mockPath, readJsonBody } from '../lib/http';
 import { requireAuth } from '../lib/session';
-import { store } from '../lib/store';
+import { type MockWikiThesis, store } from '../lib/store';
 import { nowKstIso } from '../lib/time';
 
 /**
@@ -35,6 +36,20 @@ import { nowKstIso } from '../lib/time';
  * `POST /wiki/theses`(논지 최초 기록)는 AI 서비스가 대화에서 스스로 부르는 경로라
  * 목에도 없다 — 화면이 호출하지 않는다(ia.md §1).
  */
+/**
+ * 논지에 종목 표시명을 붙인다 (openapi `WikiThesisOut.name`, MR !137).
+ *
+ * **실서버와 같은 폴백을 둔다** — AI 서버는 원장에서 이름을 찾고 없으면 티커를
+ * 그 자리에 넣는다(`ai/app/api/routes/wiki.py` `_thesis_names`). 목이 항상 이름을
+ * 찾아 주면 화면이 그 폴백을 만나 보지 못하고, 실제 배포에서 처음 깨진다.
+ */
+function withStockName(thesis: MockWikiThesis) {
+  return {
+    ...thesis,
+    name: findStock(thesis.ticker)?.stockName ?? thesis.ticker,
+  };
+}
+
 export const wikiHandlers = [
   http.get(mockPath(API_PATHS.ai.wiki.get), ({ request }) => {
     const unauthorized = requireAuth(request);
@@ -44,7 +59,10 @@ export const wikiHandlers = [
 
     return HttpResponse.json(
       aiResponse(
-        { profile: store.wiki.profile, theses: store.wiki.theses },
+        {
+          profile: store.wiki.profile,
+          theses: store.wiki.theses.map(withStockName),
+        },
         nextAiRequestId(),
       ),
     );
@@ -93,7 +111,7 @@ export const wikiHandlers = [
         thesis.horizon = horizon;
       }
 
-      return HttpResponse.json(aiResponse({ ...thesis }, requestId));
+      return HttpResponse.json(aiResponse(withStockName(thesis), requestId));
     },
   ),
 
