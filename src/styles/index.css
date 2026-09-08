@@ -351,6 +351,22 @@
   }
 }
 
+/*
+ * 탭 본문 전환 (FINCH-163, `pages/PortfolioPage.tsx`).
+ * 포트폴리오 네 탭은 서로를 언마운트한다 — 보이지 않는 탭의 AI 요청이 나가지
+ * 않게 하려는 의도다. 그래서 전환할 때마다 내용이 통째로 갈리는데, 아무 처리가
+ * 없으면 스켈레톤과 새 내용이 연달아 튀어 "번쩍" 으로 보인다. 짧은 페이드가
+ * 그 두 번의 교체를 한 번의 전환으로 읽히게 한다.
+ */
+@keyframes tab-panel-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes sheet-slide-up {
   from {
     transform: translateY(100%);

@@ -50,10 +50,22 @@ export function PortfolioPage() {
       />
       <PortfolioTabBar tab={tab} onChange={setTab} />
 
-      {tab === 'holdings' && <HoldingsTab sort={sort} onSortChange={setSort} />}
-      {tab === 'diagnosis' && <DiagnosisTab />}
-      {tab === 'cause' && <CauseTab />}
-      {tab === 'wiki' && <WikiTab />}
+      {/*
+        `key` 로 탭마다 새 노드를 만들어 페이드를 다시 태운다. `min-h` 는 탭마다
+        내용 높이가 달라 페이지가 짧아졌다 길어지는 것을 막는다 — 스크롤 위치가
+        튀는 것이 "번쩍" 의 실제 정체다(FINCH-163).
+      */}
+      <div
+        key={tab}
+        className="min-h-[60svh] animate-[tab-panel-fade-in_var(--motion-normal)_var(--ease-standard)_both]"
+      >
+        {tab === 'holdings' && (
+          <HoldingsTab sort={sort} onSortChange={setSort} />
+        )}
+        {tab === 'diagnosis' && <DiagnosisTab />}
+        {tab === 'cause' && <CauseTab />}
+        {tab === 'wiki' && <WikiTab />}
+      </div>
     </PageMain>
   );
 }
