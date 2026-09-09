@@ -84,10 +84,13 @@
      White" 로 못박았다 — 화면 대부분은 White/Graphite 이고, AI 가 관여한 영역만
      검정 면으로 갈라 보인다.
 
-     전 판이 여기 넣은 #F4F6F8·#E1E6EB 은 틀렸다. 프로토타입 `:root` 의
-     --ai·--ai-b 를 읽은 값인데, --ai 는 파일 전체에서 참조가 0건인 죽은 값이고
-     --ai-b 는 결제 안내 카드 하나의 테두리로만 쓰인다 (그 카드 면색 #F4F6F8 은
-     인라인 하드코딩이다). 둘 다 AI 면이 아니다.
+     전 판이 여기 넣은 #F4F6F8·#E1E6EB 은 **AI 면색으로는** 틀렸다. 낡은
+     프로토타입 `:root` 의 --ai·--ai-b 를 읽은 값인데 그 둘은 AI 면이 아니다.
+     **다만 죽은 값도 아니다** — 신 프로토타입이 같은 두 값을 --note·--note-b 로
+     개명하고 AI 면은 --ai-surface 로 따로 뺐다. 안내 카드 네 자리가 지금도
+     `background:var(--note);border-color:var(--note-b)` 로 쓴다. 아래
+     --color-note-surface·--color-note-border 로 살려 뒀다.
+     (전 판의 "--ai 는 참조 0건인 죽은 값" 이라는 서술은 이름만 보고 내린 판단이었다.)
      실제 AI 면은 `.ai{background:#24272C;border:1px solid #24272C}` 하드코딩이고,
      Floating AI 버튼 `.fab` 도 같은 #24272C 를 쓴다.
 
@@ -152,6 +155,29 @@
      1px 수평선에 --rule 을 쓴다. 역할이 달라 토큰을 따로 둔다.
      이름은 쓰임을 따라 divider 로 정했다 (border-divider·bg-divider 로 나온다). */
   --color-divider: #dfe4ea;
+
+  /* 안내 카드의 면과 테두리(프로토타입 --note·--note-b).
+     "알아 둘 것" 한 덩어리를 흰 카드와 갈라 보이게 하는 자리다 — 프로토타입은
+     `.card d` 에 `background:var(--note);border-color:var(--note-b)` 를 얹어
+     입금 안내 · 모의 이체 안내 · 주문 잔액 부족 · 주문 실패 네 곳에서 쓴다.
+     `design.md` L151-152 가 그 둘을 "안내 카드 배경 (AI 아님)" · "안내 카드
+     테두리" 로 적었고 프로토타입 `:root` 실측값과 같다.
+
+     **이름이 바뀐 것이지 죽은 토큰이 아니다.** 이 두 값은 한 번 지워진 이력이
+     있다 — 낡은 프로토타입에서는 --ai·--ai-b 라는 이름이었고, 위 --color-ai-surface
+     주석이 그것을 "참조 0건인 죽은 AI 토큰" 으로 보고 뺐다. 신 프로토타입이
+     --ai·--ai-b 를 --note·--note-b 로 **개명**하면서 AI 면을 --ai-surface 로
+     갈라낸 것이고, 값은 그대로 살아 있다. 이름만 보고 또 지우지 마라.
+
+     --color-surface-soft(#F1F3F6) · --color-divider(#DFE4EA) 로 대신하지 않는다.
+     값이 가까워 한때 근사값으로 그렸지만 쓰는 자리가 다르다 — surface-soft 는
+     중립 면(Soft Box·칩·세그먼티드)이고 이쪽은 안내 카드 하나다.
+
+     흰 배경 대비 면 1.08 · 테두리 1.26, 앱 배경(#F7F8FA) 위 면 1.02 로 장식용
+     면이라 WCAG 대비 기준 대상이 아니다. 이 면 위 본문은
+     --color-text-secondary(#565C66)를 쓰고 대비 6.22 로 AA 를 넘는다. */
+  --color-note-surface: #f4f6f8;
+  --color-note-border: #e1e6eb;
 
   /* ── 색: 등락 (design.md v2 §4 --up·--down·--neu, 신 프로토타입과 같음) ── */
   /* 국내 관례를 따라 상승이 적색, 하락이 청색이다. 미국식과 반대다.

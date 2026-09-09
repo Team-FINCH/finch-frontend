@@ -280,17 +280,16 @@ export function DepositPage() {
          * 모의 결제라는 사실을 알리는 안내 카드 (프로토타입 L2671-2675). 문구는
          * 프로토타입 원문이다 — 이 문장에는 바꿀 용어가 없다.
          *
-         * 프로토타입은 `--note`(#F4F6F8) 면 + `--note-b`(#E1E6EB) 테두리이고
-         * `design.md:151-152` 가 그 둘을 "안내 카드" 토큰으로 적었다. 토큰 파일에는
-         * 아직 그 이름이 없어(`styles/index.css:87` 이 죽은 AI 토큰으로 보고 지웠다)
-         * 값이 가장 가까운 `surface-soft`(#F1F3F6) + `divider`(#DFE4EA)로 그렸다.
-         * 색값을 화면에 직접 박지 않는다는 토큰 파일 방침을 지키기 위한 것이다.
+         * 면과 테두리는 안내 카드 전용 토큰이다 — `note-surface`(프로토타입
+         * `--note`) + `note-border`(`--note-b`). `design.md:151-152` 가 그 둘을
+         * "안내 카드" 토큰으로 적었고 `styles/index.css` 가 그 이름으로 들고 있다.
+         * 근사값(`surface-soft` + `divider`)으로 그렸던 것을 제 값으로 바꿨다.
          *
          * `Card` 를 쓰지 않은 이유 — 면색·테두리를 `className` 으로 덮으면 같은
          * 특이도의 클래스가 둘이 되어 어느 쪽이 이길지 스타일시트 순서에 달린다.
          * `OrderPage` 의 사유 카드도 같은 이유로 인라인 클래스를 쓴다.
          */}
-        <div className="rounded-card border border-divider bg-surface-soft p-5">
+        <div className="rounded-card border border-note-border bg-note-surface p-5">
           <p className="text-body-2 text-text-secondary">
             프로토타입이라 실제 결제는 일어나지 않아요. 금액만 계좌에 반영돼요.
           </p>
