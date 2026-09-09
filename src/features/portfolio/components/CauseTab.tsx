@@ -13,6 +13,7 @@ import { AiCard } from '@/shared/ui/AiCard';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 import { AiStatus } from '@/shared/ui/AiStatus';
+import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { usePortfolioAttribution } from '../api/usePortfolioAttribution';
@@ -80,14 +81,21 @@ export function CauseTab() {
     if (code === AI_SERVICE_ERROR_CODES.INSUFFICIENT_DATA) {
       // TODO(계약): 개인화가 열리는 최소 데이터 건수가 임시값이다 — 이슈 #26 3번,
       // PRD 자신이 "임시값"이라고 적었다(ia.md §7). 숫자를 하드코딩하지 않는다.
+      //
+      // 이 탭은 두 상태의 모양이 갈린다 — 실패는 `.aist`(원반 글리프), 데이터
+      // 부족은 `.est`(전면 빈 상태)다(proto L2287-2294). 그래서 여기만
+      // `AiStatus` 가 아니라 `EmptyState` 를 쓴다. 캐릭터 일러스트와 보조 줄
+      // `현재 {N}건` 은 아직 없다 — 에셋이 프로토타입 번들 안에만 있고
+      // 거래 건수를 주는 필드가 응답에 없다.
       return (
-        <AiStatus
+        <EmptyState
           title="아직 분석할 정보가 충분하지 않아요"
           description="투자 기록이 조금 더 쌓이면 수익률 원인을 짚어드릴게요."
         />
       );
     }
 
+    // 프로토타입은 이 자리의 `.aist` 여백을 44px 12px 로 덮어 쓴다(proto L2280).
     return (
       <AiStatus
         code={code}
@@ -96,6 +104,7 @@ export function CauseTab() {
         }
         description="잠시 후 다시 시도해 주세요."
         onRetry={() => void refetch()}
+        className="px-3 py-11"
       />
     );
   }
