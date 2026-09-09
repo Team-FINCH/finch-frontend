@@ -55,8 +55,12 @@ type AiEntryButtonProps = {
    *   `peek`가 되는 것과 같다)
    * - 브리핑(`AiFloatingOverlay`의 `.fab`) — `"브리핑 물어보기"` (`fabLabel`)
    *
-   * 넘기지 않으면(홈·탐색·포트폴리오·내 정보의 `.tabai`) 원형 아이콘 상태로 고정된다
+   * 넘기지 않으면(홈·포트폴리오·내 정보의 `.tabai`) 원형 아이콘 상태로 고정된다
    * — 프로토타입도 이 화면들에서는 `tabaiCls`가 절대 `peek`가 되지 않는다.
+   *
+   * **탐색은 이 목록에 없다** — 라벨이 접히는 것이 아니라 AI 버튼 자체를 그리지
+   * 않는다(프로토타입 `showTabAi: s.screen !== "search"`, `design.md` L263
+   * "(탐색은 숨김)"). 판정은 `TabBarShell` 이 하므로 여기로 내려오지 않는다.
    */
   expandedLabel?: string;
   /**
