@@ -7,6 +7,7 @@ import {
   formatSignedRate,
   getPriceDirection,
 } from '@/shared/lib/formatNumber';
+import { RollingNumber } from '@/shared/ui/RollingNumber';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import type { useAccountSummary } from '../api/useAccountSummary';
@@ -49,9 +50,9 @@ type TotalAssetsSummaryProps = {
 /**
  * 총자산 블록 (ia.md §1 "홈·자산", 프로토타입 `.d36`·`.sr`·`.odo`).
  *
- * 숫자 롤링 애니메이션(`.odo`)은 만들지 않는다 — 프로토타입 실측 이해에는
- * 있지만 이 티켓이 요구하는 것은 값 표시이지 인터랙션 디테일이 아니고,
- * 자릿수 애니메이션을 새로 설계하면 범위가 크게 늘어난다.
+ * 숫자 롤링(`.odo`)은 `shared/ui/RollingNumber` 다. 포트폴리오 평가금액이 같은
+ * 자리를 쓰므로 홈 안에 두지 않았다. 칸 높이 41px 은 이 자리 글자의 행간이다 —
+ * 프로토타입도 `.d36` 을 33px/41px 로 덮어 쓰고 있다.
  *
  * "손익" 라벨 — `useHomeData` 머리 주석 참고. 일간 손익 API 가 없어
  * 누적 평가손익으로 대체했다.
@@ -105,7 +106,12 @@ export function TotalAssetsSummary({
     <div className="pt-1.5">
       <p className="text-section-title text-text-primary">총자산</p>
       <p className="mt-3 text-[33px] leading-[41px] font-bold tracking-[-0.03em] text-text-primary tabular-nums">
-        {formatAmount(account.data.totalAsset)}
+        <RollingNumber
+          value={account.data.totalAsset}
+          text={formatAmount(account.data.totalAsset)}
+          label={`${formatAmount(account.data.totalAsset)}원`}
+          digitHeight={41}
+        />
         <KrwUnit className={isEmpty ? 'text-[17px]' : 'text-[20px]'} />
       </p>
 
