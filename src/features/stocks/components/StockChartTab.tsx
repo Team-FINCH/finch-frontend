@@ -166,7 +166,7 @@ export function StockChartTab({
       */}
       {holding !== null && (
         <section className="mt-8" id="hold-detail">
-          <h2 className="mb-3.5 text-title-3 font-bold text-text-primary">
+          <h2 className="mb-3.5 text-section-title text-text-primary">
             내 보유 상세
           </h2>
           <SoftBox>

@@ -99,9 +99,7 @@ function AnalysisSectionBlock({
   return (
     <section className="mt-10">
       {title === null ? null : (
-        <h3 className="mb-3.5 text-title-3 font-bold text-text-primary">
-          {title}
-        </h3>
+        <h3 className="mb-3.5 text-section-title text-text-primary">{title}</h3>
       )}
       <p className="text-body-1 leading-6 text-pretty text-text-primary">
         <AiSegmentText segments={section.segments} text={section.text} />
@@ -137,7 +135,7 @@ function ThesisCheckBlock({ section }: { section: AiAnalysisSection }) {
   return (
     <section className="mt-10">
       {section.title === null || section.title === undefined ? null : (
-        <h3 className="mb-3.5 text-title-3 font-bold text-text-primary">
+        <h3 className="mb-3.5 text-section-title text-text-primary">
           {section.title}
         </h3>
       )}
