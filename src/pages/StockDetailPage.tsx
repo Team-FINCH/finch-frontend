@@ -222,7 +222,11 @@ export function StockDetailPage() {
         명세로 올려 만들었다(FINCH-166). 바가 사라지면 하단 여백만 남아
         화면이 잘린 것처럼 보이고, 왜 살 수 없는지도 바 자리에서 말해 주는 편이 낫다.
       */}
+      {/* 종목 맥락을 AI 진입 버튼에 넘긴다 — `/chat?screen=stock_detail&ticker=…`
+          (프로토타입 `openChatCtx`, 새 디코드 L3555). 경로 파라미터는 검증만 거친
+          평범한 문자열이라 브랜드 타입이 붙은 응답 값을 쓴다. */}
       <TradeTabBar
+        stockCode={data.stockCode}
         suspended={data.suspended}
         onBuy={() => {
           void navigate(`${ROUTES.stockOrder(stockCode)}?side=buy`);
