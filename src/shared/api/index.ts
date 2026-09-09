@@ -9,3 +9,9 @@ export {
 } from './errors';
 export { request, requestNoContent } from './httpClient';
 export { createQueryClient } from './queryClient';
+export {
+  useQuoteSubscription,
+  type QuotePollingTier,
+  type QuoteSubscription,
+  type QuoteSubscriptionSource,
+} from './useQuoteSubscription';
