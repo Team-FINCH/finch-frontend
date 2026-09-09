@@ -10,13 +10,25 @@ import { AiSectionSchema, createAiResponseSchema } from './envelope';
  * 여섯 기능 중 유일한 도구 호출 에이전트다. 투자 용어 질의도 이 엔드포인트가 담당한다.
  */
 
-/** `context.screen` 의 확인된 값 (AI 명세 §4 Request). 대명사 지시 대상을 푸는 화면 맥락이다. */
+/**
+ * `context.screen` 의 확인된 값 (AI 명세 §4 Request). 대명사 지시 대상을 푸는 화면 맥락이다.
+ *
+ * **`briefing` 은 GitLab 이슈 #26 4번 회신으로 확정됐다** (MR !143 머지). AI 쪽 `Screen`
+ * 열거값 순서는 `home · portfolio · stock_detail · order · chat · briefing · news_detail` 이고
+ * 여기 배열도 그 순서를 따른다 — 두 목록을 나란히 놓고 비교할 수 있어야 해서다.
+ *
+ * **`news_detail` 은 일부러 빼 두었다.** 우리에게 뉴스 상세 화면이 없다 — 뉴스는 AI 응답의
+ * 인용 목록으로만 나오고 누르면 외부 링크가 새 탭에서 열린다(`AiCitationList.tsx`).
+ * 이슈 #26 코멘트로 팀에 그렇게 답했고 AI 쪽은 값을 그대로 두기로 했다. 넣으면 어느 화면도
+ * 만들어 내지 못하는 값이 열거값에 남는다.
+ */
 export const AI_CHAT_SCREENS = [
   'home',
   'portfolio',
   'stock_detail',
   'order',
   'chat',
+  'briefing',
 ] as const;
 export type AiChatScreen = (typeof AI_CHAT_SCREENS)[number];
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
+import type { AiChatScreen } from '@/shared/types/ai/chat';
 
 /**
  * AI 진입 버튼 (FINCH-28-ai-entry). 프로토타입 `.tabai`/`.fab` 근거다 —
@@ -16,9 +17,18 @@ import { ROUTES } from '@/shared/config/routes';
  * 조합을 그대로 쓴다. 그림자는 실측값을 새로 하드코딩하지 않고 "floating
  * button" 용으로 이미 있는 `--shadow-float` 토큰(`shadow-float`)을 재사용한다.
  *
- * 누르면 `ROUTES.chat`(`/chat`)으로 이동한다. 종목·브리핑 맥락을 쿼리로 함께
- * 넘길지는 `ia.md` §2가 아직 확인 대기로 남겨 둔 항목이라(`AiFloatingOverlay.tsx`
- * 머리 주석 참고) 여기서 임의로 만들지 않는다.
+ * 누르면 `ROUTES.chat`(`/chat`)으로 이동한다. **화면 맥락을 쿼리로 함께 넘기는
+ * 것은 GitLab 이슈 #26 4번 회신으로 확정됐다**(MR !143 머지) — AI 쪽 `Screen`
+ * 열거값에 `briefing`이 들어갔다. 그래서 `screen` prop을 받아 값이 있을 때만
+ * `?screen=`을 붙인다.
+ *
+ * **지금 실제로 넘기는 값은 `briefing` 하나다**(`AiFloatingOverlay`). 탭 바 줄의
+ * `.tabai` 자리(`TabBar.tsx`의 `TabBarShell`)는 prop을 넘기지 않아 예전과 똑같이
+ * 쿼리 없는 `/chat`으로 간다 — 마이 페이지에 대응하는 열거값이 없어서 그 화면에서
+ * 무엇을 넘길지 따로 판단해야 하고, 이 티켓의 범위가 아니다.
+ *
+ * 쿼리를 안 붙여도 채팅 화면은 깨지지 않는다 — `parseChatContext`가 모르는 값이나
+ * 빈 값을 `chat`으로 떨어뜨린다(`features/chat/lib/parseChatContext.ts`).
  *
  * 시트가 열렸을 때 이 버튼 자체를 숨기는 처리는 하지 않는다 — 두 호출부
  * (`TabBarShell`·`AiFloatingOverlay`)가 이미 `useIsAnySheetOpen()`으로 자기
@@ -45,15 +55,26 @@ type AiEntryButtonProps = {
    *   `peek`가 되는 것과 같다)
    * - 브리핑(`AiFloatingOverlay`의 `.fab`) — `"브리핑 물어보기"` (`fabLabel`)
    *
-   * 넘기지 않으면(홈·탐색·포트폴리오·내 정보의 `.tabai`) 원형 아이콘 상태로 고정된다
+   * 넘기지 않으면(홈·포트폴리오·내 정보의 `.tabai`) 원형 아이콘 상태로 고정된다
    * — 프로토타입도 이 화면들에서는 `tabaiCls`가 절대 `peek`가 되지 않는다.
+   *
+   * **탐색은 이 목록에 없다** — 라벨이 접히는 것이 아니라 AI 버튼 자체를 그리지
+   * 않는다(프로토타입 `showTabAi: s.screen !== "search"`, `design.md` L263
+   * "(탐색은 숨김)"). 판정은 `TabBarShell` 이 하므로 여기로 내려오지 않는다.
    */
   expandedLabel?: string;
+  /**
+   * 채팅으로 넘길 화면 맥락 (`context.screen`, `AI_CHAT_SCREENS`).
+   * 값이 있으면 `/chat?screen=<값>`으로 이동하고, **넘기지 않으면 쿼리 없는
+   * `/chat`** 이다 — 탭 바 줄의 호출부(`TabBarShell`)가 그렇다.
+   */
+  screen?: AiChatScreen;
 };
 
 export function AiEntryButton({
   className = '',
   expandedLabel,
+  screen,
 }: AiEntryButtonProps) {
   const navigate = useNavigate();
   const [peek, setPeek] = useState(false);
@@ -72,12 +93,16 @@ export function AiEntryButton({
   }, [expandedLabel]);
 
   const label = expandedLabel ?? DEFAULT_LABEL;
+  const chatTo =
+    screen === undefined
+      ? ROUTES.chat
+      : `${ROUTES.chat}?${new URLSearchParams({ screen }).toString()}`;
 
   return (
     <button
       type="button"
       aria-label={label}
-      onClick={() => void navigate(ROUTES.chat)}
+      onClick={() => void navigate(chatTo)}
       className={
         'relative z-1 flex h-[58px] min-w-[58px] flex-none items-center justify-center overflow-hidden ' +
         'pointer-events-auto rounded-full bg-primary whitespace-nowrap text-surface shadow-float ' +

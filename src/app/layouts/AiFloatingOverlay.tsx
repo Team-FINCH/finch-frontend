@@ -2,6 +2,7 @@ import { matchPath, useLocation } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
 import { useIsAnySheetOpen } from '@/shared/hooks/useSheetOverlayStore';
+import type { AiChatScreen } from '@/shared/types/ai/chat';
 import { AiEntryButton } from '@/shared/ui/AiEntryButton';
 
 /**
@@ -31,14 +32,30 @@ import { AiEntryButton } from '@/shared/ui/AiEntryButton';
  * 뺀다.
  *
  * 뉴스 상세는 대응하는 화면 자체가 없어서 전부터 빠져 있었고 지금도 넣지 않는다.
- * 종목 코드 맥락 전달 범위(`context.screen` 등)는 여전히 GitLab 이슈 #26 4번
- * 회신 대기다 — `AiEntryButton`이 지금 `/chat`으로만 이동하고 쿼리를 만들지
- * 않는 이유이기도 하다.
+ *
+ * ## 화면 맥락 전달 — 회신이 왔다 (FINCH-188, 2026-09-09)
+ *
+ * `context.screen` 값은 **GitLab 이슈 #26 4번 회신으로 확정됐다**(MR !143 머지).
+ * AI 쪽 `Screen` 열거값에 `briefing`이 들어갔고 우리 `AI_CHAT_SCREENS`도 따라갔다
+ * (`shared/types/ai/chat.ts`). 그래서 이 오버레이는 `AiEntryButton`에
+ * `screen="briefing"`을 넘겨 `/chat?screen=briefing`으로 보낸다 — 채팅 화면이
+ * `parseChatContext`로 그 값을 읽는다.
+ *
+ * **지금 프론트가 실제로 넘기는 화면 값은 `briefing` 하나다.** 탭 바 줄의 AI
+ * 버튼(`TabBar.tsx`)은 여전히 쿼리 없이 `/chat`으로 간다 — 마이 페이지에 대응하는
+ * 열거값이 없어서 그 화면에서 무엇을 넘길지 따로 판단해야 하고, 188의 범위가 아니다.
+ * `news_detail`은 우리에게 대응 화면이 없어 열거값에도 넣지 않았다(같은 파일 주석).
  */
 const AI_FLOATING_PATTERNS: readonly string[] = [ROUTES.briefing];
 
 /** 브리핑 화면 진입 시 라벨이 펼쳐진다(프로토타입 `fabLabel`). */
 const AI_FLOATING_EXPANDED_LABEL = '브리핑 물어보기';
+
+/**
+ * 이 오버레이가 그리는 화면이 브리핑 하나(`AI_FLOATING_PATTERNS`)라서 상수 하나로
+ * 족하다. 배열이 늘어나면 경로별로 값을 골라야 한다.
+ */
+const AI_FLOATING_SCREEN: AiChatScreen = 'briefing';
 
 /**
  * 지금은 `AI_FLOATING_PATTERNS`에 파라미터 있는 패턴(`/stocks/:stockCode` 같은)이
@@ -91,7 +108,10 @@ export function AiFloatingOverlay() {
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-md justify-end pr-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
       data-testid="ai-floating-slot"
     >
-      <AiEntryButton expandedLabel={AI_FLOATING_EXPANDED_LABEL} />
+      <AiEntryButton
+        expandedLabel={AI_FLOATING_EXPANDED_LABEL}
+        screen={AI_FLOATING_SCREEN}
+      />
     </div>
   );
 }
