@@ -48,7 +48,7 @@ function isDepositExpiredErrorCode(code: string | null | undefined): boolean {
 
 /**
  * 결제 만료 문구. 프로토타입 FAIL 맵의 `timeout` 항목을 그대로 쓴다
- * (`app-logic.js` `FAILtimeout` — `결제창에서 응답이 오지 않았어요. 다시 시도해 주세요.`).
+ * (`app-logic.js` 의 `FAIL.timeout` — `결제창에서 응답이 오지 않았어요. 다시 시도해 주세요.`).
  */
 const DEPOSIT_EXPIRED_MESSAGE =
   '결제창에서 응답이 오지 않았어요. 다시 시도해 주세요.';

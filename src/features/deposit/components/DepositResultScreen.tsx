@@ -15,7 +15,11 @@ type DepositResultScreenProps = {
   variant: 'pending' | 'success' | 'error';
   amount?: number;
   cashBalanceAfter?: number;
-  /** `error` 일 때만 쓴다. 서버 `message` 를 그대로 보여준다(컨벤션 §5). */
+  /**
+   * `error` 일 때만 쓴다. 만료·한도 초과만 우리가 문장을 만들고 나머지는 서버
+   * `message` 를 그대로 보여준다 — 어느 쪽인지는 `depositConfirmErrorMessage`
+   * 가 판정한다(컨벤션 §5).
+   */
   errorMessage?: string;
   primaryLabel: string;
   onPrimaryAction: () => void;
