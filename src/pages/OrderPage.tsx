@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import {
+  OrderBlockNotice,
   OrderQuantityField,
   OrderRatioButtons,
   OrderResultSheet,
   OrderSummaryBox,
   createIdempotencyKey,
-  describeOrderBlockReason,
   parseOrderSideParam,
   toApiOrderSide,
   useCreateOrder,
@@ -18,7 +18,6 @@ import {
 import { isHttpError } from '@/shared/api';
 import { ROUTES, STOCK_CODE_PARAM } from '@/shared/config/routes';
 import { formatAmount } from '@/shared/lib/formatNumber';
-import { ORDER_ERROR_CODES } from '@/shared/types/errorCodes';
 import { type OrderResponse } from '@/shared/types/order';
 import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
@@ -222,22 +221,13 @@ export function OrderPage() {
           </p>
         )}
 
-        {/* 서버가 막은 경우. 사유는 200 본문의 `reason` 코드로 온다 (apiSpec §7.3). */}
+        {/* 서버가 막은 경우. 사유는 200 본문의 `reason` 코드로 온다 (apiSpec §7.3).
+            빨간 박스가 아니라 원형 `!` + 문구다 (design.md §7.7 "주문할 수 없는 상태").
+            **화면이 시계로 장외 시간을 판정하지 않는다** — 세 상태 모두 이 응답의
+            `tradable`·`reason` 으로만 갈린다. `stale` 임계 시간은 아직 미확정이라
+            (contracts P10) 숫자를 코드에 박지 않는다. */}
         {!orderAvailable.tradable && (
-          <div className="mt-6 rounded-card border border-border bg-danger-surface p-5">
-            <p className="text-body-2 font-medium text-text-primary">
-              {describeOrderBlockReason(orderAvailable.reason)}
-            </p>
-            {orderAvailable.reason === ORDER_ERROR_CODES.INSUFFICIENT_CASH && (
-              <Button
-                variant="secondary"
-                className="mt-3.5"
-                onClick={() => void navigate(ROUTES.deposit)}
-              >
-                입금하기
-              </Button>
-            )}
-          </div>
+          <OrderBlockNotice reason={orderAvailable.reason} />
         )}
 
         {/* 제출 실패. 문구는 서버가 완성해 준 message 를 그대로 쓴다 (컨벤션 §5).

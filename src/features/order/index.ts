@@ -1,6 +1,7 @@
 export { useCreateOrder } from './api/useCreateOrder';
 export { useOrderAvailable } from './api/useOrderAvailable';
 
+export { OrderBlockNotice } from './components/OrderBlockNotice';
 export { OrderQuantityField } from './components/OrderQuantityField';
 export { OrderRatioButtons } from './components/OrderRatioButtons';
 export { OrderResultSheet } from './components/OrderResultSheet';
