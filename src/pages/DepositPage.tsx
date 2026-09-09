@@ -114,14 +114,30 @@ export function DepositPage() {
             errorMessage={amountError}
           />
 
+          {/*
+           * 세 줄이다 — `1회 한도` · `누적 한도` · `잔여 한도`. 라벨과 순서는
+           * 프로토타입(`isDeposit` L2643-2645)과 `design.md:946` · `ia.md:87` 이
+           * 같은 것을 말한다. 어느 필드가 어느 줄인지도 계약이 정한다 —
+           * `perRequestLimit`(1회) · `cumulativeLimit`(계정 전체 누적 한도) ·
+           * `remainingAmount`(남은 몫). **`depositedAmount`(누적 입금액)는 이
+           * 박스에 없다** — `누적 한도` 는 한도이고 누적 입금액이 아니다
+           * (contracts C49 · apiSpec §4.1).
+           *
+           * 구분선은 마지막 `잔여 한도` 줄 위에 온다 — 앞 두 줄이 고정 한도이고
+           * 마지막 줄만 쓴 만큼에 따라 움직이는 값이라 묶음이 갈린다(프로토타입 L2645).
+           */}
           {limit !== undefined && (
             <SoftBox>
               <SoftBoxRow
-                label="1회 입금 한도"
+                label="1회 한도"
                 value={formatKrw(limit.perRequestLimit)}
               />
               <SoftBoxRow
-                label="남은 누적 한도"
+                label="누적 한도"
+                value={formatKrw(limit.cumulativeLimit)}
+              />
+              <SoftBoxRow
+                label="잔여 한도"
                 value={formatKrw(limit.remainingAmount)}
                 divided
               />
