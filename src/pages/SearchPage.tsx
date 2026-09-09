@@ -13,6 +13,7 @@ import {
   useRecentStocks,
   useStockSearch,
 } from '@/features/stocks';
+import { useDeleteRecentStock } from '@/features/stocks/api/useRecentStocks';
 import { STOCK_SEARCH_MIN_KEYWORD_LENGTH } from '@/shared/config/apiContract';
 import { ROUTES } from '@/shared/config/routes';
 import { type StockSummary } from '@/shared/types/stock';
@@ -85,6 +86,7 @@ export function SearchPage() {
   const recentKeywords = useRecentSearchKeywords();
   const recentStocks = useRecentStocks();
   const deleteKeyword = useDeleteRecentSearchKeyword();
+  const deleteRecentStock = useDeleteRecentStock();
 
   const trimmed = debouncedInput.trim();
   const isSearching = trimmed.length >= STOCK_SEARCH_MIN_KEYWORD_LENGTH;
@@ -177,7 +179,10 @@ export function SearchPage() {
                 }
               />
               {viewedStocks.length > 0 ? (
-                <RecentStockList stocks={viewedStocks} />
+                <RecentStockList
+                  stocks={viewedStocks}
+                  onRemove={(stockCode) => deleteRecentStock.mutate(stockCode)}
+                />
               ) : (
                 <p className="text-body-2 text-text-secondary">
                   아직 최근에 본 종목이 없어요.

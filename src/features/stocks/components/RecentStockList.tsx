@@ -17,30 +17,49 @@ import { StockRow } from '@/shared/ui/StockRow';
  *
  * 행 위아래 여백은 프로토타입이 이 목록에서만 `.row` 의 14px 을 15px 로 덮는다
  * (proto L1648). 구분선은 각 행 뒤에 오고 마지막 행 뒤에도 있다 (proto L1661).
+ *
+ * **행마다 `✕` 가 붙는다** (proto L1659 · design.md L384). 프로토타입은 행(`.row`)을
+ * `flex:1` 로 좁히고 그 오른쪽 밖에 34x34px 버튼을 6px 띄워 놓는다 — 행 안이 아니라
+ * 행 옆이라 종목 상세로 가는 링크와 삭제가 겹치지 않는다. 누르면
+ * `DELETE /stocks/recent/{stockCode}` 다 (apiSpec §6.1).
  */
 const RECENT_STOCK_PREVIEW_COUNT = 3;
 
 type RecentStockListProps = {
   stocks: readonly RecentStock[];
+  /** 행의 `✕`. 넘기지 않으면 삭제 버튼을 그리지 않는다 */
+  onRemove?: (stockCode: string) => void;
 };
 
-export function RecentStockList({ stocks }: RecentStockListProps) {
+export function RecentStockList({ stocks, onRemove }: RecentStockListProps) {
   return (
     <ul>
       {stocks.slice(0, RECENT_STOCK_PREVIEW_COUNT).map((stock) => (
         <li key={stock.stockCode}>
-          <StockRow
-            stockCode={stock.stockCode}
-            stockName={stock.stockName}
-            sub={stock.stockCode}
-            figures={{
-              kind: 'quote',
-              currentPrice: stock.currentPrice,
-              changeRate: stock.changeRate,
-            }}
-            to={ROUTES.stockDetail(stock.stockCode)}
-            className="py-[15px]"
-          />
+          <div className="flex items-center">
+            <StockRow
+              stockCode={stock.stockCode}
+              stockName={stock.stockName}
+              sub={stock.stockCode}
+              figures={{
+                kind: 'quote',
+                currentPrice: stock.currentPrice,
+                changeRate: stock.changeRate,
+              }}
+              to={ROUTES.stockDetail(stock.stockCode)}
+              className="min-w-0 flex-1 py-[15px]"
+            />
+            {onRemove === undefined ? null : (
+              <button
+                type="button"
+                onClick={() => onRemove(stock.stockCode)}
+                aria-label={`최근 본 종목 ${stock.stockName} 삭제`}
+                className="ml-1.5 flex size-8.5 flex-none items-center justify-center text-caption leading-none text-text-muted"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <div className="ml-14 h-px bg-border opacity-50" />
         </li>
       ))}
