@@ -17,7 +17,7 @@ import {
   section,
   textSegment,
 } from '../lib/ai';
-import { findStock } from '../lib/catalog';
+import { findStock, type MockStock } from '../lib/catalog';
 import {
   aiErrorResponse,
   errorResponse,
@@ -26,7 +26,7 @@ import {
   searchParam,
 } from '../lib/http';
 import { requireAuth } from '../lib/session';
-import { store } from '../lib/store';
+import { findHolding, store } from '../lib/store';
 import { nowKstIso, toKstDateString } from '../lib/time';
 
 /**
@@ -54,6 +54,11 @@ import { nowKstIso, toKstDateString } from '../lib/time';
  * | `POST /ai/chat` `message` 가 `guardrail` 로 시작 | `422 GUARDRAIL_BLOCKED` — `requestId` 있음 |
  * | `POST /ai/chat` 빈 `message` 나 2,000자 초과 | `400 INVALID_REQUEST` |
  * | `POST /ai/stocks/{stockCode}/analysis` 카탈로그에 없는 종목 | `404 INSTRUMENT_NOT_FOUND` (AI 서버 코드가 그대로 통과) |
+ * | 분석 · 보유 중이고 활성 논지가 있는 종목(`005930`) | 섹션 **일곱 전부** |
+ * | 분석 · 보유 중이고 논지가 없는 종목(`035720`) | `thesisCheck` 가 `null`. **`attention` 의 `title` 도 `null` 이다** — 제목 없는 섹션 |
+ * | 분석 · 미보유 종목(`000660` 외) | `myImpact`·`thesisCheck` 둘 다 `null` (contracts C58 · ia.md §4) |
+ * | 분석 · `900140` | **섹션 일곱이 전부 `null`** — 200 인데 그릴 본문이 없는 갈래 |
+ * | 분석 · `010950` | `risks` 에서 필수 둘(`text`·`segments`)이 빠진 **계약 위반 응답** — 스키마가 거부하는 것을 화면에서 본다 |
  * | 진단·원인 분석 · 보유 종목 0개 | `409 INSUFFICIENT_DATA` — 에러가 아니라 정상 거절이다 (contracts C12) |
  * | `GET /ai/briefing?date=` 에 오늘이 아닌 날짜 | `status: 'empty'` + 빈 `items` (200) |
  * | `POST /ai/orders/preview` 주문 금액이 예수금 초과 | `feasible: false` + `shortfall` — **200 응답의 본문이다** |
@@ -95,6 +100,156 @@ function insufficientData(requestId: string) {
   );
 }
 
+/**
+ * 종목 AI 분석의 섹션 픽스처 (openapi `AnalysisContent`·`AnalysisSections`·
+ * `AnalysisSection`, contracts C57~C59 · ia.md §4 3번 슬롯).
+ *
+ * **목이 계약보다 관대해지지 않게 세 가지를 지킨다.**
+ * - `text` 를 손으로 적지 않고 `segments` 를 이어 붙여 만든다 — "이어 붙이면 `text` 와
+ *   정확히 일치한다"(C55)를 목이 먼저 어기면 화면이 어느 쪽을 그리든 같다는 전제가 무너진다
+ * - 섹션이 `null` 이 되는 조건을 지어내지 않고 **원장 상태에서 끌어낸다** —
+ *   `myImpact` 는 미보유일 때, `thesisCheck` 는 활성 논지가 없을 때 `null` 이다(ia.md §4 표).
+ *   실제 서버도 같은 이유로 `null` 을 낸다
+ * - `supporting`·`challenging`·`events` 는 **빈 배열로 둔다**(C56). 값을 채우면 지금 구현이
+ *   내지 않는 것을 목만 내게 된다
+ *
+ * `cached` 는 항상 `false`, `cachedAt` 은 항상 `null` 이다(C56).
+ */
+type AiSegmentFixture = ReturnType<typeof textSegment | typeof metricSegment>;
+
+function analysisSection(title: string | null, parts: AiSegmentFixture[]) {
+  return section(title, parts.map((part) => part.value).join(''), parts);
+}
+
+/** 등락률 문자열. **부호를 항상 붙인다** (frontConvention §11 등락 표기 규약). */
+function changeRateText(rate: number): string {
+  return `${rate >= 0 ? '+' : '-'}${(Math.abs(rate) * 100).toFixed(2)}%`;
+}
+
+/**
+ * `attention` 의 `title` 을 `null` 로 내는 종목.
+ * **제목이 없으면 화면이 제목을 그리지 않는다**(ia.md:447)를 볼 자리다.
+ * 키 이름을 한국어로 옮겨 제목을 지어내면 이 갈래에서 티가 난다.
+ */
+const ANALYSIS_TITLELESS_STOCK = '035720';
+
+/**
+ * 섹션 일곱이 전부 `null` 인 종목. 시세도 없는 소형주라(`quoteState: 'missing'`)
+ * AI 근거가 하나도 모이지 않은 상태를 여기에 붙였다. **200 이고 에러가 아니다** —
+ * 화면은 빈 상태 안내로 접는다.
+ */
+const ANALYSIS_EMPTY_STOCK = '900140';
+
+/**
+ * 필수 둘(`text`·`segments`)이 빠진 섹션을 내는 종목. **계약 위반 응답이다.**
+ *
+ * 목이 계약보다 관대해 실제 백엔드에서만 깨진 사고가 있었으므로, 반대 방향도
+ * 화면에서 확인할 수 있게 둔다 — 스키마가 이 응답을 거부해 `SchemaError` 가 나고
+ * AI 탭이 에러 자리로 접히는 것이 정상 동작이다. 스키마를 느슨하게 고쳐 이 갈래를
+ * 통과시키면 안 된다.
+ */
+const ANALYSIS_CONTRACT_BREACH_STOCK = '010950';
+
+function analysisSections(stock: MockStock) {
+  const holding = findHolding(stock.stockCode);
+  const thesis = store.wiki.theses.find(
+    (entry) => entry.ticker === stock.stockCode && entry.status === 'active',
+  );
+  // 0~1 소수다. 백엔드 changeRate 계열의 백분율이 아니다 (AI 명세 §2.1).
+  const changeRate =
+    (stock.currentPrice - stock.previousClose) / stock.previousClose;
+  const direction = changeRate >= 0 ? ('up' as const) : ('down' as const);
+
+  return {
+    current: analysisSection('현재 상태', [
+      textSegment(
+        `${stock.stockName}는 ${stock.sector} 업종이고 어제 종가보다 `,
+      ),
+      metricSegment(
+        changeRateText(changeRate),
+        changeRate,
+        'ratio',
+        'price',
+        direction,
+      ),
+      textSegment(
+        ' 움직였어요. 반기보고서에 적힌 이익 흐름이 아직 가격에 다 반영되지 않은 구간이에요.',
+      ),
+    ]),
+    changes: analysisSection('최근 변화', [
+      textSegment('반기보고서에서 영업이익률이 '),
+      metricSegment('19.0%', 0.19, 'ratio', 'filing', 'up'),
+      textSegment('로 올라왔고, 공시 이후 3주 동안 같은 방향이 이어졌어요.'),
+    ]),
+    attention: analysisSection(
+      stock.stockCode === ANALYSIS_TITLELESS_STOCK
+        ? null
+        : '시장이 주목하는 요인',
+      [
+        textSegment(
+          '다음 분기 계약가 인상 폭과 경쟁사 증설 일정을 함께 보고 있어요. 최근 공시에서 같은 주제가 반복해서 나왔어요.',
+        ),
+      ],
+    ),
+    risks: analysisSection('확인된 위험 요인', [
+      textSegment(
+        '증설 투자비가 2027년부터 비용으로 반영돼요. 고객사 재고가 다시 쌓이면 주문이 빠르게 줄고, 최근 1년 최대 낙폭은 ',
+      ),
+      metricSegment('-22.14%', -0.2214, 'ratio', 'risk_engine', 'down'),
+      textSegment('였어요.'),
+    ]),
+    // 미보유면 null 이다. 에러가 아니다 (ia.md §4 표 · contracts C58).
+    myImpact:
+      holding === undefined
+        ? null
+        : analysisSection('내 계좌 영향', [
+            textSegment('보유 '),
+            metricSegment(
+              `${holding.quantity}주`,
+              holding.quantity,
+              'count',
+              'portfolio_engine',
+              null,
+            ),
+            textSegment(
+              '가 계좌에 있어서 이번 변화가 평가손익에 그대로 반영돼요. 포트폴리오 안에서의 비중은 AI 진단에서 함께 볼 수 있어요.',
+            ),
+          ]),
+    // 기록된 활성 논지가 없으면 null 이다 (ia.md §4 표).
+    thesisCheck:
+      thesis === undefined
+        ? null
+        : {
+            ...analysisSection('논지 점검', [
+              textSegment('기록한 논지는 “'),
+              textSegment(thesis.text),
+              textSegment(
+                '” 였어요. 공시에서 확인된 이익 흐름은 그 방향과 어긋나지 않았어요.',
+              ),
+            ]),
+            thesis: {
+              text: thesis.text,
+              recordedAt: thesis.recordedAt,
+              source: thesis.source,
+            },
+            // 항상 빈 배열이다 (contracts C56). 채우면 목만 관대해진다.
+            supporting: [],
+            challenging: [],
+          },
+    nextEvents: {
+      ...analysisSection('다가오는 일정', [
+        textSegment('다음 실적 발표까지 '),
+        metricSegment('20일', 20, 'days', 'filing', null),
+        textSegment(
+          ' 남았어요. 확정 일정이 공시되면 여기에서 함께 알려드려요.',
+        ),
+      ]),
+      // 항상 빈 배열이다 (contracts C56).
+      events: [],
+    },
+  };
+}
+
 export const aiHandlers = [
   http.post(
     mockPath(API_PATHS.ai.analysis(':stockCode')),
@@ -117,18 +272,64 @@ export const aiHandlers = [
         );
       }
 
-      /*
-       * **본문 섹션을 지어내지 않았다.** `AnalysisSection` 이 `ai/docs/openapi.json` 에
-       * 빈 object 로 떨어져 키 구성이 하나도 확정되지 않았다 (contracts P8, 이슈 #15).
-       * 손으로 일곱 섹션을 적으면 틀린 것을 계약처럼 굳힌다.
-       * `shared/types/ai/analysis.ts` 도 같은 이유로 보존 필드만 검증한다.
-       * 회신이 오면 그때 이 자리를 채운다.
-       */
+      const dataAsOf = {
+        price: nowKstIso(),
+        filings: '2026-08-14T09:00:00+09:00',
+      };
+
+      // 섹션 일곱이 전부 null 인 갈래. 200 이고 에러가 아니다.
+      if (stock.stockCode === ANALYSIS_EMPTY_STOCK) {
+        return HttpResponse.json(
+          aiResponse(
+            {
+              ticker: stock.stockCode,
+              name: stock.stockName,
+              sections: {
+                current: null,
+                changes: null,
+                attention: null,
+                risks: null,
+                myImpact: null,
+                thesisCheck: null,
+                nextEvents: null,
+              },
+            },
+            requestId,
+            dataAsOf,
+          ),
+        );
+      }
+
+      const sections = analysisSections(stock);
+
+      // 계약 위반 갈래. `risks` 에서 필수 둘을 뺀다 — 스키마가 거부해야 정상이다.
+      if (stock.stockCode === ANALYSIS_CONTRACT_BREACH_STOCK) {
+        return HttpResponse.json(
+          aiResponse(
+            {
+              ticker: stock.stockCode,
+              name: stock.stockName,
+              sections: {
+                ...sections,
+                risks: {
+                  title: '확인된 위험 요인',
+                  cached: false,
+                  cachedAt: null,
+                },
+              },
+            },
+            requestId,
+            dataAsOf,
+          ),
+        );
+      }
+
       return HttpResponse.json(
-        aiResponse({}, requestId, {
-          price: nowKstIso(),
-          filings: '2026-08-14T09:00:00+09:00',
-        }),
+        aiResponse(
+          { ticker: stock.stockCode, name: stock.stockName, sections },
+          requestId,
+          dataAsOf,
+        ),
       );
     },
   ),
