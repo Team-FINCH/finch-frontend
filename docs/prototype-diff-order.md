@@ -2,7 +2,7 @@
 
 - 작성: 2026-09-09 / 기준 커밋 **`origin/FINCH-191-order-ai-preview` `bf015de`(MR !167)** — master 가 아니다. 191 이 점검 슬롯과 불가 문구를 방금 붙였고 master(`2febe11`)에는 아직 없다. master 기준으로 세면 191 이 이미 고친 것을 다시 불일치로 센다. 191 이 만든 파일은 `OrderPage.tsx` · `features/order/components/OrderAiPreview.tsx` · `OrderBlockNotice.tsx` · `lib/orderBlockReason.ts` · `lib/orderPreviewDisplay.ts` · `api/useAiOrderPreview.ts` 다. 나머지(`OrderQuantityField`·`OrderRatioButtons`·`OrderSummaryBox`·`OrderResultSheet`·`orderSide.ts`)는 두 브랜치가 같다
 - **1차 `prototype-diff.md`·2차와 같은 형식이다.** 표 칸 · 근거 표기 · 화면 경계 기준 · 상태 분기를 세는 법이 모두 같다. 새 형식을 만들지 않았다
-- **판정 규칙은 [`prototype-diff.md` 의 "판정 규칙" 절](./prototype-diff.md)에 있다.** 여기서 다시 적지 않는다 (그 파일과 2차 색인은 MR !166 브랜치 `FINCH-190-prototype-diff2` 에 있고 이 브랜치의 master 에는 아직 없다 — 머지되면 링크가 이어진다)
+- **판정 규칙은 [`prototype-diff.md` 의 "판정 규칙" 절](./prototype-diff.md)에 있다.** 여기서 다시 적지 않는다
 - **`판정` 칸은 비어 있다. 사용자가 채운다.** `(잠정) 의견` 은 워커의 한 줄 소견이고 결정이 아니다
 - `proto L####` 는 디코드본 기준 줄 번호다(4,164줄). `app-logic.js` 의 줄 번호 `N` 은 디코드본 `L(N+3033)` 이다
 
