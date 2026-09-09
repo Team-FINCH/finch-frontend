@@ -6,6 +6,7 @@ import { useDepositLimit } from '@/features/deposit/api/useDepositLimit';
 import { useDepositReady } from '@/features/deposit/api/useDepositReady';
 import { AmountInput } from '@/features/deposit/components/AmountInput';
 import { PaymentMethodPicker } from '@/features/deposit/components/PaymentMethodPicker';
+import { depositLimitExceededMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { toSameOriginPath } from '@/features/deposit/lib/queryParams';
 import { isHttpError, isSchemaError } from '@/shared/api';
 import { formatKrw } from '@/shared/lib/formatNumber';
@@ -43,6 +44,15 @@ type Step = 'amount' | 'confirm';
  * **실패했다는 사실은 반드시 보여야 한다.**
  */
 function readyErrorMessage(error: unknown): string {
+  /*
+   * 누적 한도 초과만 우리가 문장을 만든다. 남은 한도 숫자가 들어간 쪽을 써야 하고
+   * (`design.md:969`) 그 숫자는 `detail.remainingAmount` 로만 온다 — 서버 `message`
+   * 에는 없다. 결제 복귀·모의 이체와 같은 함수를 부른다.
+   */
+  const limitExceeded = depositLimitExceededMessage(error);
+  if (limitExceeded !== null) {
+    return limitExceeded;
+  }
   if (isHttpError(error)) {
     // 서버가 완성해 준 문구를 그대로 쓴다 (컨벤션 §5).
     return error.message;
@@ -114,14 +124,30 @@ export function DepositPage() {
             errorMessage={amountError}
           />
 
+          {/*
+           * 세 줄이다 — `1회 한도` · `누적 한도` · `잔여 한도`. 라벨과 순서는
+           * 프로토타입(`isDeposit` L2643-2645)과 `design.md:946` · `ia.md:87` 이
+           * 같은 것을 말한다. 어느 필드가 어느 줄인지도 계약이 정한다 —
+           * `perRequestLimit`(1회) · `cumulativeLimit`(계정 전체 누적 한도) ·
+           * `remainingAmount`(남은 몫). **`depositedAmount`(누적 입금액)는 이
+           * 박스에 없다** — `누적 한도` 는 한도이고 누적 입금액이 아니다
+           * (contracts C49 · apiSpec §4.1).
+           *
+           * 구분선은 마지막 `잔여 한도` 줄 위에 온다 — 앞 두 줄이 고정 한도이고
+           * 마지막 줄만 쓴 만큼에 따라 움직이는 값이라 묶음이 갈린다(프로토타입 L2645).
+           */}
           {limit !== undefined && (
             <SoftBox>
               <SoftBoxRow
-                label="1회 입금 한도"
+                label="1회 한도"
                 value={formatKrw(limit.perRequestLimit)}
               />
               <SoftBoxRow
-                label="남은 누적 한도"
+                label="누적 한도"
+                value={formatKrw(limit.cumulativeLimit)}
+              />
+              <SoftBoxRow
+                label="잔여 한도"
                 value={formatKrw(limit.remainingAmount)}
                 divided
               />

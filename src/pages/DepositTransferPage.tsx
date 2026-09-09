@@ -4,8 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDepositConfirm } from '@/features/deposit/api/useDepositConfirm';
 import { useDepositMockApprove } from '@/features/deposit/api/useDepositMockApprove';
 import { DepositResultScreen } from '@/features/deposit/components/DepositResultScreen';
-import { isDepositExpiredErrorCode } from '@/features/deposit/lib/depositErrorMessages';
-import { isHttpError } from '@/shared/api';
+import { depositConfirmErrorMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { ROUTES } from '@/shared/config/routes';
 import {
   DEPOSIT_MOCK_APPROVE_SCENARIOS,
@@ -32,8 +31,9 @@ import { PageMain } from '@/shared/ui/PageMain';
  * 근거: `ia.md` §1 "홈·자산" 절 "결제 복귀 화면과 모의 이체 화면(잠정)".
  * API: `POST /api/v1/deposits/{paymentId}/mock-approve` · `POST /api/v1/deposits/confirm`.
  *
- * `confirm` 이 만료 코드(`DEPOSIT_NOT_APPROVED`·`DEPOSIT_PAYMENT_FAILED`)로 실패하면
- * `DepositCompletePage` 와 같은 만료 화면(`DepositResultScreen` 의 `expired`)으로 묶는다.
+ * `confirm` 이 만료 코드(`DEPOSIT_NOT_APPROVED`·`DEPOSIT_PAYMENT_FAILED`)로 실패해도
+ * **전용 화면으로 가지 않는다** — `design.md:967` 이 만료를 실패 상태로 처리하라고
+ * 명시했으므로 `DepositCompletePage` 와 같이 실패 화면의 문구로만 갈린다.
  */
 const SCENARIO_LABELS: Record<DepositMockApproveScenario, string> = {
   SUCCESS: '정상 승인',
@@ -42,7 +42,7 @@ const SCENARIO_LABELS: Record<DepositMockApproveScenario, string> = {
   TIMEOUT: '시간 초과로 실패',
 };
 
-type Phase = 'select' | 'processing' | 'success' | 'expired' | 'error';
+type Phase = 'select' | 'processing' | 'success' | 'error';
 
 export function DepositTransferPage() {
   const [searchParams] = useSearchParams();
@@ -82,12 +82,7 @@ export function DepositTransferPage() {
       });
       setPhase('success');
     } catch (error) {
-      const code = isHttpError(error) ? error.code : null;
-      if (isDepositExpiredErrorCode(code)) {
-        setPhase('expired');
-        return;
-      }
-      setErrorMessage(isHttpError(error) ? error.message : undefined);
+      setErrorMessage(depositConfirmErrorMessage(error));
       setPhase('error');
     }
   }
@@ -124,33 +119,30 @@ export function DepositTransferPage() {
           variant="success"
           amount={result.amount}
           cashBalanceAfter={result.cashBalanceAfter}
-          primaryLabel="확인"
-          onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
-        />
-      </PageMain>
-    );
-  }
-
-  if (phase === 'expired') {
-    return (
-      <PageMain>
-        <DepositResultScreen
-          variant="expired"
-          primaryLabel="다시 입금하기"
-          onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
+          primaryLabel="매매 시작하기"
+          onPrimaryAction={() => navigate(ROUTES.search, { replace: true })}
+          secondaryLabel="홈으로"
+          onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
         />
       </PageMain>
     );
   }
 
   if (phase === 'error') {
+    /*
+     * 만료도 이 화면이 받는다(위 주석). 주 동작은 `DepositCompletePage` 와 같은
+     * 이유로 입금 화면으로 되돌리는 것이다 — 확정에서 막힌 건은 되살릴 수 없고
+     * 처음부터 다시 하는 경로만 준다(`ia.md:85` · contracts C85).
+     */
     return (
       <PageMain>
         <DepositResultScreen
           variant="error"
           errorMessage={errorMessage}
-          primaryLabel="홈으로"
-          onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
+          primaryLabel="다시 입금하기"
+          onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
+          secondaryLabel="나중에 하기"
+          onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
         />
       </PageMain>
     );

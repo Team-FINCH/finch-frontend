@@ -44,12 +44,25 @@ export function DepositFailPage() {
         <p className="mt-2 text-label text-pretty text-text-secondary">
           {message}
         </p>
-        <Button
-          className="mt-8"
-          onClick={() => navigate(ROUTES.deposit, { replace: true })}
-        >
-          다시 시도하기
-        </Button>
+        {/*
+         * 보조 동작 `나중에 하기` 를 주 버튼과 함께 둔다 — `design.md:968`
+         * "어느 실패든 빠져나갈 보조 동작을 함께 둔다. 이 화면에는 탭바도
+         * 뒤로가기도 없어 주 동작 하나만 두면 갇힌다". 이 화면은 주 동작이
+         * 입금 화면으로만 가서 홈으로 빠져나갈 길이 아예 없었다.
+         * 라벨과 세로 10px 배치는 프로토타입 `payDone` 블록을 따른다
+         * (template L2747-2752 · `app-logic.js` `paySecondaryLabel`).
+         */}
+        <div className="mt-8 flex w-full flex-col gap-2.5">
+          <Button onClick={() => navigate(ROUTES.deposit, { replace: true })}>
+            다시 시도하기
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => navigate(ROUTES.home, { replace: true })}
+          >
+            나중에 하기
+          </Button>
+        </div>
       </div>
     </PageMain>
   );
