@@ -93,7 +93,7 @@ export function DepositCompletePage() {
         <PageMain>
           <DepositResultScreen
             variant="expired"
-            primaryLabel="다시 충전하기"
+            primaryLabel="다시 입금하기"
             onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
           />
         </PageMain>

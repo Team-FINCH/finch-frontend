@@ -7,7 +7,7 @@ export const TRANSACTION_FILTERS = [
   { value: 'ALL', label: '전체' },
   { value: 'BUY', label: '매수' },
   { value: 'SELL', label: '매도' },
-  { value: 'DEPOSIT', label: '충전' },
+  { value: 'DEPOSIT', label: '입금' },
   { value: 'WITHDRAWAL', label: '출금' },
 ] as const;
 

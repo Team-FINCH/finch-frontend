@@ -27,7 +27,7 @@ export function DepositFailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const code = searchParams.get('code');
-  const message = depositFailMessage(code) ?? '충전을 진행하지 못했어요.';
+  const message = depositFailMessage(code) ?? '입금을 진행하지 못했어요.';
 
   return (
     <PageMain>

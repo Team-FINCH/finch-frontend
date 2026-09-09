@@ -113,5 +113,5 @@ export const BOTTOM_TAB_ROUTES = [
   { label: '홈', path: ROUTES.home },
   { label: '탐색', path: ROUTES.search },
   { label: '포트폴리오', path: ROUTES.portfolio },
-  { label: '내 정보', path: ROUTES.my },
+  { label: '마이페이지', path: ROUTES.my },
 ] as const;

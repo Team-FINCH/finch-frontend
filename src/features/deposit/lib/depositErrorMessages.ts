@@ -13,7 +13,7 @@ import { DEPOSIT_ERROR_CODES } from '@/shared/types/errorCodes';
 export function depositFailMessage(code: string | null): string | null {
   switch (code) {
     case DEPOSIT_ERROR_CODES.NOT_FOUND:
-      return '충전 요청을 찾을 수 없어요.';
+      return '입금 요청을 찾을 수 없어요.';
     case DEPOSIT_ERROR_CODES.INVALID_STATE:
       return '이미 처리됐거나 취소된 결제예요.';
     case DEPOSIT_ERROR_CODES.PAYMENT_FAILED:

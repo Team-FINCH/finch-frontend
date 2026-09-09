@@ -50,9 +50,9 @@ function readyErrorMessage(error: unknown): string {
   if (isSchemaError(error)) {
     // 사용자가 할 수 있는 일이 없다. 계약 불일치는 우리가 고쳐야 하는 것이라
     // 재시도를 권하지 않고 문의로 보낸다.
-    return '충전을 시작하지 못했어요. 문제가 계속되면 알려 주세요.';
+    return '입금을 시작하지 못했어요. 문제가 계속되면 알려 주세요.';
   }
-  return '충전을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.';
+  return '입금을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.';
 }
 
 export function DepositPage() {
@@ -71,9 +71,9 @@ export function DepositPage() {
   const amountError =
     amount !== null && limit !== undefined
       ? amount > limit.perRequestLimit
-        ? `한 번에 ${formatKrw(limit.perRequestLimit)}까지 충전할 수 있어요`
+        ? `한 번에 ${formatKrw(limit.perRequestLimit)}까지 입금할 수 있어요`
         : amount > limit.remainingAmount
-          ? `충전할 수 있는 금액을 넘었어요. (잔여 한도: ${formatKrw(limit.remainingAmount)})`
+          ? `입금할 수 있는 금액을 넘었어요. (잔여 한도: ${formatKrw(limit.remainingAmount)})`
           : undefined
       : undefined;
 
@@ -102,12 +102,12 @@ export function DepositPage() {
 
   return (
     <PageMain className="pb-32">
-      <h1 className="text-title-3 text-text-primary">충전</h1>
+      <h1 className="text-title-3 text-text-primary">입금</h1>
 
       {step === 'amount' && (
         <div className="mt-6 flex flex-col gap-6">
           <AmountInput
-            label="충전할 금액"
+            label="입금할 금액"
             value={amount}
             onChange={setAmount}
             presets={DEPOSIT_PRESETS}
@@ -117,7 +117,7 @@ export function DepositPage() {
           {limit !== undefined && (
             <SoftBox>
               <SoftBoxRow
-                label="1회 충전 한도"
+                label="1회 입금 한도"
                 value={formatKrw(limit.perRequestLimit)}
               />
               <SoftBoxRow
@@ -145,10 +145,10 @@ export function DepositPage() {
               label="결제 수단"
               value={paymentMethod === 'KAKAOPAY' ? '카카오페이' : '계좌이체'}
             />
-            <SoftBoxRow label="충전 금액" value={formatKrw(amount)} divided />
+            <SoftBoxRow label="입금 금액" value={formatKrw(amount)} divided />
             {accountQuery.data !== undefined && (
               <SoftBoxRow
-                label="충전 후 예수금"
+                label="입금 후 예수금"
                 value={formatKrw(accountQuery.data.cashBalance + amount)}
                 divided
               />
@@ -182,7 +182,7 @@ export function DepositPage() {
           </Button>
         ) : (
           <Button disabled={readyMutation.isPending} onClick={handleReady}>
-            {readyMutation.isPending ? '확인하고 있어요' : '충전하기'}
+            {readyMutation.isPending ? '확인하고 있어요' : '입금하기'}
           </Button>
         )}
       </ActionBar>

@@ -13,7 +13,7 @@ import { type TRANSACTION_FILTERS } from '../lib/useTransactionFilterState';
 const KIND_LABEL: Record<Transaction['type'], string> = {
   BUY: '매수',
   SELL: '매도',
-  DEPOSIT: '충전',
+  DEPOSIT: '입금',
   WITHDRAWAL: '출금',
   INITIAL_GRANT: '최초 지급',
 };
