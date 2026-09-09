@@ -78,6 +78,25 @@ function readyErrorMessage(error: unknown): string {
   return '입금을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.';
 }
 
+/**
+ * CTA 라벨. 프로토타입 `depCtaLabel`(`app-logic.js:1074`)의 세 갈래를 그대로 따르고
+ * 용어만 입금으로 바꿨다 — 금액 없음 · 한도 초과 · 정상.
+ *
+ * **결제 수단을 안 고른 상태는 라벨을 바꾸지 않는다.** 프로토타입은 수단이 항상
+ * 하나 골라져 있어(`depMethod:"kakao"` 초기값) 그 갈래가 아예 없다. 우리는 수단을
+ * 미리 골라 주지 않으므로 비활성으로만 표현한다 — `design.md:977` 이 출금 CTA 에
+ * 같은 규칙("유효하지 않으면 비활성으로만 표현하고 버튼 문구를 바꾸지 않는다")을 적었다.
+ */
+function depositCtaLabel(amount: number | null, exceedsLimit: boolean): string {
+  if (amount === null || amount <= 0) {
+    return '입금 금액을 입력해 주세요';
+  }
+  if (exceedsLimit) {
+    return '입금 금액을 확인해 주세요';
+  }
+  return `${formatKrw(amount)} 결제하기`;
+}
+
 export function DepositPage() {
   const [amount, setAmount] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
@@ -99,10 +118,11 @@ export function DepositPage() {
           : undefined
       : undefined;
 
+  const exceedsLimit = amountError !== undefined;
   const canSubmit =
     amount !== null &&
     amount > 0 &&
-    amountError === undefined &&
+    !exceedsLimit &&
     paymentMethod !== null &&
     !readyMutation.isPending;
 
@@ -143,7 +163,7 @@ export function DepositPage() {
       {/* 섹션 간격 32px 은 프로토타입 `.sec{margin-top:32px}` 실측값이다. */}
       <div className="mt-8 flex flex-col gap-8">
         <AmountInput
-          label="입금할 금액"
+          label="입금 금액"
           value={amount}
           onChange={setAmount}
           presets={DEPOSIT_PRESETS}
@@ -219,16 +239,21 @@ export function DepositPage() {
                 divided
               />
             )}
-            {/* 취소 불가는 카드 밖 독립 단락이 아니라 카드 안 구분선 아래
-                캡션이다 (프로토타입 L2667). */}
+            {/*
+             * 취소 불가는 카드 밖 독립 단락이 아니라 카드 안 구분선 아래 캡션이다
+             * (프로토타입 L2667). 문장은 해요체다 — 프로토타입과 `design.md:948`
+             * 이 해요체이고 `design.md` §13 Tone 이 그것을 요구한다. `ia.md:84` 만
+             * 합니다체("충전은 취소할 수 없습니다")인데 그쪽이 낡았다.
+             */}
             <p className="mt-3.5 border-t border-border pt-3.5 text-caption leading-5 text-text-muted">
-              충전은 취소할 수 없습니다.
+              입금은 취소할 수 없어요.
             </p>
           </Card>
         </section>
 
         {/*
-         * 모의 결제라는 사실을 알리는 안내 카드 (프로토타입 L2671-2675).
+         * 모의 결제라는 사실을 알리는 안내 카드 (프로토타입 L2671-2675). 문구는
+         * 프로토타입 원문이다 — 이 문장에는 바꿀 용어가 없다.
          *
          * 프로토타입은 `--note`(#F4F6F8) 면 + `--note-b`(#E1E6EB) 테두리이고
          * `design.md:151-152` 가 그 둘을 "안내 카드" 토큰으로 적었다. 토큰 파일에는
@@ -262,7 +287,9 @@ export function DepositPage() {
        */}
       <ActionBar>
         <Button disabled={!canSubmit} onClick={handleReady}>
-          {readyMutation.isPending ? '확인하고 있어요' : '입금하기'}
+          {readyMutation.isPending
+            ? '확인하고 있어요'
+            : depositCtaLabel(amount, exceedsLimit)}
         </Button>
       </ActionBar>
     </PageMain>
