@@ -9,18 +9,22 @@
 이 파일은 **입금 4화면**만 다룬다. 2026-09-09 2차 대조는 화면별로 파일을 나눴다.
 한 파일에 몰면 읽을 수 없어서다. **이 절이 색인이고, 형식·근거 표기·판정 규칙은 아래 절들을 그대로 따른다.**
 
-| 파일                                                           | 대상                        | 항목 |
-| -------------------------------------------------------------- | --------------------------- | ---- |
-| [`prototype-diff-home.md`](./prototype-diff-home.md)           | `/` ↔ `isHome`              | 85   |
-| [`prototype-diff-search.md`](./prototype-diff-search.md)       | `/search` ↔ `isSearch`      | 69   |
-| [`prototype-diff-portfolio.md`](./prototype-diff-portfolio.md) | `/portfolio` ↔ `isPf` + 4탭 | 187  |
-| [`prototype-diff-mypage.md`](./prototype-diff-mypage.md)       | `/my` ↔ `isMy`              | 42   |
-| [`prototype-diff-tabbar.md`](./prototype-diff-tabbar.md)       | 4탭 공통 하단 탭바          | 50   |
+| 파일                                                                 | 대상                                                                      | 항목 |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---- |
+| [`prototype-diff-home.md`](./prototype-diff-home.md)                 | `/` ↔ `isHome`                                                            | 85   |
+| [`prototype-diff-search.md`](./prototype-diff-search.md)             | `/search` ↔ `isSearch`                                                    | 69   |
+| [`prototype-diff-portfolio.md`](./prototype-diff-portfolio.md)       | `/portfolio` ↔ `isPf` + 4탭                                               | 187  |
+| [`prototype-diff-mypage.md`](./prototype-diff-mypage.md)             | `/my` ↔ `isMy`                                                            | 42   |
+| [`prototype-diff-tabbar.md`](./prototype-diff-tabbar.md)             | 4탭 공통 하단 탭바                                                        | 50   |
+| [`prototype-diff-stock-detail.md`](./prototype-diff-stock-detail.md) | `/stocks/:stockCode` ↔ `isDetail` + 3탭 + 매수/매도 바 (AI 탭은 189 기준) | 122  |
+| [`prototype-diff-order.md`](./prototype-diff-order.md)               | `/stocks/:stockCode/order` ↔ `isOrder` (191 기준)                         | 71   |
+| [`prototype-diff-chat.md`](./prototype-diff-chat.md)                 | `/chat` ↔ `isChat`                                                        | 46   |
+| [`prototype-diff-briefing.md`](./prototype-diff-briefing.md)         | `/briefing` ↔ `isBriefing` + `.fab`                                       | 38   |
+| [`prototype-diff-inbox.md`](./prototype-diff-inbox.md)               | `/inbox` ↔ `isMail`                                                       | 29   |
+| [`prototype-diff-sheets.md`](./prototype-diff-sheets.md)             | 바텀시트 6종 + 토스트 (`__GLOBAL_after_404__`)                            | 56   |
 
-**아직 대조하지 않은 것** — 종목 상세(`isDetail`·`isDtChart`·`isDtInfo`·`isDtAi`) · 주문(`isOrder`) ·
-브리핑(`isBriefing`) · 알림함(`isMail`) · 매매 내역(`isTx`) · 출금(`isWithdraw`) · AI 채팅(`isChat`) ·
-로그인·온보딩(`isLanding`·`isOnboard`) · 최근 본 종목(`isRecent`) · 404(`is404`) ·
-그리고 `__GLOBAL_after_404__` 의 바텀시트 8종이다.
+**아직 대조하지 않은 것** — 매매 내역(`isTx`) · 출금(`isWithdraw`) · 로그인·온보딩(`isLanding`·`isOnboard`) ·
+최근 본 종목(`isRecent`) · 404(`is404`) 다.
 
 ---
 
