@@ -109,13 +109,38 @@ export function DepositPage() {
   const readyMutation = useDepositReady();
 
   const limit = limitQuery.data;
+  /*
+   * 한도 초과 안내는 **한 문장이다.** 1회 초과와 누적 초과를 구분하지 않는다 —
+   * 프로토타입 `depOver` 가 `depAmt>10000000 || depAmt>cumLeft` 로 두 조건을 OR 로
+   * 묶고 문장을 하나만 만든다. 남은 한도 숫자에는 `depCumLeft`(=`cumLeft`, 누적
+   * 한도에서 쓴 만큼을 뺀 값)를 끼우는데, 우리 쪽 대응 값은 `GET /deposits/limit`
+   * 의 `remainingAmount` 다 (contracts C49).
+   *
+   * **근거 넷이 서로 다른 문장을 말한다.** 프로토타입을 골랐다 — 판정 기준이
+   * "UI 요소(배치·모양·문구·위계)는 프로토타입을 따른다" 이고 문구가 거기 든다.
+   *   프로토타입      한 문장. 남은 한도 하나만 넣는다 (아래 문장)
+   *   직전 구현       두 문장. 1회 초과와 누적 초과를 갈랐다
+   *   `ia.md:88`     합니다체 또 다른 문장. `design.md` §13 Tone 이 해요체를
+   *                  요구하고 프로토타입도 해요체라 버렸다
+   *   `depositErrorMessages.ts` 의 `depositLimitExceededMessage()`
+   *                  결제 복귀·모의 이체가 쓰는 또 다른 문장
+   *
+   * **마지막 것과 문장을 맞추지 않는다.** `design.md:969` 가 "한도 초과 문구는
+   * 충전 화면과 같은 문장을 쓴다" 고 요구하지만 프로토타입 자신이 두 화면에서
+   * 다른 문장을 쓴다. 문맥이 갈린다 — 이 화면은 "지금 넣은 금액이 넘었다" 를
+   * 알리고, 결제 실패 화면은 "무엇을 하라" 를 안내한다. 그래서 저 함수는
+   * 건드리지 않았다.
+   *
+   * **같은 화면에 저 함수의 문장도 나올 수 있다** — 아래 `readyErrorMessage` 가
+   * `ready` 의 `DEPOSIT_LIMIT_EXCEEDED`(409)를 그 함수로 그린다. 이 검사를
+   * 통과한 뒤 다른 충전이 끼어들어 한도가 줄었을 때만 오는 갈래라(C49, 진실은
+   * `confirm` 이다) 둘이 한 번에 뜨지는 않는다.
+   */
   const amountError =
-    amount !== null && limit !== undefined
-      ? amount > limit.perRequestLimit
-        ? `한 번에 ${formatKrw(limit.perRequestLimit)}까지 입금할 수 있어요`
-        : amount > limit.remainingAmount
-          ? `입금할 수 있는 금액을 넘었어요. (잔여 한도: ${formatKrw(limit.remainingAmount)})`
-          : undefined
+    amount !== null &&
+    limit !== undefined &&
+    (amount > limit.perRequestLimit || amount > limit.remainingAmount)
+      ? `입금 한도를 넘었어요. 남은 한도는 ${formatKrw(limit.remainingAmount)}이에요.`
       : undefined;
 
   const exceedsLimit = amountError !== undefined;
