@@ -16,10 +16,10 @@ import {
   StockCodeSchema,
 } from './primitives';
 
-// `CandleInterval` 정의는 `./candleInterval.ts` 한 곳뿐이다 (TODO(계약) 임시값 —
-// 이슈 #37). 여기서는 이 파일 안에서(`CandlesResponseSchema`) 쓰기 위해 들여오고,
-// 기존 소비처(`@/shared/types/stock` 에서 `CandleInterval` 를 가져오던 자리)가
-// 안 깨지도록 그대로 다시 내보낸다.
+// `CandleInterval` 정의는 `./candleInterval.ts` 한 곳뿐이다 (apiSpec §5.3 v0.8.4
+// 확정 · 이슈 #37 회신). 여기서는 이 파일 안에서(`CandlesResponseSchema`) 쓰기
+// 위해 들여오고, 기존 소비처(`@/shared/types/stock` 에서 `CandleInterval` 를
+// 가져오던 자리)가 안 깨지도록 그대로 다시 내보낸다.
 export { CandleIntervalSchema };
 export type { CandleInterval };
 
@@ -93,10 +93,17 @@ export const StockDetailResponseSchema = z.object({
 export type StockDetailResponse = z.infer<typeof StockDetailResponseSchema>;
 
 /**
- * 캔들 기간 (apiSpec §5.3 캔들 차트 · ia.md §2 "쿼리 파라미터로 둘 상태" 잠금).
- * `1M`·`3M`·`1Y` 셋 다 일봉 기준이다 — 이 범위 자체는 확정 값이라 그대로 둔다.
+ * 캔들 기간 (apiSpec §5.3 v0.8.4 확정 · 이슈 #37 회신 · ia.md §2 "쿼리 파라미터로
+ * 둘 상태" 잠금). 기본값은 `1M`.
+ *
+ * `interval`(`@/shared/types/candleInterval.ts`)과 **독립된 축**이다 — `period`가
+ * "얼마나 거슬러 올라가나", `interval`이 "봉 하나가 며칠치인가"를 정한다. `3Y`는
+ * v0.8.4에서 월봉 조회를 뒷받침하려고 새로 늘었다. 화면에는 `period`를 고르는
+ * 탭이 없고, 봉 종류 탭이 고른 `interval`에 맞춰 프론트가 내부적으로 `period`를
+ * 함께 보낸다 — 그 매핑은 `CANDLE_INTERVAL_REQUEST_PERIOD`(`candleInterval.ts`) 한
+ * 곳에 있다.
  */
-export const CandlePeriodSchema = z.enum(['1M', '3M', '1Y']);
+export const CandlePeriodSchema = z.enum(['1M', '3M', '1Y', '3Y']);
 export type CandlePeriod = z.infer<typeof CandlePeriodSchema>;
 
 /** 캔들 한 개 (apiSpec §5.3). `date` 는 시각이 아니라 날짜다. */

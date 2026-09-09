@@ -29,10 +29,11 @@ import { TradeTabBar } from '@/shared/ui/TabBar';
  * **`/stocks/:stockCode` 와 `?tab=ai` 는 프론트 혼자 정하는 값이 아니다** — 브리핑
  * 응답의 `deeplink` 를 AI 서버가 이 경로 문자열로 만들어 내려보낸다 (`ia.md` §2).
  *
- * **`?interval=` 은 ia.md 에 없는 TODO(계약) 임시 파라미터다** — 봉 종류 탭이 쓴다.
- * ia.md §2 가 잠근 `?period=1M|3M|1Y` 는 이 화면 어디서도 바꾸지 않는다(근거는
- * `@/shared/types/candleInterval.ts` · `features/stocks/lib/stockDetailParams.ts`
- * 머리 주석 참고).
+ * **`?interval=` 은 ia.md 의 쿼리 파라미터 표에 아직 없는 파라미터다** — 봉 종류
+ * 탭이 쓴다. `interval` 자체는 apiSpec §5.3(v0.8.4 확정 · 이슈 #37 회신)로
+ * 확정됐고, ia.md §2 가 잠근 `?period=1M|3M|1Y|3Y` 는 이 화면 어디서도 바꾸지
+ * 않는다(근거는 `@/shared/types/candleInterval.ts` ·
+ * `features/stocks/lib/stockDetailParams.ts` 머리 주석 참고).
  *
  * 티켓: FINCH-38, FINCH-50.
  *
@@ -85,7 +86,7 @@ export function StockDetailPage() {
   const toggleWatch = useToggleWatchlist();
 
   /**
-   * 탭·봉 종류는 URL 에 쓴다 (탭은 ia.md §2, 봉 종류는 TODO(계약) — 위 주석 참고).
+   * 탭·봉 종류는 URL 에 쓴다 (탭은 ia.md §2, 봉 종류는 위 주석 참고).
    * `replace: true` 로 덮어써서 탭을 오간 횟수만큼 히스토리가 쌓이지 않게 한다 —
    * 뒤로가기는 종목 상세를 떠나는 동작이어야 한다.
    */

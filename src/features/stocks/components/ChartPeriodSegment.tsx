@@ -11,15 +11,15 @@ import { CANDLE_INTERVAL_OPTIONS } from '../lib/stockDetailParams';
  * 실측값 — 트랙 높이 38px · 반경 12px(`--radius-12`) · 안쪽 여백 4px · 버튼 반경 9px ·
  * 선택된 버튼만 흰 면 + 옅은 그림자, 나머지는 글자색 `--t3`.
  *
- * **TODO(계약): 캔들 interval — 이슈 #37 회신 전 임시값.** 탭은 기간(`period`,
- * 1개월·3개월·1년)이 아니라 **봉 종류**(`interval`, 일봉·주봉·월봉)를 고른다 —
- * 보이는 범위는 확대/축소가 맡고, 이 탭은 캔들 하나가 며칠치를 묶는지만 고른다.
- * `apiSpec §5.3` 응답은 `period`·`interval` 이 이미 나뉘어 있고, `interval` 은
- * 지금 `DAY` 하나뿐이라 주봉·월봉은 백엔드 구두 확인만 있는 상태다(이슈 #37).
- * 값·라벨 목록은 `@/shared/types/candleInterval.ts` 한 곳(`CANDLE_INTERVAL_OPTIONS`)
- * 에서만 만든다 — 회신이 와서 값이 바뀌어도 이 컴포넌트는 그대로 쓴다. 근거·
- * 되돌리기 절차는 그 파일 머리 주석 참고.
- * — 근거: contracts P11 / 스프린트 0 결정 (분봉 미확정이라는 전제는 여전히 유효)
+ * 탭은 기간(`period`, 1개월·3개월·1년)이 아니라 **봉 종류**(`interval`, 일봉·
+ * 주봉·월봉)를 고른다 — 보이는 범위는 확대/축소가 맡고, 이 탭은 캔들 하나가
+ * 며칠치를 묶는지만 고른다. `apiSpec §5.3`(v0.8.4 확정 · 이슈 #37 회신) 응답은
+ * `period`·`interval` 이 이미 나뉘어 있고, 이 탭이 고른 `interval` 에 맞는
+ * `period` 는 프론트가 내부적으로 `CANDLE_INTERVAL_REQUEST_PERIOD` 로 정해 함께
+ * 보낸다(`getCandles` 참고). 값·라벨 목록은 `@/shared/types/candleInterval.ts`
+ * 한 곳(`CANDLE_INTERVAL_OPTIONS`)에서만 만든다 — 다른 컴포넌트가 값이 바뀔 때
+ * 함께 고쳐야 할 곳이 여기 하나로 끝난다.
+ * — 근거: contracts C95 / apiSpec §5.3(v0.8.4) · 이슈 #37 회신
  */
 type ChartPeriodSegmentProps = {
   interval: CandleInterval;

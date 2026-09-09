@@ -21,18 +21,20 @@ import {
  * 별도 매핑 표를 두지 않고 `CandlePeriodSchema` 를 그대로 재사용한다. 표를 두면
  * 계약이 두 벌이 되고 한쪽만 고쳐진다.
  *
- * **`period` 는 ia.md 가 못박은 그대로(`1M`·`3M`·`1Y`)다. 지금 이 화면 어떤 탭도
- * 이 값을 바꾸지 않는다** — 아래 `CANDLE_PERIOD_OPTIONS`·`DEFAULT_CANDLE_PERIOD`·
- * `parseCandlePeriod` 는 그 계약을 그대로 살려 둔 것이고(회신 없이 임의로 지우지
- * 않는다), 실제로 화면에 쓰는 건 봉 종류다.
+ * **`period` 는 ia.md 가 못박은 그대로(`1M`·`3M`·`1Y`·`3Y`)다. 지금 이 화면 어떤
+ * 탭도 이 URL 파라미터를 바꾸지 않는다** — 아래 `CANDLE_PERIOD_OPTIONS`·
+ * `DEFAULT_CANDLE_PERIOD`·`parseCandlePeriod` 는 그 계약을 그대로 살려 둔 것이고,
+ * 실제로 화면에 쓰는 건 봉 종류다. 요청에 실제로 실리는 `period` 는 봉 종류 탭이
+ * 고른 `interval` 에서 끌어온 값이다(`CANDLE_INTERVAL_REQUEST_PERIOD`, 아래 참고).
  *
- * **봉 종류 탭(일봉·주봉·월봉)은 `period` 가 아니라 `interval` 을 고른다.**
- * TODO(계약): 캔들 interval — 이슈 #37 회신 전 임시값. `interval` 값 자체
- * (`CANDLE_INTERVAL_OPTIONS`·`DEFAULT_CANDLE_INTERVAL`)는
- * `@/shared/types/candleInterval.ts` 한 곳에서만 정의한다 — 여기서는 재노출만
- * 한다. `?interval=` 쿼리 파라미터는 ia.md 에 아직 없다 — 이 기능 자체가 그
- * 문서를 앞질러 가는 임시 구현이라 새로 추가했다. 근거는
- * `@/shared/types/candleInterval.ts` 머리 주석 참고.
+ * **봉 종류 탭(일봉·주봉·월봉)은 이 URL 의 `period` 가 아니라 `interval` 을
+ * 고른다.** apiSpec §5.3(v0.8.4 확정 · 이슈 #37 회신)에서 `period`·`interval` 이
+ * 독립된 두 축으로 확정됐다. `interval` 값 자체
+ * (`CANDLE_INTERVAL_OPTIONS`·`DEFAULT_CANDLE_INTERVAL`·`CANDLE_INTERVAL_REQUEST_PERIOD`)
+ * 는 `@/shared/types/candleInterval.ts` 한 곳에서만 정의한다 — 여기서는 재노출만
+ * 한다. `?interval=` 쿼리 파라미터는 ia.md 의 쿼리 파라미터 표에 아직 없다 —
+ * 구현이 그 문서를 앞질러 갔다. 근거는 `@/shared/types/candleInterval.ts` 머리
+ * 주석 참고.
  *
  * **`tab` 기본값은 ia.md 에 없다.** §2 표는 값의 목록만 정하고 기본값을 적지
  * 않아서 아래 상수는 우리가 고른 값이다 — 근거는 상수 주석에 적었다.
@@ -45,9 +47,9 @@ export type StockDetailTab = (typeof STOCK_DETAIL_TABS)[number];
 
 /** 쿼리 파라미터 이름. 문자열을 화면에 흩어 적지 않는다. */
 export const STOCK_DETAIL_TAB_PARAM = 'tab';
-/** ia.md §2 잠금(`1M`·`3M`·`1Y`). 지금은 어떤 탭도 이 파라미터를 바꾸지 않는다. */
+/** ia.md §2 잠금(`1M`·`3M`·`1Y`·`3Y`). 지금은 어떤 탭도 이 파라미터를 바꾸지 않는다. */
 export const STOCK_DETAIL_PERIOD_PARAM = 'period';
-/** TODO(계약): 캔들 interval — 이슈 #37 회신 전 임시값. 봉 종류 탭이 쓰는 파라미터. */
+/** 봉 종류 탭이 쓰는 파라미터 (apiSpec §5.3 v0.8.4 확정 · 이슈 #37 회신). */
 export const STOCK_DETAIL_INTERVAL_PARAM = 'interval';
 
 /**
@@ -72,6 +74,7 @@ export const CANDLE_PERIOD_OPTIONS: readonly {
   { value: CandlePeriodSchema.parse('1M'), label: '1개월' },
   { value: CandlePeriodSchema.parse('3M'), label: '3개월' },
   { value: CandlePeriodSchema.parse('1Y'), label: '1년' },
+  { value: CandlePeriodSchema.parse('3Y'), label: '3년' },
 ];
 
 /** `@/shared/types/candleInterval.ts` 재노출. 정의는 그 파일 한 곳뿐이다. */

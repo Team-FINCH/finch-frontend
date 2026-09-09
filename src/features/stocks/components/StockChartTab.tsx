@@ -15,8 +15,8 @@ import { ChartPeriodSegment } from './ChartPeriodSegment';
  * `changeRate` 만 준다). 캔들 마지막 봉에서 끌어다 쓸 수도 있지만 그것은 "오늘"이
  * 아니라 "마지막 거래일"이라 장중에 뜻이 달라진다. 없는 값을 만들지 않는다.
  *
- * 봉 종류는 URL 이 갖는다 (`?interval=`, TODO(계약) — `@/shared/types/candleInterval.ts`
- * 참고). 부모가 넘기고 여기서는 바꾸기만 한다.
+ * 봉 종류는 URL 이 갖는다 (`?interval=` — `@/shared/types/candleInterval.ts` 참고).
+ * 부모가 넘기고 여기서는 바꾸기만 한다.
  */
 type StockChartTabProps = {
   stockCode: string;

@@ -58,8 +58,8 @@ export const queryKeys = {
     detail: (stockCode: string) =>
       [...queryKeys.stocks.all(), 'detail', stockCode] as const,
     /**
-     * 캔들 (apiSpec §5.3). 봉 종류(`interval`)가 키에 들어가야 봉 종류 탭을
-     * 오갈 때 캐시가 산다. TODO(계약): 캔들 interval — 이슈 #37 회신 전 임시값
+     * 캔들 (apiSpec §5.3 v0.8.4 확정 · 이슈 #37 회신). 봉 종류(`interval`)가
+     * 키에 들어가야 봉 종류 탭을 오갈 때 캐시가 산다
      * (`@/shared/types/candleInterval.ts` 참고).
      */
     candles: (stockCode: string, interval: string) =>
