@@ -1,9 +1,14 @@
+import { useNavigate } from 'react-router-dom';
+
 import { isHttpError } from '@/shared/api';
-import { formatKstTime } from '@/shared/lib/formatDate';
+import { ROUTES } from '@/shared/config/routes';
+import { formatKstMonthDay, formatKstTime } from '@/shared/lib/formatDate';
 import {
   AI_ANALYSIS_SECTION_KEYS,
   type AiAnalysisSection,
+  type AiAnalysisSectionKey,
 } from '@/shared/types/ai/analysis';
+import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
@@ -73,23 +78,110 @@ type StockAiTabProps = {
 /**
  * 검정 카드 아래의 평면 섹션 하나 (design.md §8.3 — "기본 Background 위 Flat Section",
  * "모든 Section을 Card로 만들지 않는다", "Section 간 충분한 여백").
+ *
+ * 위계는 프로토타입 실측이다 — 제목 `.sht`(**18px/700 `--t1`**, 아래 14px) ·
+ * 본문 `.b1`(**16px/24 `--t1`**) · 섹션 사이 40px (새 디코드 L1934·L1052·L1088).
+ * 전에는 제목을 14px/600 회색, 본문을 15px 회색으로 뒀는데 그것은 섹션 제목이
+ * 아니라 필드 라벨의 위계라 두 단계 낮았다.
  */
-function AnalysisSectionBlock({ section }: { section: AiAnalysisSection }) {
+function AnalysisSectionBlock({
+  section,
+  caption,
+}: {
+  section: AiAnalysisSection;
+  caption?: string;
+}) {
   const title = section.title ?? null;
 
   return (
-    <section className="mt-8">
+    <section className="mt-10">
       {title === null ? null : (
-        <h3 className="mb-3 text-label font-semibold text-text-secondary">
+        <h3 className="mb-3.5 text-title-3 font-bold text-text-primary">
           {title}
         </h3>
       )}
-      <p className="text-body-2 leading-6 text-pretty text-text-secondary">
+      <p className="text-body-1 leading-6 text-pretty text-text-primary">
         <AiSegmentText segments={section.segments} text={section.text} />
       </p>
+      {caption === undefined ? null : (
+        <p className="mt-4 text-caption text-text-muted">{caption}</p>
+      )}
     </section>
   );
 }
+
+/**
+ * 나의 투자 기준 — 논지가 있을 때 (프로토타입 `d.hasThesis`, 새 디코드 L1958–L1971).
+ *
+ * 평면 섹션과 다르게 **흰 카드 하나**다 — 기록 날짜 · 논지 원문 · 구분선 ·
+ * 점검 문장 넷을 담고 그 아래 `기록 확인하기` 행이 위키 탭으로 보낸다.
+ * 원문·날짜는 `thesisCheck.thesis`(`text`·`recordedAt`)로 온다 — 스키마가 이미
+ * 받고 있었는데 그리지 않고 있었다.
+ *
+ * `.card.d` 실측 — 흰 면 · 1px 테두리 · 반경 12 · 안쪽 여백 **16**.
+ * `shared/ui/Card` 는 안쪽 여백이 20 이라 그대로 쓰면 실측에서 벗어나고
+ * `className` 으로 덮으면 같은 특이도의 `p-*` 둘이 겹쳐 어느 쪽이 이길지 정해지지
+ * 않는다. 그래서 이 자리만 손으로 적었다.
+ *
+ * 도착지는 `ia.md` L186 이 확정으로 적은 `/portfolio?tab=wiki` 다. 탭 값은
+ * `features/portfolio` 가 갖지만 feature 끼리 import 가 막혀 있어(컨벤션 §2)
+ * 문자열로 적는다.
+ */
+function ThesisCheckBlock({ section }: { section: AiAnalysisSection }) {
+  const navigate = useNavigate();
+  const thesis = section.thesis ?? null;
+
+  return (
+    <section className="mt-10">
+      {section.title === null || section.title === undefined ? null : (
+        <h3 className="mb-3.5 text-title-3 font-bold text-text-primary">
+          {section.title}
+        </h3>
+      )}
+
+      <div className="rounded-card border border-border bg-surface p-4">
+        {thesis === null ? null : (
+          <>
+            <p className="text-caption text-text-muted">
+              {formatKstMonthDay(thesis.recordedAt)} 기록
+            </p>
+            <p className="mt-1.75 text-body-1 leading-6 text-pretty whitespace-pre-line text-text-primary">
+              {thesis.text}
+            </p>
+            <div className="my-3.5 h-px bg-border" />
+          </>
+        )}
+        <p className="text-body-2 text-pretty text-text-secondary">
+          <AiSegmentText segments={section.segments} text={section.text} />
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => void navigate(`${ROUTES.portfolio}?tab=wiki`)}
+        className="mt-3.5 flex h-12.5 w-full items-center gap-3 rounded-[13px] bg-surface-soft px-4 text-left active:bg-primary-soft"
+      >
+        <span className="min-w-0 flex-1 text-[15px] font-semibold text-text-primary">
+          기록 확인하기
+        </span>
+        <span
+          aria-hidden="true"
+          className="flex-none text-[15px] text-text-muted"
+        >
+          ›
+        </span>
+      </button>
+    </section>
+  );
+}
+
+/**
+ * 섹션별 고정 캡션. 프로토타입이 `확인해볼 위험` 아래에만 한 줄 두었다
+ * (새 디코드 L1946). 제목과 달리 이 문장은 응답에 없는 **시안 문구**라 화면이 갖는다.
+ */
+const SECTION_CAPTION: Partial<Record<AiAnalysisSectionKey, string>> = {
+  risks: '공시와 실적에서 확인한 내용이에요.',
+};
 
 export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   const analysis = useStockAnalysis(stockCode, isActive);
@@ -113,6 +205,31 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   if (analysis.isError) {
     const error = analysis.error;
     const code = isHttpError(error) ? error.code : undefined;
+
+    /*
+     * **데이터 부족은 실패가 아니다** (contracts C12 · design.md L1237-1255).
+     * `409 INSUFFICIENT_DATA` 는 정상적인 거절이라 프로토타입도 실패(`aiFail`)와
+     * 다른 갈래(`aiShort`)로 두고 제목·문장을 따로 적는다 (새 디코드 L1906–L1911).
+     * 전에는 실패 갈래로 흘려보내 제목이 `분석을 불러오지 못했어요` 로 나왔다.
+     * 문구는 프로토타입 실측 그대로다 — 여기서 서버 `message` 를 쓰지 않는 이유는
+     * 이 자리의 문장이 "왜 실패했나" 가 아니라 "무엇이 쌓이면 켜지나" 이기 때문이다.
+     */
+    if (code === AI_SERVICE_ERROR_CODES.INSUFFICIENT_DATA) {
+      return (
+        <AiStatus
+          code={code}
+          title="아직 분석할 정보가 충분하지 않아요"
+          description={
+            <>
+              공시와 뉴스가 조금 더 쌓이면
+              <br />
+              FINCH가 분석해드릴게요.
+            </>
+          }
+        />
+      );
+    }
+
     // 문구는 서버가 완성해 준 message 를 쓴다 (컨벤션 §5). 화면이 다시 짓지 않는다.
     const message = isHttpError(error)
       ? error.message
@@ -151,16 +268,14 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   const flat = present.filter((entry) => entry.key !== 'current');
 
   return (
-    <div className="mt-6">
+    // 위 4px · 아래 24px 은 프로토타입 실측이다 (새 디코드 L1926·L1994).
+    <div className="mt-1 pb-6">
       <AiCard
         label="AI 종목 분석"
         headline={
           present.length === 0
             ? '분석 본문을 준비하고 있어요.'
             : (current?.title ?? undefined)
-        }
-        caption={
-          asOfLabel === null ? undefined : `${formatKstTime(asOfLabel)} 기준`
         }
       >
         {present.length === 0 ? (
@@ -179,20 +294,36 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
         )}
       </AiCard>
 
-      {flat.map((entry) => (
-        <AnalysisSectionBlock key={entry.key} section={entry.section} />
-      ))}
+      {flat.map((entry) =>
+        entry.key === 'thesisCheck' && entry.section.thesis != null ? (
+          <ThesisCheckBlock key={entry.key} section={entry.section} />
+        ) : (
+          <AnalysisSectionBlock
+            key={entry.key}
+            section={entry.section}
+            caption={SECTION_CAPTION[entry.key]}
+          />
+        ),
+      )}
 
       <AiCitationList
         citations={citations}
         title="근거"
         showPublisher
-        className="mt-8"
+        className="mt-10"
       />
 
-      {/* disclaimer 는 하드코딩하지 않고 응답 값을 그대로 쓴다 — 규제 문구가 바뀌면
-          서버만 고치게 하기 위해서다 (envelope.ts 주석). */}
+      {/*
+        기준 시각은 검정 카드 캡션이 아니라 **하단 캡션 첫 항목**이다
+        (프로토타입 `{{ asOf }} 기준 · 공시 · 뉴스 · 자체계산`, 새 디코드 L1995).
+        형식은 프로토타입이 `월.일 시:분` 인데 `formatKstTime` 은 `시:분:초` 를 준다 —
+        `shared/lib/formatDate` 는 이 티켓에서 고치지 않는 파일이라 그대로 뒀다.
+
+        disclaimer 는 하드코딩하지 않고 응답 값을 그대로 쓴다 — 규제 문구가 바뀌면
+        서버만 고치게 하기 위해서다 (envelope.ts 주석).
+      */}
       <p className="mt-5 text-caption leading-5 text-text-muted">
+        {asOfLabel === null ? null : <>{formatKstTime(asOfLabel)} 기준 · </>}
         {disclaimer}
       </p>
 
