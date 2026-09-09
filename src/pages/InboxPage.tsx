@@ -1,8 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-
 import { InboxList } from '@/features/inbox';
-import { ROUTES } from '@/shared/config/routes';
 import { PageMain } from '@/shared/ui/PageMain';
+import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
  * 알림함 — Finch 가 물어다 놓는 것 열람: 적어야 할 것(매수 이유 기록 요청) ·
@@ -17,23 +15,16 @@ import { PageMain } from '@/shared/ui/PageMain';
  * API: **계약 없음** — GitLab 이슈 #26 1번으로 문의 중(목록 조회·읽음 처리 스펙
  * 대기). `features/inbox/model/types.ts` 가 지어낸 스키마이고 머리 주석에
  * 그 사실을 적어 뒀다.
+ *
+ * 상단 헤더는 `shared/ui/SubPageHeader` 다(FINCH-196). 뒤로가기가 언제나 홈으로
+ * 가던 것을 프로토타입 `closeMail`→`back()` 과 같이 스택을 되돌리는 것으로 바꿨다 —
+ * 알림함은 홈·포트폴리오·마이페이지 세 헤더의 뱃지에서 들어오므로(ia.md §1 "알림함")
+ * 홈으로 고정하면 포트폴리오에서 온 사용자가 엉뚱한 곳에 떨어진다.
  */
 export function InboxPage() {
-  const navigate = useNavigate();
-
   return (
     <PageMain>
-      <div className="flex items-center gap-2 pb-1">
-        <button
-          type="button"
-          onClick={() => navigate(ROUTES.home)}
-          aria-label="뒤로"
-          className="flex size-10 flex-none items-center justify-center text-title-2 text-text-primary"
-        >
-          ‹
-        </button>
-        <h1 className="text-title-3 text-text-primary">알림함</h1>
-      </div>
+      <SubPageHeader title="알림함" className="pb-1" />
       <InboxList />
     </PageMain>
   );

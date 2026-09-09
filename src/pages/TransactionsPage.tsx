@@ -1,12 +1,12 @@
-import { useNavigate } from 'react-router-dom';
-
 import {
   TransactionFilterChips,
   TransactionList,
   useTransactionFilterState,
   useTransactions,
 } from '@/features/transactions';
+import { ROUTES } from '@/shared/config/routes';
 import { PageMain } from '@/shared/ui/PageMain';
+import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
  * 매매 내역 — 원장 통합 내역(매수·매도·충전·출금) 조회.
@@ -20,11 +20,12 @@ import { PageMain } from '@/shared/ui/PageMain';
  * 근거: `ia.md` §1 "홈·자산" 표, §2 라우트 트리(쿼리 파라미터 표).
  * API: `GET /api/v1/transactions?type=&cursor=&size=`.
  *
- * 하단 탭바에 없는 화면이라(`ia.md` §3) 뒤로가기 버튼을 직접 그린다 — 마이페이지
- * "거래 내역" 행에서 들어오는 것을 전제로 `navigate(-1)`을 쓴다.
+ * 하단 탭바에 없는 화면이라(`ia.md` §3) 상단에 뒤로가기를 둔다 — `shared/ui/SubPageHeader`
+ * (FINCH-196). 마이페이지 "거래 내역" 행에서 들어오는 것을 전제로 스택을 하나
+ * 되돌리고, 새 탭에서 바로 열었으면 마이페이지로 보낸다. 제목 `매매 내역` 은 `ia.md` §1
+ * 이 정한 화면 이름이다(프로토타입 `.navt` 와 design.md §7.13 은 옛 이름 `거래 내역`).
  */
 export function TransactionsPage() {
-  const navigate = useNavigate();
   const { type, setType } = useTransactionFilterState();
   const {
     data,
@@ -38,17 +39,11 @@ export function TransactionsPage() {
 
   return (
     <PageMain>
-      <div className="mb-4 flex items-center gap-2">
-        <button
-          type="button"
-          aria-label="뒤로가기"
-          onClick={() => navigate(-1)}
-          className="-ml-2 flex size-11 flex-none items-center justify-center rounded-full text-title-2 text-text-primary"
-        >
-          ‹
-        </button>
-        <h1 className="text-title-3 text-text-primary">매매 내역</h1>
-      </div>
+      <SubPageHeader
+        title="매매 내역"
+        fallbackTo={ROUTES.my}
+        className="mb-4"
+      />
 
       <TransactionFilterChips type={type} onChange={setType} />
 

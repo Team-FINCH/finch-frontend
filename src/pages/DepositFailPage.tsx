@@ -4,6 +4,7 @@ import { depositFailMessage } from '@/features/deposit/lib/depositErrorMessages'
 import { ROUTES } from '@/shared/config/routes';
 import { Button } from '@/shared/ui/Button';
 import { PageMain } from '@/shared/ui/PageMain';
+import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
  * 결제 복귀(실패) — 카카오페이 승인 실패 뒤 돌아오는 자리. 카카오 실패 리다이렉트가
@@ -31,6 +32,11 @@ export function DepositFailPage() {
 
   return (
     <PageMain>
+      {/*
+       * 프로토타입 `isPayReturn`(L2714)은 제목 `결제 결과` 만 두고 **뒤로가기를 일부러
+       * 뺐다** — 결제가 끝난 자리라 되돌아가면 이중 확정이 난다. 성공 복귀와 같다.
+       */}
+      <SubPageHeader title="결제 결과" showBack={false} />
       <div className="flex flex-col items-center px-6 pt-14.5 pb-5 text-center">
         <span
           aria-hidden="true"
