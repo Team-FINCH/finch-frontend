@@ -10,6 +10,7 @@ import {
 import { type Holding, type PortfolioSort } from '@/shared/types/portfolio';
 import { LinkButton } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
+import { RollingNumber } from '@/shared/ui/RollingNumber';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { usePortfolio } from '../api/usePortfolio';
@@ -93,9 +94,17 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
   return (
     <div className="pt-4">
       <p className="text-caption text-text-muted">평가 자산</p>
-      {/* 프로토타입 `.d36` (36px/44px/700, -.03em) + `원` 은 20px/500 별도 span. */}
+      {/*
+        프로토타입 `.d36` (36px/44px/700, -.03em) + `원` 은 20px/500 별도 span.
+        숫자는 `.odo` 롤링이다 — 칸 높이 44px 은 `.d36` 의 행간이고
+        `.ocell` 실측값과 같다(proto L1028, L1084).
+      */}
       <p className="mt-1 text-[36px] leading-11 font-bold tracking-[-0.03em] text-text-primary tabular-nums">
-        {formatAmount(evaluationAmount)}
+        <RollingNumber
+          value={evaluationAmount}
+          text={formatAmount(evaluationAmount)}
+          label={`${formatAmount(evaluationAmount)}원`}
+        />
         <span className="text-[20px] font-medium text-text-secondary"> 원</span>
       </p>
 
