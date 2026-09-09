@@ -306,11 +306,10 @@ export function CandleChart({
           면 `rgba(36,39,44,.95)`(`--color-ai-surface` 가 `#24272C` 로 같은 색이다) ·
           그림자 `0 4px 14px rgba(31,35,40,.18)` · `pointer-events:none`.
 
-          TODO(토큰): 프로토타입은 종가를 `--tip-up`(`#F08A8A`) ·
-          `--tip-down`(`#8FB6F5`) 으로 칠한다. **툴팁 밖에서는 쓰지 않는 색이고
-          `shared/styles` 에 그 토큰이 없다.** 색을 여기 박으면 토큰 규약이 깨지므로
-          지금은 흰 글자로 두었다. 토큰이 생기면 이 자리만 고친다
-          (`shared/styles` 는 이 티켓에서 고치지 않는 파일이다).
+          종가는 `--color-tip-up`(`#F08A8A`) · `--color-tip-down`(`#8FB6F5`) 으로
+          칠한다 — 프로토타입 `tipTone` 이 종가와 시가를 견줘 가르는 값이다
+          (새 디코드 L1777·L3790, `c>=o` 면 상승색). **검정 면 위에서만 쓰는 색이라
+          툴팁 밖으로 넘겨 쓰지 않는다** (`shared/styles/index.css` 의 토큰 주석).
         */
         <div
           aria-live="polite"
@@ -342,7 +341,13 @@ export function CandleChart({
             </span>
             <span className="text-[11.5px] whitespace-nowrap text-white/50">
               종{' '}
-              <b className="font-bold text-white tabular-nums">
+              <b
+                className={`font-bold tabular-nums ${
+                  tooltip.point.close >= tooltip.point.open
+                    ? 'text-tip-up'
+                    : 'text-tip-down'
+                }`}
+              >
                 {formatAmount(tooltip.point.close)}
               </b>
             </span>
