@@ -93,10 +93,9 @@ export function StockDetailHeader({
             중립 회색이다 — `--up` 을 쓰지 않는다. 실측 —
             높이 24 · 좌우 8 · 반경 8 · 13px/500 · 면 `#F1F3F6`(`--color-surface-soft`) ·
             글씨 `--t3`(`--color-text-muted`).
-            반경 8px 은 토큰이 없다(`--radius-sm` 은 10px) — 태그 컴포넌트를 만들 때
-            토큰으로 올린다.
+            반경 8px 은 `--radius-tag` 다 (`--radius-sm` 은 10px 이라 쓸 수 없다).
           */
-          <span className="mr-0.5 flex h-6 flex-none items-center rounded-[8px] bg-surface-soft px-2 text-caption font-medium text-text-muted">
+          <span className="mr-0.5 flex h-6 flex-none items-center rounded-tag bg-surface-soft px-2 text-caption font-medium text-text-muted">
             거래정지
           </span>
         )}
