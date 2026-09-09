@@ -1,8 +1,11 @@
+import { useState } from 'react';
+
 import { BriefingSection } from '@/features/home/components/BriefingSection';
 import { HoldingsWatchlistPreview } from '@/features/home/components/HoldingsWatchlistPreview';
 import { TotalAssetsSummary } from '@/features/home/components/TotalAssetsSummary';
 import { useHomeData } from '@/features/home/model/useHomeData';
 import { useInboxItems } from '@/features/inbox';
+import type { WatchlistSort } from '@/shared/types/stock';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { PageMain } from '@/shared/ui/PageMain';
 
@@ -30,6 +33,11 @@ import { PageMain } from '@/shared/ui/PageMain';
  * TODO(계약): ia.md §4 표와 프로토타입 마크업이 갈리는 지점이라 팀 확인이 필요하다.
  */
 export function HomePage() {
+  /**
+   * 관심 종목 정렬. 버튼은 목록 안에 있지만 쿼리는 `useHomeData` 가 갖고 있어
+   * 상태를 여기까지 올렸다 — 두 곳이 다른 정렬값을 보면 목록과 버튼이 어긋난다.
+   */
+  const [watchSort, setWatchSort] = useState<WatchlistSort>('REGISTERED');
   const {
     account,
     holdings,
@@ -41,7 +49,7 @@ export function HomePage() {
     watchError,
     watchRefetch,
     evaluationTotals,
-  } = useHomeData();
+  } = useHomeData(watchSort);
   const inbox = useInboxItems();
 
   const hasNoStocks =
@@ -57,7 +65,10 @@ export function HomePage() {
         unreadCount={inbox.data?.unreadCount ?? 0}
         className="pb-3.5"
       />
-      <BriefingSection hasNoStocks={hasNoStocks} />
+      <BriefingSection
+        hasNoStocks={hasNoStocks}
+        hasHoldings={holdings.length > 0}
+      />
       <TotalAssetsSummary
         account={account}
         evaluationTotals={evaluationTotals}
@@ -71,6 +82,8 @@ export function HomePage() {
         watchPending={watchPending}
         watchError={watchError}
         watchRefetch={watchRefetch}
+        watchSort={watchSort}
+        onWatchSortChange={setWatchSort}
       />
     </PageMain>
   );

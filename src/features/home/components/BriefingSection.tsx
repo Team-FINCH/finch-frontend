@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
-import { AiCard } from '@/shared/ui/AiCard';
+import { AiCard, AiGlyph } from '@/shared/ui/AiCard';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useHomeBriefing } from '../api/useHomeBriefing';
@@ -25,9 +25,17 @@ import { briefingCategoryLabel } from '../lib/briefingCategoryLabel';
  */
 type BriefingSectionProps = {
   hasNoStocks: boolean;
+  /**
+   * 보유 종목이 하나라도 있는지. 헤드라인이 여기서 갈린다 — 프로토타입 `briefMain`
+   * 이 보유가 없을 때만 `관심 종목에서` 로 소식의 출처를 밝힌다.
+   */
+  hasHoldings: boolean;
 };
 
-export function BriefingSection({ hasNoStocks }: BriefingSectionProps) {
+export function BriefingSection({
+  hasNoStocks,
+  hasHoldings,
+}: BriefingSectionProps) {
   const navigate = useNavigate();
   const briefing = useHomeBriefing();
 
@@ -37,8 +45,9 @@ export function BriefingSection({ hasNoStocks }: BriefingSectionProps) {
     return (
       <Link
         to={ROUTES.search}
-        className="mb-5 flex w-full items-center gap-2.75 rounded-ai border border-ai-border bg-ai-surface px-4 py-3.5 text-left"
+        className="mb-5 flex w-full items-center gap-2.75 rounded-ai border border-ai-border bg-ai-surface px-4 py-3.5 text-left text-ai-text-primary"
       >
+        <AiGlyph />
         <span className="min-w-0 flex-1 text-body-2 font-medium text-ai-text-primary">
           관심 종목을 담으면 소식을 모아드려요
         </span>
@@ -110,7 +119,11 @@ export function BriefingSection({ hasNoStocks }: BriefingSectionProps) {
     <AiCard
       className="mb-5"
       label="AI 브리핑"
-      headline={`오늘 확인할 소식이 ${items.length}건 있어요.`}
+      headline={
+        hasHoldings
+          ? `오늘 확인할 소식이 ${items.length}건 있어요.`
+          : `관심 종목에서 오늘 확인할 소식이 ${items.length}건 있어요.`
+      }
       caption={categories}
       onClick={() => navigate(ROUTES.briefing)}
     />

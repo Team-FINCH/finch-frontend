@@ -1,16 +1,30 @@
-import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { type ReactNode, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { HOME_LIST_TAB_PARAM, ROUTES } from '@/shared/config/routes';
 import { formatKrw } from '@/shared/lib/formatNumber';
-import { LinkButton } from '@/shared/ui/Button';
-import { EmptyState } from '@/shared/ui/EmptyState';
+import type { WatchlistSort } from '@/shared/types/stock';
 import { Skeleton } from '@/shared/ui/Skeleton';
+import { SoftBox } from '@/shared/ui/SoftBox';
 import { StockRow } from '@/shared/ui/StockRow';
 
 import type { useHomeData } from '../model/useHomeData';
 
-const PREVIEW_COUNT = 5;
+/**
+ * 미리보기는 3개다 (프로토타입 `hk.slice(0,3)`·`sortWatch(s.watch).slice(0,3)`,
+ * design.md L342 "2~3개"). 더 보고 싶으면 아래 "전체 보기" 로 나간다.
+ */
+const PREVIEW_COUNT = 3;
+
+/**
+ * 관심 종목 정렬 (프로토타입 `watchSorts`). 라벨과 apiSpec §6.3 `sort` 열거값이
+ * 그대로 대응한다 — 화면에서 다시 정렬하지 않고 서버가 정렬한 순서를 쓴다.
+ */
+const WATCH_SORTS: readonly { value: WatchlistSort; label: string }[] = [
+  { value: 'REGISTERED', label: '등록순' },
+  { value: 'NAME', label: '이름순' },
+  { value: 'CHANGE_RATE', label: '등락률순' },
+];
 
 type Tab = 'holdings' | 'watchlist';
 
@@ -24,7 +38,11 @@ type HoldingsWatchlistPreviewProps = Pick<
   | 'watchPending'
   | 'watchError'
   | 'watchRefetch'
->;
+> & {
+  /** 관심 종목 정렬. 쿼리를 가진 `useHomeData` 와 같은 값을 써야 해서 페이지가 갖는다 */
+  watchSort: WatchlistSort;
+  onWatchSortChange: (sort: WatchlistSort) => void;
+};
 
 /**
  * 홈의 "내 종목 · 관심 종목" 미리보기 (ia.md §1 "홈·자산", 프로토타입
@@ -46,6 +64,8 @@ export function HoldingsWatchlistPreview({
   watchPending,
   watchError,
   watchRefetch,
+  watchSort,
+  onWatchSortChange,
 }: HoldingsWatchlistPreviewProps) {
   /**
    * 기본 탭은 내 종목이다. 온보딩을 마치고 오면 관심 종목 탭이 열려야 하므로
@@ -89,6 +109,8 @@ export function HoldingsWatchlistPreview({
           isPending={watchPending}
           isError={watchError}
           onRetry={() => watchRefetch()}
+          sort={watchSort}
+          onSortChange={onWatchSortChange}
         />
       )}
     </section>
@@ -108,10 +130,67 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`text-caption font-medium ${active ? 'text-text-primary' : 'text-text-muted'}`}
+      className={`relative pb-2 text-title-3 font-bold tracking-[-0.01em] ${
+        active ? 'text-text-primary' : 'text-text-secondary'
+      }`}
     >
       {children}
+      {/* 밑줄 인디케이터 (`.tabu>i`) — 좌우 12% 들여쓴 1.5px 막대를 opacity 로 켠다.
+          색만으로 가르면 선택 상태가 약하게 읽힌다. */}
+      <span
+        aria-hidden="true"
+        className={`absolute right-[12%] bottom-[3px] left-[12%] h-[1.5px] rounded-[1px] bg-text-primary transition-opacity duration-(--motion-normal) ease-standard ${
+          active ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
     </button>
+  );
+}
+
+/**
+ * 목록 자리의 빈 상태 (`.soft`). 화면 전체를 채우는 `EmptyState` 와 다른 물건이다 —
+ * 프로토타입은 이 자리에 옅은 회색 면을 깔아 "목록이 있어야 하는 곳" 임을 남긴다.
+ */
+function ListEmpty({
+  title,
+  description,
+  action,
+  className = '',
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <SoftBox className={`px-5 text-center ${className}`}>
+      <p className="text-body-1 font-medium text-text-primary">{title}</p>
+      <p className="mt-1.5 text-body-2 text-pretty text-text-secondary">
+        {description}
+      </p>
+      {action === undefined ? null : <div className="mt-3.5">{action}</div>}
+    </SoftBox>
+  );
+}
+
+/**
+ * 낮춘 텍스트 동작 (`전체 보기 ›`). 테두리 버튼으로 만들면 목록보다 눈에 먼저
+ * 들어온다 — 프로토타입도 이 자리를 `--t2` 텍스트로 낮춰 둔다.
+ */
+function ShowAllLink({ to }: { to: string }) {
+  return (
+    <Link
+      to={to}
+      className="mt-3 flex w-full items-center justify-center gap-1.25 py-3 text-label font-medium text-text-secondary"
+    >
+      전체 보기
+      <span
+        aria-hidden="true"
+        className="text-label leading-none text-text-muted"
+      >
+        ›
+      </span>
+    </Link>
   );
 }
 
@@ -162,7 +241,7 @@ function HoldingsPanel({
   }
   if (holdings.length === 0) {
     return (
-      <EmptyState
+      <ListEmpty
         className="py-7"
         title="아직 보유 종목이 없어요."
         description="한 종목만 담아도 진단과 주문 전 점검을 볼 수 있어요."
@@ -173,7 +252,7 @@ function HoldingsPanel({
   const preview = holdings.slice(0, PREVIEW_COUNT);
 
   return (
-    <div className="flex flex-col divide-y divide-border">
+    <div className="flex flex-col">
       {preview.map((holding) => (
         <StockRow
           key={holding.stockCode}
@@ -188,15 +267,7 @@ function HoldingsPanel({
           }}
         />
       ))}
-      <div className="pt-3">
-        <LinkButton
-          to={ROUTES.portfolio}
-          variant="secondary"
-          className="min-h-11"
-        >
-          전체 보기
-        </LinkButton>
-      </div>
+      <ShowAllLink to={ROUTES.portfolio} />
     </div>
   );
 }
@@ -206,6 +277,8 @@ type WatchlistPanelProps = {
   isPending: boolean;
   isError: boolean;
   onRetry: () => void;
+  sort: WatchlistSort;
+  onSortChange: (sort: WatchlistSort) => void;
 };
 
 function WatchlistPanel({
@@ -213,6 +286,8 @@ function WatchlistPanel({
   isPending,
   isError,
   onRetry,
+  sort,
+  onSortChange,
 }: WatchlistPanelProps) {
   if (isPending) {
     return <PreviewSkeleton />;
@@ -222,18 +297,19 @@ function WatchlistPanel({
   }
   if (items.length === 0) {
     return (
-      <EmptyState
+      <ListEmpty
         className="py-6"
         title="아직 관심 종목이 없어요."
-        description="눈여겨보는 종목을 담아보세요."
+        description="종목을 담으면 관련 소식과 분석을 한곳에서 볼 수 있어요."
         action={
-          <LinkButton
+          // `.chip.sel` — 34px 캡슐, 검정 면. 테두리 버튼으로 만들면 회색 면 위에서
+          // 안내와 동작의 위계가 뒤집힌다.
+          <Link
             to={ROUTES.search}
-            variant="secondary"
-            className="min-h-11"
+            className="inline-flex h-8.5 items-center rounded-[11px] bg-primary px-3.5 text-label font-medium text-surface"
           >
             종목 찾아보기
-          </LinkButton>
+          </Link>
         }
       />
     );
@@ -242,7 +318,25 @@ function WatchlistPanel({
   const preview = items.slice(0, PREVIEW_COUNT);
 
   return (
-    <div className="flex flex-col divide-y divide-border">
+    <div className="flex flex-col">
+      {/* 정렬 (프로토타입 `watchSorts`). 목록이 있을 때만 나온다 */}
+      <div className="flex items-center gap-3.5 pb-2.5">
+        {WATCH_SORTS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onSortChange(option.value)}
+            aria-pressed={option.value === sort}
+            className={`py-0.5 text-caption ${
+              option.value === sort
+                ? 'font-bold text-text-primary'
+                : 'font-medium text-text-muted'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
       {preview.map((item) => (
         <StockRow
           key={item.stockCode}

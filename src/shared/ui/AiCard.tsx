@@ -33,7 +33,12 @@ import { type ReactNode } from 'react';
  */
 const GLYPH_MASK = 'url(/brand/finch-symbol.svg) center / contain no-repeat';
 
-function AiGlyph() {
+/**
+ * 카드 밖에서도 쓴다 — 프로토타입의 브리핑 콜드 스타트 카드(`briefEmptyCard`)는
+ * `.aihd` 없이 같은 글리프를 바로 놓는다. design.md §8.4 "AI Glyph 위치/크기 통일"
+ * 이 요구하는 것이 이 한 정의를 나눠 쓰는 것이다.
+ */
+export function AiGlyph() {
   return (
     <span
       aria-hidden="true"

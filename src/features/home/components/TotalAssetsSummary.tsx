@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
 import {
-  formatKrw,
+  formatAmount,
   formatSignedAmount,
   formatSignedRate,
   getPriceDirection,
@@ -18,10 +18,27 @@ const DIRECTION_TEXT_CLASS = {
   flat: 'text-stock-neutral',
 } as const;
 
-/** `Date.toLocaleTimeString` 대신 `HH:mm` 만 자른다. 초 단위는 화면에 필요 없다. */
+/**
+ * 기준 시각을 `MM.DD HH:mm` 으로 자른다 (프로토타입 `asOf: "08.28 09:00"`).
+ * 날짜를 빼면 어제 값인지 오늘 값인지 알 수 없다. 초 단위는 화면에 필요 없다.
+ */
 function formatAsOfTime(iso: string): string {
-  const match = /T(\d{2}:\d{2})/.exec(iso);
-  return match?.[1] ?? iso;
+  const match = /^\d{4}-(\d{2})-(\d{2})T(\d{2}:\d{2})/.exec(iso);
+  if (match === null) {
+    return iso;
+  }
+  return `${match[1]}.${match[2]} ${match[3]}`;
+}
+
+/**
+ * `원` 단위는 숫자와 띄어 쓰고 한 단계 낮춘다 (프로토타입 `.d36` 안의 별도 span —
+ * 값 있음 20px/500 `--t2`, 0원 상태 17px/500 `--t2`). 숫자를 돋보이게 하려고
+ * 단위를 내리는 것이라 `formatKrw`(`1,234,567원`)를 쓰지 않는다.
+ */
+function KrwUnit({ className }: { className: string }) {
+  return (
+    <span className={`font-medium text-text-secondary ${className}`}> 원</span>
+  );
 }
 
 type TotalAssetsSummaryProps = {
@@ -86,9 +103,12 @@ export function TotalAssetsSummary({
 
   return (
     <div className="pt-1.5">
-      <p className="text-caption font-medium text-text-secondary">총자산</p>
-      <p className="mt-3 text-[33px] leading-[41px] font-semibold text-text-primary tabular-nums">
-        {formatKrw(account.data.totalAsset)}
+      <p className="text-title-3 font-bold tracking-[-0.01em] text-text-primary">
+        총자산
+      </p>
+      <p className="mt-3 text-[33px] leading-[41px] font-bold tracking-[-0.03em] text-text-primary tabular-nums">
+        {formatAmount(account.data.totalAsset)}
+        <KrwUnit className={isEmpty ? 'text-[17px]' : 'text-[20px]'} />
       </p>
 
       {isEmpty ? (
@@ -98,7 +118,7 @@ export function TotalAssetsSummary({
           </p>
           <Link
             to={ROUTES.deposit}
-            className="inline-flex h-8.5 flex-none items-center gap-1.5 rounded-12 bg-primary-soft pr-3 pl-3.5 text-label font-medium text-text-primary"
+            className="inline-flex h-8.5 flex-none items-center gap-1.5 rounded-12 bg-primary-soft pr-3 pl-3.5 text-label font-medium text-text-secondary"
           >
             입금하기
             <span aria-hidden="true" className="text-text-muted">
@@ -109,7 +129,7 @@ export function TotalAssetsSummary({
       ) : (
         <>
           <p
-            className={`mt-2.5 text-body-2 font-medium tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
+            className={`mt-2.5 text-body-2 font-medium whitespace-nowrap tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
           >
             평가손익 {formatSignedAmount(evaluationTotals.profit)}원 ·{' '}
             {formatSignedRate(evaluationTotals.rate)}
