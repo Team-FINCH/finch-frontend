@@ -14,8 +14,9 @@ import type { AiChatScreen } from '@/shared/types/ai/chat';
  *
  * `--t1`(프로토타입 `:root{--t1:#1F2328}`)은 우리 토큰의 `--color-primary`와
  * 같은 값이다 — `Button.tsx`의 primary 변형(`bg-primary text-surface`)과 같은
- * 조합을 그대로 쓴다. 그림자는 실측값을 새로 하드코딩하지 않고 "floating
- * button" 용으로 이미 있는 `--shadow-float` 토큰(`shadow-float`)을 재사용한다.
+ * 조합을 그대로 쓴다. 그림자는 `--shadow-float`(`0 6px 20px rgba(31,35,40,.2)`)를
+ * 재사용했었지만 `.tabai`·`.fab` 둘 다 실측이 `0 8px 24px rgba(31,35,40,.16)` 이라
+ * 실측값으로 되돌렸다 — 토큰 쪽이 더 짧고 진해서 버튼이 눌린 것처럼 보였다.
  *
  * 누르면 `ROUTES.chat`(`/chat`)으로 이동한다. **화면 맥락을 쿼리로 함께 넘기는
  * 것은 GitLab 이슈 #26 4번 회신으로 확정됐다**(MR !143 머지) — AI 쪽 `Screen`
@@ -33,6 +34,11 @@ import type { AiChatScreen } from '@/shared/types/ai/chat';
  * 시트가 열렸을 때 이 버튼 자체를 숨기는 처리는 하지 않는다 — 두 호출부
  * (`TabBarShell`·`AiFloatingOverlay`)가 이미 `useIsAnySheetOpen()`으로 자기
  * 렌더 전체를 끄므로 버튼이 그 판정을 또 갖고 있으면 이중 관리가 된다.
+ */
+/**
+ * 말풍선 글리프. **프로토타입에 같은 그림의 경로가 두 벌 있다** —
+ * `.tabai::before`(디코드본 L1177)와 `.fab::before`(L1187)의 꼬리가 다르다.
+ * 눈으로는 구별되지 않는 차이라 한 벌로 합치고 `.fab` 쪽을 남겼다.
  */
 const AI_ICON_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3.2c-4.9 0-8.8 3.2-8.8 7.2 0 2.3 1.3 4.4 3.4 5.7-.2 1-.7 2.1-1.5 3.2-.2.3.1.7.5.5 1.6-.7 2.9-1.6 3.7-2.2.9.2 1.8.3 2.7.3 4.9 0 8.8-3.2 8.8-7.5S16.9 3.2 12 3.2Z"/></svg>';
@@ -58,9 +64,8 @@ type AiEntryButtonProps = {
    * 넘기지 않으면(홈·포트폴리오·내 정보의 `.tabai`) 원형 아이콘 상태로 고정된다
    * — 프로토타입도 이 화면들에서는 `tabaiCls`가 절대 `peek`가 되지 않는다.
    *
-   * **탐색은 이 목록에 없다** — 라벨이 접히는 것이 아니라 AI 버튼 자체를 그리지
-   * 않는다(프로토타입 `showTabAi: s.screen !== "search"`, `design.md` L263
-   * "(탐색은 숨김)"). 판정은 `TabBarShell` 이 하므로 여기로 내려오지 않는다.
+   * **탐색도 이 목록에 없다** — 버튼은 그리고 라벨만 접힌다. 탐색에서 버튼 자체를
+   * 숨기던 규칙은 2026-09-09 재내보내기에서 없어졌다(`TabBar.tsx` 머리 주석 4번).
    */
   expandedLabel?: string;
   /**
@@ -105,7 +110,8 @@ export function AiEntryButton({
       onClick={() => void navigate(chatTo)}
       className={
         'relative z-1 flex h-[58px] min-w-[58px] flex-none items-center justify-center overflow-hidden ' +
-        'pointer-events-auto rounded-full bg-primary whitespace-nowrap text-surface shadow-float ' +
+        'pointer-events-auto rounded-full bg-primary whitespace-nowrap text-surface ' +
+        'shadow-[0_8px_24px_rgba(31,35,40,0.16)] ' +
         'transition-[max-width,padding,gap,transform] duration-300 ease-standard active:scale-[.94] ' +
         (peek ? 'max-w-[240px] gap-2 pr-5 pl-4' : 'max-w-[58px] gap-0 px-0') +
         ` ${className}`
@@ -119,8 +125,8 @@ export function AiEntryButton({
       <span
         aria-hidden
         className={
-          'overflow-hidden text-label font-medium transition-[max-width,opacity] duration-300 ease-standard ' +
-          (peek ? 'max-w-[180px] opacity-100' : 'max-w-0 opacity-0')
+          'overflow-hidden text-[15px] leading-[22px] font-medium transition-[max-width,opacity] duration-300 ease-standard ' +
+          (peek ? 'max-w-[160px] opacity-100' : 'max-w-0 opacity-0')
         }
       >
         {label}

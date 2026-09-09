@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { matchPath, NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 
 import { BOTTOM_TAB_ROUTES, ROUTES } from '@/shared/config/routes';
 import { useIsAnySheetOpen } from '@/shared/hooks/useSheetOverlayStore';
@@ -13,36 +13,28 @@ import { AiEntryButton } from '@/shared/ui/AiEntryButton';
  * `.tabbar` 높이 98px · `.tabpill` 높이 58px 캡슐(안쪽 버튼 48px) ·
  * 선택된 탭 `flex:2.2`, 나머지 `flex:1`.
  *
- * **`.tabai`(AI 버튼, 58x58 · 배경 `--t1`)는 탐색을 뺀 나머지 화면에만 둔다.**
- * 이 서술은 두 번 뒤집혔다.
+ * **`.tabai`(AI 버튼, 58x58 · 배경 `--t1`)는 탭 바가 있는 모든 화면에 둔다.
+ * 탐색도 포함이다.** 이 서술은 세 번 뒤집혔다.
  *
  * 1. 처음에는 "의도적으로 만들지 않는다"였다. 근거는 `ia.md` §3("PRD 는 AI 를
  *    탭에서 빼고 플로팅 버튼으로 옮겼다")이고, `ia.md:295`가 이 항목을 GitLab
- *    이슈 #26 4번 회신 대기로 미확정 표시해 둔 상태였다 — 문서(PRD·§1·§2)는 탭 안
- *    AI 버튼을 뺐다고 적지만 프로토타입(`finch-prototype.html`)의 실제 구현은
- *    계속 탭 바 안에 그렸다는 어긋남이었다.
+ *    이슈 #26 4번 회신 대기로 미확정 표시해 둔 상태였다.
  * 2. 2026-09-07(FINCH-28-ai-entry)에 프로토타입 실측 쪽으로 확정하며
- *    "모든 화면에 AI 버튼을 둔다"로 뒤집었다. **그 실측이 틀렸다.** 프로토타입
- *    상태 계산에서 `showTabs` 만 보고 `showTabAi` 를 놓친 것이 원인이다.
- * 3. 2026-09-09(FINCH-186)에 탐색만 빼는 것으로 바로잡았다.
+ *    "모든 화면에 AI 버튼을 둔다"로 뒤집었다.
+ * 3. 2026-09-09(FINCH-186)에 당시 프로토타입의 `showTabAi: s.screen!=="search"`
+ *    를 근거로 탐색만 빼는 것으로 바꿨다.
+ * 4. 2026-09-09 재내보내기에서 프로토타입이 `showTabAi: true` 로 바뀌었다
+ *    (디코드본 L3457). 숨김 규칙은 AI 진입점이 플로팅이던 시절의 것이고, 탭 바
+ *    안으로 들어간 뒤에는 셸이 화면마다 달라지는 문제가 된다 —
+ *    `design.md` v2.5 Appendix 7번이 그렇게 정리했다. 2번으로 돌아왔다.
  *
- * **두 플래그는 별개다. 하나로 읽지 마라.** 프로토타입 `app-logic.js` 원문 —
- *
- * ```
- * showTabs:  !s.sheet && ["home","search","portfolio","mypage","detail"].includes(s.screen)
- * showTabAi: s.screen !== "search"
- * ```
- *
- * `showTabs` 는 탭 바 셸 자체를 그릴지를, `showTabAi` 는 그 줄 끝에 AI 버튼을
- * 놓을지를 각각 정한다. 화면 목록이 겹쳐 보이지만 같은 값이 아니다 — 탐색은
- * 탭 바는 있고 AI 버튼은 없는 유일한 화면이다. `design.md` §6 "Tab Bar > 적용 범위" 표도
- * 같게 적는다 — "홈 · 탐색 · 포트폴리오 · 내 정보 · 종목 상세 | 캡슐 오른쪽 58px
- * 원형 (탐색은 숨김)".
+ * **`showTabs` 와 `showTabAi` 는 그래도 별개 플래그다.** 셸을 그릴지와 그 줄 끝에
+ * AI 버튼을 놓을지가 따로 계산된다. 지금 두 값이 같은 결과를 내는 것은 우연이 아니라
+ * 결정이고, 다시 갈릴 수 있으니 판정 자리는 셸 한 곳에 남겨 둔다.
  *
  * 문서와 프로토타입이 갈릴 때 프로토타입 실측을 최종 근거로 삼는다는 정리 자체는
- * 그대로 살아 있다. 이번에는 둘이 일치해서 어긋남이 없었다. 그래도 다음에 또
- * 뒤집힐 수 있으니, 프로토타입만 보고 조용히 고치지 말고 문서(`ia.md` §3·§7 ·
- * `design.md` §6)와 어긋나면 먼저 보고한다.
+ * 그대로 살아 있다. `design.md` §6 "Tab Bar > 적용 범위" 표의 "(탐색은 숨김)" 은
+ * 이제 낡은 서술이라 문서 쪽에 고칠 자리가 남는다 — 조용히 고치지 말고 보고한다.
  *
  * 컴포넌트는 `.tabai`·`.fab`를 하나로 합친 `AiEntryButton`
  * (`shared/ui/AiEntryButton.tsx`)이고, 이 파일은 `TabBarShell`의 탭 목록 줄
@@ -80,22 +72,6 @@ function tabIconMaskStyle(path: string) {
 }
 
 /**
- * AI 버튼을 감추는 화면. 프로토타입 `showTabAi: s.screen !== "search"` 를 옮긴 값이고
- * 탭 바 셸을 그릴지 정하는 `showTabs` 와 **별개 플래그**다 (머리 주석 참고).
- *
- * `matchPath` 로 판정하는 이유는 `AiFloatingOverlay.showsAiFloatingButton` 과 같다 —
- * 지금은 파라미터 없는 정적 경로 하나뿐이지만, 나중에 파라미터 붙은 경로가 들어와도
- * 아래 함수를 고칠 필요가 없다.
- */
-const AI_HIDDEN_PATTERNS: readonly string[] = [ROUTES.search];
-
-function showsTabAiButton(pathname: string) {
-  return !AI_HIDDEN_PATTERNS.some(
-    (pattern) => matchPath(pattern, pathname) !== null,
-  );
-}
-
-/**
  * `.tabbar` 셸. 고정 높이 98px + 반투명 그라디언트 + 블러(프로토타입 `.tabbar::before`).
  * 나브 변형(`TabBar`)과 매수/매도 변형(`TradeTabBar`)이 이 셸을 공유한다 —
  * 프로토타입에서 두 화면이 같은 `.tabbar` 컨테이너에 내용만 다르게 넣는 구조다
@@ -110,11 +86,9 @@ function showsTabAiButton(pathname: string) {
  * `showTabs: !s.sheet`와 같다. `opacity:0`/`visibility:hidden`이 아니라 `null`을
  * 반환한다. 두 변형(`TabBar`·`TradeTabBar`)이 이 셸을 통해 같이 적용받는다.
  *
- * **AI 버튼을 놓을지도 이 셸이 정한다**(`showsTabAiButton`) — 프로토타입이
- * `showTabAi` 를 변형별이 아니라 화면 단위로 한 번만 계산하는 것과 같다.
- * 두 변형(`TabBar`·`TradeTabBar`)이 이 판정을 함께 물려받지만 매수/매도 변형은
- * 종목 상세(`/stocks/:stockCode`)에서만 뜨므로 `/search` 에 걸릴 일이 없다 —
- * 아래 `aiExpandedLabel` 동작도 그대로다.
+ * **AI 버튼을 놓는 자리도 이 셸이 정한다** — 프로토타입이 `showTabAi` 를 변형별이
+ * 아니라 화면 단위로 한 번만 계산하는 것과 같다. 지금은 화면을 가리지 않으므로
+ * 조건 없이 놓지만, 다시 화면별로 갈릴 때 고칠 자리를 여기 하나로 둔다.
  *
  * `aiExpandedLabel`은 `AiEntryButton`에 그대로 넘긴다 — 나브 변형(`TabBar`)은
  * 넘기지 않아 원형 아이콘으로 고정되고, 매수/매도 변형(`TradeTabBar`)만
@@ -128,7 +102,6 @@ function TabBarShell({
   children: ReactNode;
   aiExpandedLabel?: string;
 }) {
-  const location = useLocation();
   const isAnySheetOpen = useIsAnySheetOpen();
   if (isAnySheetOpen) {
     return null;
@@ -146,9 +119,7 @@ function TabBarShell({
         className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg/70 to-bg/0 [mask-image:linear-gradient(to_top,#000_58%,transparent)] [backdrop-filter:blur(14px)] [-webkit-backdrop-filter:blur(14px)] [-webkit-mask-image:linear-gradient(to_top,#000_58%,transparent)]"
       />
       {children}
-      {showsTabAiButton(location.pathname) && (
-        <AiEntryButton expandedLabel={aiExpandedLabel} />
-      )}
+      <AiEntryButton expandedLabel={aiExpandedLabel} />
     </nav>
   );
 }
@@ -171,10 +142,20 @@ const PILL_BASE_CLASS =
 const TAB_ITEM_IN_CLASS =
   'animate-[tab-item-in_var(--motion-tab-swap)_var(--ease-standard)_both] motion-reduce:animate-none';
 
+/**
+ * 프로토타입은 속성마다 지속 시간이 다르다 — 폭이 가장 느리고(220ms) 색이 가장
+ * 빠르다(140ms). 셋을 한 값(`--motion-normal` 200ms)으로 묶으면 캡슐이 넓어지는
+ * 동안 글자색이 함께 끌려 보인다. Tailwind 로는 속성별 지속 시간을 한 클래스에
+ * 담을 수 없어 `style` 로 준다.
+ */
+const NAV_BUTTON_TRANSITION =
+  'flex 220ms var(--ease-standard), background-color 160ms var(--ease-standard), color 140ms var(--ease-standard)';
+const NAV_LABEL_TRANSITION =
+  'max-width 220ms var(--ease-standard), opacity 160ms var(--ease-standard)';
+
 function navButtonClass(isActive: boolean) {
   return [
     'flex h-12 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-full text-label',
-    'transition-[flex,background-color,color] duration-(--motion-normal) ease-standard',
     TAB_ITEM_IN_CLASS,
     isActive
       ? 'flex-[2.2] bg-primary-soft text-text-primary'
@@ -184,7 +165,7 @@ function navButtonClass(isActive: boolean) {
 
 function navLabelClass(isActive: boolean) {
   return [
-    'overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-(--motion-normal) ease-standard',
+    'overflow-hidden whitespace-nowrap',
     isActive ? 'max-w-20 opacity-100' : 'max-w-0 opacity-0',
   ].join(' ');
 }
@@ -200,7 +181,10 @@ export function TabBar() {
             to={tab.path}
             end
             // 좌->우 50ms 간격. 첫 탭은 지연 없음 (프로토타입 nth-child(2)부터).
-            style={{ animationDelay: `${index * 50}ms` }}
+            style={{
+              animationDelay: `${index * 50}ms`,
+              transition: NAV_BUTTON_TRANSITION,
+            }}
             className={({ isActive }) => navButtonClass(isActive)}
           >
             {({ isActive }) => (
@@ -210,7 +194,12 @@ export function TabBar() {
                   className="h-6 w-6 flex-none bg-current [mask-size:24px] [mask-position:center] [mask-repeat:no-repeat] [-webkit-mask-position:center] [-webkit-mask-repeat:no-repeat] [-webkit-mask-size:24px]"
                   style={tabIconMaskStyle(tab.path)}
                 />
-                <span className={navLabelClass(isActive)}>{tab.label}</span>
+                <span
+                  className={navLabelClass(isActive)}
+                  style={{ transition: NAV_LABEL_TRANSITION }}
+                >
+                  {tab.label}
+                </span>
               </>
             )}
           </NavLink>
@@ -250,9 +239,9 @@ type TradeTabBarProps = {
  * `거래정지` 한 줄로 적었지만, 문서와 프로토타입이 갈릴 때 프로토타입 실측을
  * 따르기로 한 선례가 이 파일 위쪽 AI 버튼 주석에 있다.
  *
- * **AI 버튼도 이 변형에 들어간다.** 근거는 `showTabs`가 아니라 `showTabAi`다
- * (`s.screen !== "search"` — 종목 상세는 참). 이 화면에서 그리는 것은 나브 탭이
- * 아니라 매수/매도 바(`.tabpill.trade`)지만 AI 버튼은 그와 무관하게 뜬다.
+ * **AI 버튼도 이 변형에 들어간다.** 근거는 `showTabs`가 아니라 `showTabAi`다.
+ * 이 화면에서 그리는 것은 나브 탭이 아니라 매수/매도 바(`.tabpill.trade`)지만
+ * AI 버튼은 그와 무관하게 뜬다.
  * 라벨은 `tabaiLabel`이 `screen==="detail"`일 때만 `"이 종목 물어보기"`로
  * 펼쳐지므로 여기서만 `aiExpandedLabel`을 넘긴다.
  */
