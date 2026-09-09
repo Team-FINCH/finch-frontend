@@ -106,10 +106,14 @@ function InitialBadge({ stockName }: { stockName: string }) {
  * 거래정지 뱃지. 프로토타입 `.tag` 치수(높이 24px · 좌우 8px)를 쓰되 색은 중립이다.
  * 프로토타입은 이 뱃지에 상승 적색을 쓰는데, 컨벤션 §11 이 등락색을 등락 표시 밖에서
  * 쓰지 못하게 한다 — 떨어진 종목에 적색 뱃지가 붙으면 오독된다.
+ *
+ * 면색은 `--color-surface-soft` 다. `--color-primary-soft` 와 값이 거의 같지만
+ * 그쪽은 "선택된" 상태 하나에 쓰는 색이고(토큰 파일 주석), 거래정지는 선택이
+ * 아니라 종목이 놓인 상태다. 같은 회색으로 보여도 역할이 다르면 토큰도 다르다.
  */
 function SuspendedBadge() {
   return (
-    <span className="inline-flex h-6 flex-none items-center rounded-tag bg-primary-soft px-2 text-caption font-medium text-text-secondary">
+    <span className="inline-flex h-6 flex-none items-center rounded-tag bg-surface-soft px-2 text-caption font-medium text-text-secondary">
       거래정지
     </span>
   );
