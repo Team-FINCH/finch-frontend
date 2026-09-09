@@ -43,25 +43,32 @@ import { TradeTabBar } from '@/shared/ui/TabBar';
  * `GET /api/v1/stocks/{stockCode}/candles?period=&interval=` ·
  * `GET /api/v1/stocks/{stockCode}/price` · `POST`/`DELETE /api/v1/watchlist`.
  *
+ * ## 스크롤 경계 — 머리·시세·탭은 고정이고 탭 내용만 굴러간다
+ *
+ * 프로토타입은 `.nav` · 현재가 블록 · `.tabs` 를 `flex:none` 으로 두고 `.sc` 만
+ * `overflow-y:auto` 로 굴린다 (새 디코드 L1696 · L1704 · L1741 · L1746). 그래서
+ * 이 페이지도 `TabBarLayout` 과 같은 껍데기(`h-dvh flex-col overflow-hidden`)를
+ * 직접 두르고, 고정 묶음을 껍데기에 두고 탭 내용만 `PageMain` 에 담는다 —
+ * `PageMain` 은 바깥이 높이가 고정된 세로 flex 일 때만 스크롤 컨테이너가 된다.
+ *
+ * `app/layouts/TabBarLayout` 을 그대로 쓸 수 없다 — 그 레이아웃은 나브 변형
+ * (`TabBar`)을 함께 렌더해서 홈·탐색·포트폴리오·마이페이지 탭이 잘못 뜬다.
+ * `--page-bottom-space` 는 프로토타입이 이 화면에 직접 적은 96px 이다
+ * (탭 바가 있는 상시 화면의 132px 이 아니다).
+ *
  * ## 하단 바를 이 페이지가 직접 렌더하는 이유
  *
  * **`TradeTabBar` 를 페이지 안에서 렌더한다. 레이아웃이 아니다.** 종목 상세는
- * 라우터에서 `TabBarLayout` 밖, `StockCodeGuard` 아래에 있다 — `TabBarLayout` 은
- * 나브 변형(`TabBar`)만 렌더하므로 그 아래 두면 홈·탐색·포트폴리오·내 정보 탭이
- * 잘못 뜬다. 그리고 `app/router.tsx` 가 스스로 적어 둔 대로
- * "`TradeTabBar` 를 다는 레이아웃은 아직 없다 — 그 배선은 이 티켓 범위 밖이라
- * 만들지 않았다". 라우터와 `app/layouts/**` 는 이 티켓에서 건드리지 않는 파일이라
- * 새 레이아웃을 만들 수도 없다.
- *
- * 그래서 페이지가 직접 렌더하고, `fixed` 인 바에 본문이 가리지 않도록 아래 여백을
- * 탭 바 높이(98px) + safe-area 만큼 잡는다 — `TabBarLayout` 이 본문에 주는 값과 같다.
- * 프로토타입도 상세 화면 스크롤 영역에 `padding-bottom:96px` 을 준다.
+ * 라우터에서 `TabBarLayout` 밖, `StockCodeGuard` 아래에 있다. `app/router.tsx` 가
+ * 스스로 적어 둔 대로 "`TradeTabBar` 를 다는 레이아웃은 아직 없다 — 그 배선은 이
+ * 티켓 범위 밖이라 만들지 않았다". 라우터와 `app/layouts/**` 는 이 티켓에서
+ * 건드리지 않는 파일이라 새 레이아웃을 만들 수도 없다.
  *
  * **나중에 레이아웃으로 옮길 사람에게** — 옮길 자리는 `app/layouts/` 에 새로 만드는
  * `TradeTabBarLayout` 이고, 라우터에서 `StockCodeGuard` 아래 종목 상세만 그 레이아웃으로
  * 감싸면 된다(주문 화면은 아니다 — 그쪽은 `ActionBar` 를 쓴다). 옮기면 이 파일에서
- * `TradeTabBar` 렌더와 `pb-[...]` 를 함께 걷어내야 한다. 둘 중 하나만 지우면 바가
- * 사라지거나 빈 여백이 남는다.
+ * 껍데기 `div` 와 `TradeTabBar` 렌더를 함께 걷어내야 한다. 둘 중 하나만 지우면
+ * 바가 사라지거나 스크롤 경계가 무너진다.
  *
  * 매수/매도는 주문 화면으로 보낸다 (`?side=buy|sell`, ia.md §2).
  * **거래정지 종목은 진입을 막는다** (contracts C46 "뱃지 노출 + 매수·매도 차단").
@@ -163,9 +170,10 @@ export function StockDetailPage() {
   const data = detail.data;
 
   return (
-    <>
-      {/* 하단 고정 바에 마지막 내용이 가리지 않도록 여백을 준다. 위 주석 참고. */}
-      <PageMain className="pb-[calc(98px+env(safe-area-inset-bottom))]">
+    <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:96px]">
+      {/* 고정 묶음 — 프로토타입 `.nav` · 현재가 블록 · `.tabs`. 위 주석 참고.
+          좌우 26px 과 위 24px 은 `PageMain` 이 주던 값을 그대로 가져온 것이다. */}
+      <div className="mx-auto w-full max-w-md flex-none px-6.5 pt-6">
         <StockDetailHeader
           detail={data}
           quote={quote.snapshot}
@@ -185,7 +193,10 @@ export function StockDetailPage() {
         )}
 
         <StockDetailTabNav activeTab={activeTab} onChange={handleTabChange} />
+      </div>
 
+      {/* 탭 내용만 굴러간다. 위 여백은 각 탭이 스스로 갖는다(프로토타입 18px). */}
+      <PageMain className="pt-0">
         {activeTab === 'chart' && (
           <StockChartTab
             stockCode={stockCode}
@@ -220,6 +231,6 @@ export function StockDetailPage() {
           void navigate(`${ROUTES.stockOrder(stockCode)}?side=sell`);
         }}
       />
-    </>
+    </div>
   );
 }
