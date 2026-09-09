@@ -10,3 +10,9 @@ export {
 export { request, requestNoContent } from './httpClient';
 export { postAiFeedback } from './postAiFeedback';
 export { createQueryClient } from './queryClient';
+export {
+  useQuoteSubscription,
+  type QuotePollingTier,
+  type QuoteSubscription,
+  type QuoteSubscriptionSource,
+} from './useQuoteSubscription';

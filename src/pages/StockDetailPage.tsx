@@ -151,7 +151,7 @@ export function StockDetailPage() {
       <PageMain className="pb-[calc(98px+env(safe-area-inset-bottom))]">
         <StockDetailHeader
           detail={data}
-          quote={quote.data}
+          quote={quote.snapshot}
           onToggleWatch={() => {
             toggleWatch.mutate({ stockCode, watched: data.watched });
           }}

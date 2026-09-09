@@ -37,8 +37,8 @@ export function useHomeData() {
 
   const quotes = useHomeStockQuotes(stockCodes);
   const quoteMap = useMemo(
-    () => toQuoteMap(quotes.data?.items ?? []),
-    [quotes.data],
+    () => toQuoteMap(quotes.snapshot?.items ?? []),
+    [quotes.snapshot],
   );
 
   const holdings = useMemo(

@@ -46,7 +46,8 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  *
  * 정규장 판정을 화면의 시계로 하지 않는다 (ia.md §1:133). `GET /orders/available` 의
  * `tradable`·`reason` 만 본다 — 화면이 자체 판정하면 서버와 어긋나 "눌리는데 거부되는"
- * 상태가 생긴다. 그 응답은 폴링으로 갱신된다.
+ * 상태가 생긴다. 그 응답은 시세 구독(`useOrderAvailable` → `useQuoteSubscription`, contracts C34)
+ * 으로 갱신된다 — 화면은 폴링인지 STOMP 인지 모른다.
  *
  * ## 하단 바
  *
@@ -104,7 +105,7 @@ export function OrderPage() {
     idempotencyKeyRef.current = null;
   }, [quantity, side, stockCode]);
 
-  const data = available.data;
+  const data = available.snapshot;
 
   /**
    * 비율 버튼의 분모 (contracts C45). 매수는 살 수 있는 최대, 매도는 보유 수량이다.
@@ -158,7 +159,7 @@ export function OrderPage() {
     );
   };
 
-  if (available.isPending) {
+  if (available.isConnecting) {
     return (
       <PageMain>
         <Skeleton className="h-11 w-1/2" />
@@ -168,7 +169,7 @@ export function OrderPage() {
     );
   }
 
-  if (available.isError) {
+  if (available.isDisconnected) {
     return (
       <PageMain>
         <div className="pt-10 text-center">
@@ -176,11 +177,11 @@ export function OrderPage() {
             주문 정보를 불러오지 못했어요
           </p>
           <p className="mt-2 text-body-2 text-text-secondary">
-            {available.error.message}
+            {available.failure.message}
           </p>
           <button
             type="button"
-            onClick={() => void available.refetch()}
+            onClick={available.reconnect}
             className="mt-5 text-label font-medium text-text-secondary underline underline-offset-[3px]"
           >
             다시 시도
@@ -190,7 +191,7 @@ export function OrderPage() {
     );
   }
 
-  const orderAvailable = available.data;
+  const orderAvailable = available.snapshot;
   const submitError = createOrder.error;
 
   return (
