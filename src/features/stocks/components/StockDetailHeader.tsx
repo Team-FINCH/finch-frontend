@@ -75,29 +75,42 @@ export function StockDetailHeader({
           type="button"
           onClick={() => void navigate(-1)}
           aria-label="뒤로 가기"
-          className="flex size-11 flex-none items-center justify-center rounded-12 text-title-2 leading-none text-text-primary active:bg-primary-soft"
+          className="flex size-11 flex-none items-center justify-center rounded-12 text-[20px] leading-none text-text-primary active:bg-primary-soft"
         >
           ‹
         </button>
         <span className="flex min-w-0 flex-1 flex-col gap-0.75 pt-2.25">
-          <span className="truncate text-title-3 font-bold text-text-primary">
+          <span className="truncate text-[17px] leading-[23px] font-bold tracking-[-0.01em] text-text-primary">
             {detail.stockName}
           </span>
           <span className="text-caption text-text-muted">
             {detail.stockCode} · {MARKET_LABEL[detail.market] ?? detail.market}
           </span>
         </span>
+        {detail.suspended && (
+          /*
+            거래정지 뱃지 (프로토타입 `.tag.ne`, 새 디코드 L1702).
+            중립 회색이다 — `--up` 을 쓰지 않는다. 실측 —
+            높이 24 · 좌우 8 · 반경 8 · 13px/500 · 면 `#F1F3F6`(`--color-surface-soft`) ·
+            글씨 `--t3`(`--color-text-muted`).
+            반경 8px 은 토큰이 없다(`--radius-sm` 은 10px) — 태그 컴포넌트를 만들 때
+            토큰으로 올린다.
+          */
+          <span className="mr-0.5 flex h-6 flex-none items-center rounded-[8px] bg-surface-soft px-2 text-caption font-medium text-text-muted">
+            거래정지
+          </span>
+        )}
         <button
           type="button"
           onClick={onToggleWatch}
           disabled={isTogglePending}
           aria-pressed={detail.watched}
           aria-label={detail.watched ? '관심 종목 해제' : '관심 종목 담기'}
-          className={`flex size-11 flex-none items-center justify-center rounded-12 text-title-3 leading-none active:bg-primary-soft disabled:opacity-40 ${
+          className={`flex size-11 flex-none items-center justify-center rounded-12 text-[20px] leading-none active:bg-primary-soft disabled:opacity-40 ${
             detail.watched ? 'text-text-primary' : 'text-text-muted'
           }`}
         >
-          {detail.watched ? '★' : '☆'}
+          {detail.watched ? '♥' : '♡'}
         </button>
       </div>
 
@@ -110,7 +123,7 @@ export function StockDetailHeader({
           <>
             <p className="text-display text-text-primary tabular-nums">
               {formatAmount(currentPrice)}
-              <span className="text-title-2 font-medium text-text-secondary">
+              <span className="text-[20px] font-medium text-text-secondary">
                 {' '}
                 원
               </span>
@@ -144,18 +157,12 @@ export function StockDetailHeader({
           </p>
         )}
 
-        {detail.suspended && (
-          <div className="mt-4 rounded-sm bg-surface-soft p-4">
-            <p className="text-body-2 font-medium text-text-primary">
-              거래정지 종목이에요
-            </p>
-            {detail.suspendedReason !== null && (
-              <p className="mt-1 text-caption text-text-secondary">
-                {detail.suspendedReason}
-              </p>
-            )}
-          </div>
-        )}
+        {/*
+          거래정지 안내 회색 박스는 걷어냈다. 프로토타입은 헤더에 **중립 회색 뱃지**만
+          두고(위 `.tag.ne`) 정지 사유는 차트 탭의 정지 화면에서 말한다
+          (새 디코드 L1749–L1759, `StockChartTab` 참고). `ia.md` L134 · contracts C46 이
+          요구한 "뱃지 노출 + `suspendedReason`" 도 그 둘로 함께 만족한다.
+        */}
       </div>
     </header>
   );
