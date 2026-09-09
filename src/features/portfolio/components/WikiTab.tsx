@@ -16,13 +16,23 @@ import { useWiki } from '../api/useWiki';
 
 import { ThesisEditSheet } from './ThesisEditSheet';
 import { UnrecordedStockList } from './UnrecordedStockList';
-import { WikiGuessCarousel } from './WikiGuessCarousel';
+import { WikiGuessCarousel, WIKI_ACCENT_COLOR } from './WikiGuessCarousel';
 
+/**
+ * `source` 를 사용자에게 보일 말로 옮긴다. `derived_from_trades` 는 계약 이름이
+ * `거래 내역에서 도출` 이지만 프로토타입이 `투자 기록에서 확인` 으로 한 번 더
+ * 옮겨 보여준다(proto L4160-4161) — 화면 문구는 그쪽을 따른다.
+ */
 const SOURCE_LABEL: Record<WikiFact['source'], string> = {
   user_stated: '직접 말한 내용',
-  derived_from_trades: '거래 내역에서 도출',
+  derived_from_trades: '투자 기록에서 확인',
   ai_inferred: 'AI 추측',
 };
+
+/** 프로토타입 `.info` — 18px 원 · 1.4px 테두리 · 11px/700 · 왼쪽 5px (proto L1146). */
+const INFO_BUTTON_CLASS =
+  'ml-1.25 flex size-4.5 flex-none items-center justify-center rounded-full ' +
+  'border-[1.4px] border-text-muted text-[11px] font-bold text-text-muted';
 
 const HORIZON_LABEL: Record<NonNullable<WikiThesis['horizon']>, string> = {
   short: '단기',
@@ -87,13 +97,7 @@ export function WikiTab() {
       <EmptyState
         className="pt-8"
         title="아직 기록한 투자 기준이 없어요."
-        description={
-          <>
-            투자하면서 남긴 기록이
-            <br />
-            조금씩 여기에 쌓여요.
-          </>
-        }
+        description="투자하며 남긴 기록이 조금씩 여기에 쌓여요."
         action={
           <LinkButton to={ROUTES.chat} className="w-auto px-6.5">
             AI와 대화 시작하기
@@ -123,7 +127,8 @@ export function WikiTab() {
             {confirmedFacts.length}
           </b>{' '}
           · 확인 필요{' '}
-          <b className="font-semibold text-text-secondary">
+          {/* 확인이 필요한 것만 눈에 띄게 한다 — 추측 카드와 같은 강조색이다. */}
+          <b className="font-semibold" style={{ color: WIKI_ACCENT_COLOR }}>
             {guessFacts.length}
           </b>{' '}
           · 매수 이유{' '}
@@ -133,12 +138,12 @@ export function WikiTab() {
           type="button"
           aria-label="선정 기준 보기"
           onClick={() => setInfoOpen((prev) => !prev)}
-          className="flex size-5 flex-none items-center justify-center rounded-full border border-text-muted text-caption text-text-muted"
+          className={INFO_BUTTON_CLASS}
         >
           ?
         </button>
         {infoOpen && (
-          <div className="absolute top-full right-0 left-0 z-10 mt-2 flex items-start gap-2.5 rounded-md bg-text-primary p-3.5 text-surface shadow-float">
+          <div className="absolute top-full right-0 left-0 z-10 mt-2 flex items-start gap-2.5 rounded-12 bg-text-primary px-3.5 py-[13px] text-surface shadow-float">
             <span className="flex-1 text-caption text-pretty text-surface/86">
               대화에서 직접 말한 내용은 바로 확정하고, 투자 기록에서 읽어낸
               성향은 확인을 받은 뒤에만 확정해요. 확정된 기준만 분석과 답변에
@@ -173,7 +178,7 @@ export function WikiTab() {
           <div className="flex flex-col divide-y divide-border/40">
             {confirmedFacts.map((fact) => (
               <div key={fact.id} className="py-4">
-                <p className="text-body-1 leading-6 font-medium text-pretty text-text-primary">
+                <p className="text-body-1 leading-6 font-medium text-pretty whitespace-pre-line text-text-primary">
                   {fact.text}
                 </p>
                 <div className="mt-2.25 flex items-center justify-between gap-3">
@@ -184,7 +189,7 @@ export function WikiTab() {
                     <button
                       type="button"
                       onClick={() => setDeleteTarget(fact)}
-                      className="flex-none text-label text-text-muted"
+                      className="flex-none text-caption text-text-muted"
                     >
                       삭제
                     </button>
@@ -202,7 +207,10 @@ export function WikiTab() {
             <span className="text-title-3 text-text-primary">
               FINCH가 이해한 투자 기준
             </span>
-            <span className="text-caption font-semibold text-text-secondary">
+            <span
+              className="text-caption font-semibold"
+              style={{ color: WIKI_ACCENT_COLOR }}
+            >
               확인 필요 {guessFacts.length}개
             </span>
           </div>
@@ -232,13 +240,13 @@ export function WikiTab() {
           </span>
         </div>
         <p className="mb-2.5 text-caption text-text-secondary">
-          왜 샀는지 적어두면 AI가 근거로 삼아 더 맞는 추천을 해줘요.
+          왜 샀는지 다시 볼 수 있어요.
         </p>
         {theses.length === 0 ? (
           <p className="pt-3 pb-0 text-body-1 leading-6 text-pretty text-text-secondary">
             아직 기록한 매수 이유가 없어요.
             <br />
-            매수 이유를 남겨두면 AI가 그 기록을 근거로 더 맞는 추천을 해줘요.
+            매수 이유를 남겨두면 다음 투자 판단에서 다시 볼 수 있어요.
           </p>
         ) : (
           <ThesisList theses={theses} onEditThesis={setEditTarget} />
@@ -334,56 +342,51 @@ function ThesisList({ theses, onEditThesis }: ThesisListProps) {
               onClick={() => setOpenId(isOpen ? null : thesis.id)}
               className="flex w-full items-center gap-2.5 py-3.75 text-left"
             >
-              <span
-                className={`flex-1 text-body-1 font-semibold ${
-                  isClosed ? 'text-text-muted' : 'text-text-primary'
-                }`}
-              >
-                {/*
-                  이름을 못 찾으면 `name` 에 티커가 그대로 온다. 그때 코드를 두 번
-                  찍지 않는다 — `005930 · 005930` 은 정보가 아니라 잡음이다.
-                */}
-                {thesis.name}
-                {thesis.name !== thesis.ticker && (
-                  <span className="ml-1.5 text-caption font-normal text-text-muted">
-                    {thesis.ticker}
-                  </span>
-                )}
-                {isClosed && (
-                  <span className="ml-1.5 text-caption font-normal text-text-muted">
-                    (비활성)
-                  </span>
-                )}
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span
+                  className={`truncate text-body-1 font-semibold tracking-[-0.01em] ${
+                    isClosed ? 'text-text-muted' : 'text-text-primary'
+                  }`}
+                >
+                  {/*
+                    이름을 못 찾으면 `name` 에 티커가 그대로 온다. 그때 코드를 두 번
+                    찍지 않는다 — `005930 · 005930` 은 정보가 아니라 잡음이다.
+                  */}
+                  {thesis.name}
+                  {thesis.name !== thesis.ticker && (
+                    <span className="ml-1.5 text-caption font-normal text-text-muted">
+                      {thesis.ticker}
+                    </span>
+                  )}
+                  {isClosed && (
+                    <span className="ml-1.5 text-caption font-normal text-text-muted">
+                      (비활성)
+                    </span>
+                  )}
+                </span>
+                <span className="text-caption text-text-muted">
+                  {formatKstDate(thesis.recordedAt)} 기록
+                  {thesis.horizon === null
+                    ? ''
+                    : ` · ${HORIZON_LABEL[thesis.horizon]}`}
+                </span>
               </span>
-              <span className="flex-none text-caption text-text-secondary">
-                {formatKstDate(thesis.recordedAt)}
-                {thesis.horizon === null
-                  ? ''
-                  : ` · ${HORIZON_LABEL[thesis.horizon]}`}
-              </span>
-              <span
-                aria-hidden="true"
-                className={`flex-none text-body-2 text-text-muted transition-transform duration-(--motion-normal) ${
-                  isOpen ? 'rotate-180' : ''
-                }`}
-              >
-                ⌄
+              <span className="flex w-4 flex-none items-center justify-center">
+                <ThesisChevron open={isOpen} />
               </span>
             </button>
             {isOpen && (
               <div className="pb-4">
-                <p className="text-body-2 leading-6 text-pretty text-text-secondary">
+                <p className="text-body-2 leading-[23px] text-pretty whitespace-pre-line text-text-secondary">
                   {thesis.text}
                 </p>
                 <button
                   type="button"
                   onClick={() => onEditThesis(thesis)}
-                  className="mt-3 flex w-auto items-center gap-1.5 text-label font-medium text-text-primary"
+                  className="mt-3 flex w-auto items-center gap-1.5 text-label font-medium text-text-muted"
                 >
                   기록 수정하기
-                  <span aria-hidden="true" className="text-text-muted">
-                    ›
-                  </span>
+                  <span aria-hidden="true">›</span>
                 </button>
               </div>
             )}
@@ -391,5 +394,22 @@ function ThesisList({ theses, onEditThesis }: ThesisListProps) {
         );
       })}
     </div>
+  );
+}
+
+/**
+ * 프로토타입 `.chev` — 문자 글리프가 아니라 두 변만 남긴 9px 정사각을 45° 돌린
+ * 것이다(proto L1136-1137). 펼치면 -135° 로 뒤집힌다.
+ */
+function ThesisChevron({ open }: { open: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={[
+        'size-2.25 flex-none border-r-[1.6px] border-b-[1.6px] border-text-muted',
+        'transition-transform duration-(--motion-normal) ease-standard',
+        open ? 'mt-0.5 rotate-[-135deg]' : '-mt-1 rotate-45',
+      ].join(' ')}
+    />
   );
 }

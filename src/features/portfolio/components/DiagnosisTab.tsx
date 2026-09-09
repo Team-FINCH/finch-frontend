@@ -5,8 +5,10 @@ import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiStatus } from '@/shared/ui/AiStatus';
+import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
+import { usePortfolio } from '../api/usePortfolio';
 import { usePortfolioDiagnosis } from '../api/usePortfolioDiagnosis';
 
 const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as const;
@@ -23,10 +25,36 @@ const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as c
  *
  * **피드백을 붙이지 않는다.** 프로토타입 실제 UI에서 피드백이 붙는 자리는 셋뿐이고
  * 이 탭은 그중 하나가 아니다(ia.md §4 "피드백 슬롯 배치 규칙" 각주).
+ *
+ * **보유가 0이면 요청을 보내지 않는다** — 프로토타입 `diagCold`(proto L2209,
+ * `aiOk && hk.length===0`)와 같다. 진단할 것이 없다는 것은 프론트가 이미 아는
+ * 사실이라 빈 계좌에서 AI 요청 한 번을 낭비할 이유가 없다. 보유 조회가 실패해
+ * 개수를 모를 때는 요청을 보낸다 — 곁가지 실패가 본문을 막지 않게 한다.
  */
 export function DiagnosisTab() {
-  const { data, isPending, isError, error, refetch } =
-    usePortfolioDiagnosis(true);
+  const portfolio = usePortfolio('EVALUATION');
+  const isColdStart = portfolio.data?.holdings.length === 0;
+  const { data, isPending, isError, error, refetch } = usePortfolioDiagnosis(
+    !portfolio.isPending && !isColdStart,
+  );
+
+  if (portfolio.isPending) {
+    return (
+      <div className="flex flex-col gap-3 pt-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
+
+  if (isColdStart) {
+    return (
+      <EmptyState
+        title="아직 진단할 정보가 없어요."
+        description="한 종목만 담아도 집중도와 분산을 알려드릴게요."
+      />
+    );
+  }
 
   if (isPending) {
     return (
@@ -145,6 +173,7 @@ export function DiagnosisTab() {
   );
 }
 
+/** 비율은 프로토타입과 같은 정수 % 다 (`toFixed(0)`, proto L4000-4001). */
 function IndicatorRow({
   label,
   ratio,
@@ -156,7 +185,7 @@ function IndicatorRow({
     <div className="flex items-center justify-between">
       <span className="text-body-2 text-text-secondary">{label}</span>
       <span className="text-body-1 font-medium text-text-primary tabular-nums">
-        {ratio === null ? '—' : formatPercent(ratio)}
+        {ratio === null ? '—' : formatPercent(ratio, 0)}
       </span>
     </div>
   );

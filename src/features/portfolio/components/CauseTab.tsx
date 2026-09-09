@@ -2,7 +2,11 @@ import { useState } from 'react';
 
 import { isHttpError } from '@/shared/api';
 import { isRetryableAiErrorCode } from '@/shared/lib/aiErrorRetry';
-import { formatSignedPercent } from '@/shared/lib/formatNumber';
+import { formatKstTime } from '@/shared/lib/formatDate';
+import {
+  formatSignedPercent,
+  getPriceDirection,
+} from '@/shared/lib/formatNumber';
 import { type AiAttributionRow } from '@/shared/types/ai/attribution';
 import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
@@ -16,6 +20,32 @@ import { usePortfolioAttribution } from '../api/usePortfolioAttribution';
 const DIRECTION_TEXT_CLASS = {
   up: 'text-stock-up',
   down: 'text-stock-down',
+} as const;
+
+const RATIO_TEXT_CLASS = {
+  rise: 'text-stock-up',
+  fall: 'text-stock-down',
+  flat: 'text-stock-neutral',
+} as const;
+
+/** 프로토타입이 `.sht` 를 덮어 쓰는 이 탭의 소제목 셋 (proto L2305, L2327, L2347). */
+const SUBTITLE_CLASS =
+  'text-[20px] font-bold tracking-[-0.02em] text-text-primary';
+
+/** 프로토타입 `.info` — 18px 원 · 1.4px 테두리 · 11px/700 · 왼쪽 5px (proto L1146). */
+const INFO_BUTTON_CLASS =
+  'ml-1.25 flex size-4.5 flex-none items-center justify-center rounded-full ' +
+  'border-[1.4px] border-text-muted text-[11px] font-bold text-text-muted';
+
+/** 프로토타입 `.pop` — 화면 폭에 붙고(left/right 0) 반경 12px · 패딩 13/14 (proto L1118). */
+const POPOVER_CLASS =
+  'absolute top-full right-0 left-0 z-10 mt-2 flex items-start gap-2.5 ' +
+  'rounded-12 bg-text-primary px-3.5 py-[13px] text-surface shadow-float';
+
+const BREAKDOWN_LABEL = {
+  market: '시장 영향',
+  sector: '업종 영향',
+  selection: '종목 선택',
 } as const;
 
 /**
@@ -84,6 +114,7 @@ export function CauseTab() {
     summary,
     aiMeta,
   } = data;
+  const asOfLabel = aiMeta.dataAsOf.portfolio ?? aiMeta.dataAsOf.price;
   const rows: (AiAttributionRow & { tone: 'up' | 'down' })[] = [
     ...contributors.map((row) => ({ ...row, tone: 'up' as const })),
     ...detractors.map((row) => ({ ...row, tone: 'down' as const })),
@@ -92,25 +123,24 @@ export function CauseTab() {
   return (
     <div className="pt-4">
       <AiCard
+        className="mb-10"
         label="AI 수익 분석"
         headline={summary?.text ?? '수익률 원인 분석을 준비하지 못했어요.'}
         caption={`기간 수익률 ${formatSignedPercent(portfolioReturn)} · 초과수익률 ${formatSignedPercent(excessReturn)}`}
       />
 
-      <div className="relative mt-8 mb-6 flex items-center gap-1.75">
-        <h2 className="text-title-3 text-text-primary">
-          무엇이 영향을 줬나요?
-        </h2>
+      <div className="relative mb-6 flex items-center gap-1.75">
+        <h2 className={SUBTITLE_CLASS}>무엇이 영향을 줬나요?</h2>
         <button
           type="button"
           aria-label="계산 기준 보기"
           onClick={() => setInfoOpen((prev) => !prev)}
-          className="flex size-5 flex-none items-center justify-center rounded-full border border-text-muted text-caption text-text-muted"
+          className={INFO_BUTTON_CLASS}
         >
           ?
         </button>
         {infoOpen && (
-          <div className="absolute top-full left-0 z-10 mt-2 flex items-start gap-2.5 rounded-md bg-text-primary p-3.5 text-surface shadow-float">
+          <div className={POPOVER_CLASS}>
             <span className="flex-1 text-caption text-pretty text-surface/86">
               내 자산의 변화를 시장 · 업종 · 종목으로 나눠봤어요. 각 값은 계산
               기준이 달라서 그대로 더해지지 않아요.
@@ -127,37 +157,19 @@ export function CauseTab() {
         )}
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex items-baseline justify-between">
-          <span className="text-body-1 font-medium text-text-primary">
-            시장
-          </span>
-          <span className="text-body-1 font-bold text-text-primary tabular-nums">
-            {formatSignedPercent(breakdown.market)}
-          </span>
-        </div>
-        <div className="flex items-baseline justify-between">
-          <span className="text-body-1 font-medium text-text-primary">
-            업종
-          </span>
-          <span className="text-body-1 font-bold text-text-primary tabular-nums">
-            {formatSignedPercent(breakdown.sector)}
-          </span>
-        </div>
-        <div className="flex items-baseline justify-between">
-          <span className="text-body-1 font-medium text-text-primary">
-            종목 선택
-          </span>
-          <span className="text-body-1 font-bold text-text-primary tabular-nums">
-            {formatSignedPercent(breakdown.selection)}
-          </span>
-        </div>
+      <div className="mb-10 flex flex-col gap-7.5">
+        <BreakdownRow label={BREAKDOWN_LABEL.market} ratio={breakdown.market} />
+        <BreakdownRow label={BREAKDOWN_LABEL.sector} ratio={breakdown.sector} />
+        <BreakdownRow
+          label={BREAKDOWN_LABEL.selection}
+          ratio={breakdown.selection}
+        />
       </div>
 
-      <div className="mt-8">
+      <div>
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-title-3 text-text-primary">종목별 기여</h2>
-          <span className="text-caption text-text-secondary">
+          <h2 className={SUBTITLE_CLASS}>종목별 기여</h2>
+          <span className="text-caption text-text-muted">
             {rows.length}종목
           </span>
         </div>
@@ -177,7 +189,7 @@ export function CauseTab() {
                 >
                   <span
                     aria-hidden="true"
-                    className="flex size-9 flex-none items-center justify-center rounded-12 bg-surface-soft text-body-2 font-bold text-text-secondary"
+                    className="flex size-9 flex-none items-center justify-center rounded-[11px] bg-surface-soft text-[14px] font-bold text-text-secondary"
                   >
                     {row.name.slice(0, 1)}
                   </span>
@@ -210,10 +222,13 @@ export function CauseTab() {
 
       {notes.length > 0 && (
         <div className="mt-6 border-t border-border pt-5">
-          <h2 className="mb-2.5 text-title-3 text-text-primary">확인해볼 점</h2>
+          <h2 className={`mb-2.5 ${SUBTITLE_CLASS}`}>확인해볼 점</h2>
           <div className="flex flex-col gap-1.5">
             {notes.map((note) => (
-              <p key={note} className="text-body-1 leading-6 text-text-primary">
+              <p
+                key={note}
+                className="text-body-1 leading-[25px] text-text-primary"
+              >
                 {note}
               </p>
             ))}
@@ -223,11 +238,36 @@ export function CauseTab() {
 
       <AiCitationList citations={aiMeta.citations} className="mt-6" />
 
+      {/*
+        기준 시각. AI 명세 §2.2 가 "UI 에 반드시 노출한다" 로 적었고 프로토타입도
+        이 자리에 `{asOf} 기준` 을 둔다(proto L2353). 원천별로 값이 있는 것만
+        고르는 것은 `StockAiTab` 과 같은 방식이다(contracts C54).
+      */}
       <p className="mt-5 text-caption leading-5 text-text-secondary">
+        {asOfLabel === null ? null : `${formatKstTime(asOfLabel)} 기준 · `}
         {aiMeta.disclaimer}
       </p>
 
       <AiFeedbackRow requestId={aiMeta.requestId} className="mt-5" />
+    </div>
+  );
+}
+
+/**
+ * 시장·업종·종목 선택 한 줄 (프로토타입 `attribution`, proto L2314-2323).
+ * 값에 등락색을 입힌다 — 부호만으로는 방향이 눈에 들어오지 않는다.
+ * 프로토타입의 항목별 설명 줄(`a.note`)은 응답 `breakdown` 에 대응 필드가 없어
+ * 그리지 않는다 (머리 주석).
+ */
+function BreakdownRow({ label, ratio }: { label: string; ratio: number }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-body-1 font-medium text-text-primary">{label}</span>
+      <span
+        className={`text-[17px] font-bold tabular-nums ${RATIO_TEXT_CLASS[getPriceDirection(ratio)]}`}
+      >
+        {formatSignedPercent(ratio)}
+      </span>
     </div>
   );
 }

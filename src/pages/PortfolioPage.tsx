@@ -43,10 +43,13 @@ export function PortfolioPage() {
 
   return (
     <PageMain>
+      {/*
+        프로토타입은 `.nav`(56px) 바로 아래 `.tabs` 가 붙어 여백이 없다
+        (proto L2150-2151). 전에 두었던 4px 은 근거가 없어 걷었다.
+      */}
       <PageHeader
         title="포트폴리오"
         unreadCount={inbox.data?.unreadCount ?? 0}
-        className="mb-1"
       />
       <PortfolioTabBar tab={tab} onChange={setTab} />
 
