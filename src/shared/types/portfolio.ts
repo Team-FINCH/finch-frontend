@@ -85,8 +85,9 @@ export type TransactionType = z.infer<typeof TransactionTypeSchema>;
 
 /**
  * `GET /transactions` 의 `type` 필터 (apiSpec §8.2 v0.8). 원장 유형 전체와 값이 다르다 —
- * `ALL` 이 더 있고 `INITIAL_GRANT` 가 없다. 화면 필터 이름은 "전체 / 매수 / 매도 /
- * 충전 / 출금" 다섯이다 — "충전"을 "입금"으로 부르지 않는다(C83).
+ * `ALL` 이 더 있고 `INITIAL_GRANT` 가 없다. 화면 필터 라벨은 "전체 / 매수 / 매도 /
+ * 입금 / 출금" 다섯이다(C83). 계약 용어는 그대로다 — 열거값은 `DEPOSIT` 이고
+ * apiSpec 4장 제목도 "충전" 이다. 바뀐 것은 화면 라벨 하나다.
  *
  * **`type=DEPOSIT` 은 `INITIAL_GRANT` 행을 포함하지 않는다** (apiSpec §8.2, 커밋 `af96862`).
  * 원장 유형 `DEPOSIT`(모의 결제 충전)만 걷어 온다 (`mocks/handlers/trading.ts`
