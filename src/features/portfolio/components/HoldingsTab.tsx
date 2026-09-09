@@ -8,8 +8,7 @@ import {
   getPriceDirection,
 } from '@/shared/lib/formatNumber';
 import { type Holding, type PortfolioSort } from '@/shared/types/portfolio';
-import { LinkButton } from '@/shared/ui/Button';
-import { EmptyState } from '@/shared/ui/EmptyState';
+import { ListEmpty } from '@/shared/ui/ListEmpty';
 import { RollingNumber } from '@/shared/ui/RollingNumber';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
@@ -180,17 +179,23 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
           ))}
         </div>
       ) : (
-        <EmptyState
+        /*
+          목록 자리의 빈 상태라 화면 전체를 채우는 `EmptyState` 가 아니라
+          `ListEmpty`(회색 면 `.soft`, 여백 28px 20px)를 쓴다. 동작은
+          `.chip.sel` — 34px 캡슐에 검정 면이다(proto L2182-2186, L1107-1109).
+          테두리 버튼으로 두면 회색 면 위에서 안내와 동작의 위계가 뒤집힌다.
+        */
+        <ListEmpty
+          className="py-7"
           title="아직 보유 종목이 없어요."
           description="종목을 담으면 평가금액과 비중을 여기에서 볼 수 있어요."
           action={
-            <LinkButton
+            <Link
               to={ROUTES.search}
-              variant="secondary"
-              className="w-auto px-6"
+              className="inline-flex h-8.5 items-center rounded-[11px] bg-primary px-3.5 text-label font-medium text-surface"
             >
               종목 찾아보기
-            </LinkButton>
+            </Link>
           }
         />
       )}
