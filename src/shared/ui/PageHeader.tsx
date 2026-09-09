@@ -16,8 +16,14 @@ import { ROUTES } from '@/shared/config/routes';
  * 기준으로 삼았다 — `PortfolioHeader` 는 그 시점에 알림함 API 계약이 없어 카운트를
  * 못 붙였을 뿐, 지금은 `useInboxItems` 가 이미 있다.
  *
- * 여백은 컴포넌트가 갖지 않는다. 화면마다 다음 요소와의 간격이 달라서(홈은 14px,
- * 포트폴리오는 4px) 호출부가 `className` 으로 정한다.
+ * 아래 여백은 컴포넌트가 갖지 않는다. 화면마다 다음 요소와의 간격이 달라서(홈은
+ * 14px, 포트폴리오는 4px) 호출부가 `className` 으로 정한다.
+ *
+ * **위·좌우 여백과 배경은 컴포넌트가 갖는다.** 프로토타입은 `.nav` 를 `.sc` 밖에
+ * `flex:none` 으로 두어 본문만 굴러가게 한다(`TabBarLayout` 주석). 우리는 헤더가
+ * `PageMain` 안에 있어서 같은 결과를 `sticky top-0` 로 만든다 — `PageMain` 의
+ * 좌우 26px·위 24px 여백을 음수 마진으로 끌어와 헤더 자신이 갖고, 배경을 깔아
+ * 본문이 그 아래로 지나가게 한다. 배경이 없으면 글자가 겹쳐 읽힌다.
  *
  * 미읽음 개수는 이 컴포넌트가 직접 조회하지 않는다 — `features/mypage` 가
  * `features/inbox` 를 부르는 것은 페이지 계층에서 하고, 여기는 숫자만 받는다
@@ -42,7 +48,9 @@ export function PageHeader({
   className = '',
 }: PageHeaderProps) {
   return (
-    <div className={`flex items-center justify-between gap-3 ${className}`}>
+    <div
+      className={`sticky top-0 z-10 -mx-6.5 -mt-6 flex items-center justify-between gap-3 bg-bg px-6.5 pt-6 ${className}`}
+    >
       <h1 className="text-section-title text-text-primary">{title}</h1>
       <Link
         to={ROUTES.inbox}
