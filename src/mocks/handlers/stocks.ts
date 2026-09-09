@@ -166,8 +166,8 @@ function aggregateCandles(
 
 /**
  * `period` 는 무시하고 `interval` 별 전량을 준다 — 보이는 범위는 확대/축소가
- * 맡으므로 `period`(1M·3M·1Y)로 서버 쪽에서 잘라 줄 이유가 없다. `period` 는
- * 응답 봉투에만 그대로 실어 돌려준다(apiSpec §5.3 계약 유지).
+ * 맡으므로 `period`(1M·3M·1Y·3Y)로 서버 쪽에서 잘라 줄 이유가 없다. `period` 는
+ * 응답 봉투에만 그대로 실어 돌려준다(apiSpec §5.3 v0.8.4 계약 유지).
  */
 function buildCandles(
   stockCode: string,
@@ -279,19 +279,22 @@ export const stockHandlers = [
         );
       }
 
-      // `period` 는 apiSpec §5.3 문서 그대로(1M·3M·1Y) 검증한다 — 손대지 않았다.
+      // `period`·`interval` 은 apiSpec §5.3(v0.8.4 확정 · 이슈 #37 회신) 그대로
+      // 검증한다 — 둘 다 선택 파라미터라 값이 없으면 각 기본값(`1M`·`DAY`)으로
+      // 떨어진다. `interval` 값 자체는 `@/shared/types/candleInterval.ts` 한
+      // 곳에서만 정의한다. 여기서는 그 스키마로만 검증한다.
       const period = searchParam(request, 'period') ?? '1M';
       const periodValid = (
         CandlePeriodSchema.options as readonly string[]
       ).includes(period);
 
-      // `interval` 값 자체는 `@/shared/types/candleInterval.ts` 한 곳에서만
-      // 정의한다 (TODO(계약) 임시값 — 이슈 #37). 여기서는 그 스키마로만 검증한다.
       const interval = searchParam(request, 'interval') ?? 'DAY';
       const intervalValid = (
         CandleIntervalSchema.options as readonly string[]
       ).includes(interval);
 
+      // `interval` 의 `detail` 모양은 회신 그대로 고정 문구다 — 값 목록을 나열하지
+      // 않는다. `period` 는 apiSpec 이 그 문구를 못박지 않아 값 목록을 그대로 둔다.
       if (!periodValid || !intervalValid) {
         return errorResponse(
           COMMON_ERROR_CODES.INVALID_REQUEST,
@@ -300,13 +303,8 @@ export const stockHandlers = [
           {
             ...(periodValid
               ? {}
-              : { period: '1M · 3M · 1Y 중 하나여야 합니다' }),
-            ...(intervalValid
-              ? {}
-              : {
-                  interval:
-                    'DAY(일봉) · WEEK(주봉) · MONTH(월봉) 중 하나여야 합니다',
-                }),
+              : { period: '1M · 3M · 1Y · 3Y 중 하나여야 합니다' }),
+            ...(intervalValid ? {} : { interval: '형식이 올바르지 않습니다' }),
           },
         );
       }
