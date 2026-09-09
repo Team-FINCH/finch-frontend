@@ -119,8 +119,10 @@ export function DepositTransferPage() {
           variant="success"
           amount={result.amount}
           cashBalanceAfter={result.cashBalanceAfter}
-          primaryLabel="확인"
-          onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
+          primaryLabel="매매 시작하기"
+          onPrimaryAction={() => navigate(ROUTES.search, { replace: true })}
+          secondaryLabel="홈으로"
+          onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
         />
       </PageMain>
     );
@@ -139,6 +141,8 @@ export function DepositTransferPage() {
           errorMessage={errorMessage}
           primaryLabel="다시 충전하기"
           onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
+          secondaryLabel="나중에 하기"
+          onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
         />
       </PageMain>
     );

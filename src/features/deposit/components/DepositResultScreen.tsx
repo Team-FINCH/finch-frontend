@@ -1,5 +1,3 @@
-import { type ReactNode } from 'react';
-
 import { formatKrw } from '@/shared/lib/formatNumber';
 import { Button } from '@/shared/ui/Button';
 import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
@@ -21,7 +19,16 @@ type DepositResultScreenProps = {
   errorMessage?: string;
   primaryLabel: string;
   onPrimaryAction: () => void;
-  secondary?: ReactNode;
+  /**
+   * 주 버튼 아래에 함께 두는 보조 동작. **결제 결과에서는 빼지 않는다** —
+   * `design.md:968` "어느 실패든 빠져나갈 보조 동작을 함께 둔다. 이 화면에는
+   * 탭바도 뒤로가기도 없어 주 동작 하나만 두면 갇힌다".
+   *
+   * 확정 중(`pending`)에는 아직 결과가 없어 넘기지 않는다. 프로토타입도 버튼
+   * 블록 전체를 `payDone` 으로 감싼다(template L2747).
+   */
+  secondaryLabel?: string;
+  onSecondaryAction?: () => void;
 };
 
 const SUCCESS_CONTENT = {
@@ -37,7 +44,8 @@ export function DepositResultScreen({
   errorMessage,
   primaryLabel,
   onPrimaryAction,
-  secondary,
+  secondaryLabel,
+  onSecondaryAction,
 }: DepositResultScreenProps) {
   if (variant === 'pending') {
     return (
@@ -90,10 +98,15 @@ export function DepositResultScreen({
         </SoftBox>
       )}
 
-      <Button onClick={onPrimaryAction} className="mt-8">
-        {primaryLabel}
-      </Button>
-      {secondary}
+      {/* 주 + 보조 세로 10px 간격. 프로토타입 `payDone` 블록의 실측값이다(template L2747). */}
+      <div className="mt-8 flex w-full flex-col gap-2.5">
+        <Button onClick={onPrimaryAction}>{primaryLabel}</Button>
+        {secondaryLabel !== undefined && onSecondaryAction !== undefined && (
+          <Button variant="secondary" onClick={onSecondaryAction}>
+            {secondaryLabel}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

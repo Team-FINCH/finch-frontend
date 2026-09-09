@@ -98,19 +98,29 @@ export function DepositCompletePage() {
           errorMessage={depositConfirmErrorMessage(confirmMutation.error)}
           primaryLabel="다시 충전하기"
           onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
+          secondaryLabel="나중에 하기"
+          onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
         />
       </PageMain>
     );
   }
 
+  /*
+   * 주 동작 `매매 시작하기`, 보조 `홈으로` 둘이다(`design.md:964`). 주 동작이
+   * 가는 곳은 프로토타입이 홈의 **탐색 탭**(`app-logic.js` `payPrimary` —
+   * `tab:"explore"`)이라고 적었고, 우리 IA 에서 그 탭은 `/search` 다
+   * (`ia.md` §3 하단 탭바 · `BOTTOM_TAB_ROUTES`).
+   */
   return (
     <PageMain>
       <DepositResultScreen
         variant="success"
         amount={confirmMutation.data.amount}
         cashBalanceAfter={confirmMutation.data.cashBalanceAfter}
-        primaryLabel="확인"
-        onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
+        primaryLabel="매매 시작하기"
+        onPrimaryAction={() => navigate(ROUTES.search, { replace: true })}
+        secondaryLabel="홈으로"
+        onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
       />
     </PageMain>
   );
