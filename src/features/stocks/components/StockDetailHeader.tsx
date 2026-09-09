@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-import { formatKstTime } from '@/shared/lib/formatDate';
+import { formatKstShortTime } from '@/shared/lib/formatDate';
 import {
   formatAmount,
   formatSignedAmount,
@@ -136,7 +136,7 @@ export function StockDetailHeader({
                 {formatSignedRate(changeRate)}
               </span>
               <span className="text-[12px] whitespace-nowrap text-text-muted">
-                {formatKstTime(asOf)} 기준
+                {formatKstShortTime(asOf)} 기준
               </span>
             </div>
           </>

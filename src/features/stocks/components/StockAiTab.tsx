@@ -2,7 +2,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { isHttpError } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
-import { formatKstMonthDay, formatKstTime } from '@/shared/lib/formatDate';
+import {
+  formatKstMonthDay,
+  formatKstMonthDayTime,
+} from '@/shared/lib/formatDate';
 import {
   AI_ANALYSIS_SECTION_KEYS,
   type AiAnalysisSection,
@@ -316,14 +319,15 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
       {/*
         기준 시각은 검정 카드 캡션이 아니라 **하단 캡션 첫 항목**이다
         (프로토타입 `{{ asOf }} 기준 · 공시 · 뉴스 · 자체계산`, 새 디코드 L1995).
-        형식은 프로토타입이 `월.일 시:분` 인데 `formatKstTime` 은 `시:분:초` 를 준다 —
-        `shared/lib/formatDate` 는 이 티켓에서 고치지 않는 파일이라 그대로 뒀다.
+        형식은 프로토타입과 같은 `월.일 시:분` 이다 — `formatKstMonthDayTime`.
 
         disclaimer 는 하드코딩하지 않고 응답 값을 그대로 쓴다 — 규제 문구가 바뀌면
         서버만 고치게 하기 위해서다 (envelope.ts 주석).
       */}
       <p className="mt-5 text-caption leading-5 text-text-muted">
-        {asOfLabel === null ? null : <>{formatKstTime(asOfLabel)} 기준 · </>}
+        {asOfLabel === null ? null : (
+          <>{formatKstMonthDayTime(asOfLabel)} 기준 · </>
+        )}
         {disclaimer}
       </p>
 
