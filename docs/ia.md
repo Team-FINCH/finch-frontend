@@ -315,7 +315,7 @@ AI 서버에 `/wiki/**` 4종이 구현돼 있고(AI 명세 §9) 그중 셋이 �
 | 경로                       | 파라미터   | 값                                                    |
 | -------------------------- | ---------- | ----------------------------------------------------- |
 | `/stocks/:stockCode`       | `tab`      | `chart` \| `info` \| `ai`                             |
-| `/stocks/:stockCode`       | `period`   | `1M` \| `3M` \| `1Y` (전부 일봉)                      |
+| `/stocks/:stockCode`       | `period`   | `1M` \| `3M` \| `1Y` \| `3Y`                          |
 | `/stocks/:stockCode/order` | `side`     | `buy` \| `sell`                                       |
 | `/portfolio`               | `tab`      | `holdings` \| `diagnosis` \| `cause` \| `wiki`        |
 | `/portfolio`               | `sort`     | `EVALUATION` \| `PROFIT_RATE`                         |
@@ -323,7 +323,7 @@ AI 서버에 `/wiki/**` 4종이 구현돼 있고(AI 명세 §9) 그중 셋이 �
 | `/search`                  | `q`        | 검색어                                                |
 | `/login`                   | `redirect` | 로그인 후 돌아갈 경로                                 |
 
-차트 기간 값은 `GET /stocks/{stockCode}/candles`의 `period`와 같은 문자열을 쓴다. 분봉 도입 여부는 미확정(S0-4)이므로 `1D`·`1W`는 지금 넣지 않는다. **탭 구성은 데이터가 정해진 뒤에 늘린다.**
+차트 기간 값은 `GET /stocks/{stockCode}/candles`의 `period`와 같은 문자열을 쓴다. **봉 종류(일봉·주봉·월봉)는 이 `period`가 아니라 별도의 `interval`(`DAY`\|`WEEK`\|`MONTH`)이 맡는다 — apiSpec §5.3(v0.8.4)에서 이슈 #37 회신으로 확정됐다.** 화면에는 `period`를 고르는 탭이 없고, 봉 종류 탭이 `interval`을 고르면 프론트가 내부적으로 `period`를 함께 정해 보낸다(`frontend/src/shared/types/candleInterval.ts`의 `CANDLE_INTERVAL_REQUEST_PERIOD`). `interval` 쿼리 파라미터 자체는 아직 이 표에 없다 — 구현이 이 문서보다 앞서갔다.
 
 `/portfolio`의 `tab=wiki`는 §1 "AI가 이해한 나 — 위키 화면" 절의 포트폴리오 4번째 탭과 같은 곳이다. **위키의 유일한 라우트다** — 독립 화면(구 `/my/wiki`)은 2026-09-04에 없앴다.
 
