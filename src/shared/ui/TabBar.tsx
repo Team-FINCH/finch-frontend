@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom';
 
 import { BOTTOM_TAB_ROUTES, ROUTES } from '@/shared/config/routes';
 import { useIsAnySheetOpen } from '@/shared/hooks/useSheetOverlayStore';
+import type { AiChatScreen } from '@/shared/types/ai/chat';
+import type { StockCode } from '@/shared/types/primitives';
 import { AiEntryButton } from '@/shared/ui/AiEntryButton';
 
 /**
@@ -98,9 +100,15 @@ function tabIconMaskStyle(path: string) {
 function TabBarShell({
   children,
   aiExpandedLabel,
+  aiScreen,
+  aiTicker,
 }: {
   children: ReactNode;
   aiExpandedLabel?: string;
+  /** 채팅으로 넘길 화면 맥락. 넘기지 않으면 쿼리 없는 `/chat` 이다 */
+  aiScreen?: AiChatScreen;
+  /** `aiScreen="stock_detail"` 과 함께 넘기는 종목코드 */
+  aiTicker?: StockCode;
 }) {
   const isAnySheetOpen = useIsAnySheetOpen();
   if (isAnySheetOpen) {
@@ -119,7 +127,11 @@ function TabBarShell({
         className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg/70 to-bg/0 [mask-image:linear-gradient(to_top,#000_58%,transparent)] [backdrop-filter:blur(14px)] [-webkit-backdrop-filter:blur(14px)] [-webkit-mask-image:linear-gradient(to_top,#000_58%,transparent)]"
       />
       {children}
-      <AiEntryButton expandedLabel={aiExpandedLabel} />
+      <AiEntryButton
+        expandedLabel={aiExpandedLabel}
+        screen={aiScreen}
+        ticker={aiTicker}
+      />
     </nav>
   );
 }
@@ -210,6 +222,15 @@ export function TabBar() {
 }
 
 type TradeTabBarProps = {
+  /**
+   * 이 줄의 AI 버튼이 채팅에 넘길 종목코드. 넘기면
+   * `/chat?screen=stock_detail&ticker=<종목코드>` 로 간다.
+   *
+   * 선택 값으로 둔 이유 — 종목 상세 화면(`pages/StockDetailPage.tsx`)이 이 값을
+   * 붙이기 전에도 지금까지처럼 쿼리 없는 `/chat` 으로 동작해야 한다.
+   * 붙이고 나면 이 자리에서 맥락이 유실되지 않는다.
+   */
+  stockCode?: StockCode;
   /** 거래정지면 매수·매도 대신 비활성 캡슐 한 줄을 그린다 (contracts C46). */
   suspended?: boolean;
   onBuy: () => void;
@@ -245,9 +266,18 @@ type TradeTabBarProps = {
  * 라벨은 `tabaiLabel`이 `screen==="detail"`일 때만 `"이 종목 물어보기"`로
  * 펼쳐지므로 여기서만 `aiExpandedLabel`을 넘긴다.
  */
-export function TradeTabBar({ onBuy, onSell, suspended }: TradeTabBarProps) {
+export function TradeTabBar({
+  onBuy,
+  onSell,
+  suspended,
+  stockCode,
+}: TradeTabBarProps) {
   return (
-    <TabBarShell aiExpandedLabel="이 종목 물어보기">
+    <TabBarShell
+      aiExpandedLabel="이 종목 물어보기"
+      aiScreen={stockCode === undefined ? undefined : 'stock_detail'}
+      aiTicker={stockCode}
+    >
       <div className={`${PILL_BASE_CLASS} gap-1.5`}>
         {suspended === true ? (
           <button

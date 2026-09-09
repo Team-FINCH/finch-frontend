@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
 import type { AiChatScreen } from '@/shared/types/ai/chat';
+import type { StockCode } from '@/shared/types/primitives';
 
 /**
  * AI 진입 버튼 (FINCH-28-ai-entry). 프로토타입 `.tabai`/`.fab` 근거다 —
@@ -23,10 +24,15 @@ import type { AiChatScreen } from '@/shared/types/ai/chat';
  * 열거값에 `briefing`이 들어갔다. 그래서 `screen` prop을 받아 값이 있을 때만
  * `?screen=`을 붙인다.
  *
- * **지금 실제로 넘기는 값은 `briefing` 하나다**(`AiFloatingOverlay`). 탭 바 줄의
- * `.tabai` 자리(`TabBar.tsx`의 `TabBarShell`)는 prop을 넘기지 않아 예전과 똑같이
- * 쿼리 없는 `/chat`으로 간다 — 마이 페이지에 대응하는 열거값이 없어서 그 화면에서
- * 무엇을 넘길지 따로 판단해야 하고, 이 티켓의 범위가 아니다.
+ * **종목 상세는 종목까지 함께 넘긴다** — `screen="stock_detail"` 과 `ticker` 를
+ * 받아 `/chat?screen=stock_detail&ticker=005930` 으로 보낸다. 채팅 화면이
+ * `parseChatContext` 로 그 둘을 읽어 빈 상태 문구와 추천 질문을 그 종목으로 바꾼다
+ * (프로토타입 `openChatCtx`, design.md "종목 상세에서 진입 시 해당 종목 맥락을
+ * 이어받는다"). 맥락을 넘기지 않으면 "이거" 가 무엇인지 AI 가 되묻게 된다.
+ *
+ * 홈·탐색·포트폴리오·마이페이지의 `.tabai` 는 여전히 prop 없이 쿼리 없는 `/chat`
+ * 으로 간다 — 마이페이지에 대응하는 열거값이 없어 그 화면에서 무엇을 넘길지 따로
+ * 판단해야 한다.
  *
  * 쿼리를 안 붙여도 채팅 화면은 깨지지 않는다 — `parseChatContext`가 모르는 값이나
  * 빈 값을 `chat`으로 떨어뜨린다(`features/chat/lib/parseChatContext.ts`).
@@ -74,12 +80,34 @@ type AiEntryButtonProps = {
    * `/chat`** 이다 — 탭 바 줄의 호출부(`TabBarShell`)가 그렇다.
    */
   screen?: AiChatScreen;
+  /**
+   * 종목 맥락 (`context.ticker`). **`screen="stock_detail"` 과 함께일 때만 붙는다**
+   * — `parseChatContext` 가 다른 화면에서는 `ticker` 를 버리므로 따로 넘겨도
+   * 쓰이지 않고, 주소에만 남아 무엇이 맥락인지 헷갈리게 한다.
+   */
+  ticker?: StockCode;
 };
+
+/**
+ * 쿼리는 값이 있을 때만 붙인다. 빈 `?screen=` 은 `parseChatContext` 가 `chat` 으로
+ * 떨어뜨리므로 동작은 같지만, 주소만 보고는 맥락이 있는지 없는지 알 수 없어진다.
+ */
+function buildChatTo(screen?: AiChatScreen, ticker?: StockCode): string {
+  if (screen === undefined) {
+    return ROUTES.chat;
+  }
+  const query = new URLSearchParams({ screen });
+  if (screen === 'stock_detail' && ticker !== undefined) {
+    query.set('ticker', ticker);
+  }
+  return `${ROUTES.chat}?${query.toString()}`;
+}
 
 export function AiEntryButton({
   className = '',
   expandedLabel,
   screen,
+  ticker,
 }: AiEntryButtonProps) {
   const navigate = useNavigate();
   const [peek, setPeek] = useState(false);
@@ -98,10 +126,7 @@ export function AiEntryButton({
   }, [expandedLabel]);
 
   const label = expandedLabel ?? DEFAULT_LABEL;
-  const chatTo =
-    screen === undefined
-      ? ROUTES.chat
-      : `${ROUTES.chat}?${new URLSearchParams({ screen }).toString()}`;
+  const chatTo = buildChatTo(screen, ticker);
 
   return (
     <button
