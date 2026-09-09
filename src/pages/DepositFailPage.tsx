@@ -39,7 +39,7 @@ export function DepositFailPage() {
           !
         </span>
         <b className="text-ai-status-title tracking-[-.01em] text-text-primary">
-          충전이 완료되지 않았어요
+          입금이 완료되지 않았어요
         </b>
         <p className="mt-2 text-label text-pretty text-text-secondary">
           {message}

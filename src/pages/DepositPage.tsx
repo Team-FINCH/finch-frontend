@@ -13,27 +13,40 @@ import { formatKrw } from '@/shared/lib/formatNumber';
 import { type PaymentMethod } from '@/shared/types/deposit';
 import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
+import { Card } from '@/shared/ui/Card';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
 
 /**
- * 충전 — 모의 결제로 예수금 충전. 4단계(준비 → 결제창 → 승인 → 확정) 중 이 화면이
- * 담당하는 것은 첫 단계(`ready`)까지다. 금액 입력·프리셋, 결제 수단(카카오페이/
- * 계좌이체) 선택, 확인 단계를 거쳐 `checkoutUrl` 로 이동한다 (`ia.md` §1 "홈·자산" 절).
+ * 입금 — 모의 결제로 예수금 충전. 4단계(준비 → 결제창 → 승인 → 확정) 중 이 화면이
+ * 담당하는 것은 첫 단계(`ready`)까지다. 금액 입력·프리셋, 한도 안내, 결제 수단
+ * (카카오페이/계좌이체) 선택, 확인을 거쳐 `checkoutUrl` 로 이동한다.
  *
- * 티켓: FINCH-35.
+ * 티켓: FINCH-35 · FINCH-183.
  *
- * 근거: `ia.md` §1 "홈·자산" 표.
+ * **한 화면 안에서 세 단계가 이어진다** (`design.md:943`). 위저드로 나누지 않는다 —
+ * 금액·한도·수단·확인이 한 스크롤에 있고, 프로토타입 `isDeposit` 블록
+ * (template L2624-2676)이 같은 구조다. 전에는 `step` 상태로 금액과 확인을 갈라
+ * 보여주고 CTA 를 둘(`다음`·`입금하기`) 두었는데, 그 구조가 근거에 없었다.
+ *
+ * 근거: `design.md` §7.18 · `ia.md` §1 "홈·자산" 표 · 프로토타입 `isDeposit`.
  * API: `GET /api/v1/deposits/limit` · `POST /api/v1/deposits/ready` (멱등성 헤더 없음).
  *
+ * **`ready` 는 CTA 를 눌렀을 때만 나간다.** 한 화면이 됐어도 호출 시점은 그대로다 —
+ * 금액을 입력하거나 수단을 고르는 것으로는 아무 요청도 보내지 않는다(contracts C49).
+ *
  * **중복 호출 방어** — 서버는 `ready`를 연달아 불러도 정리·거절하지 않고 그냥
- * 쌓는다(contracts C92 근거, 프롬프트). 그래서 여기서는 `useDepositReady()`의
- * `isPending` 으로 확인 버튼을 잠근다 — 응답이 오기 전에는 두 번째 클릭 자체가
- * 나가지 않는다.
+ * 쌓는다(contracts C92). 그래서 여기서는 `useDepositReady()`의 `isPending` 으로
+ * CTA 를 잠근다 — 응답이 오기 전에는 두 번째 클릭 자체가 나가지 않는다.
  */
 const DEPOSIT_PRESETS = [10_000, 100_000, 1_000_000] as const;
 
-type Step = 'amount' | 'confirm';
+/** 아직 고르지 않은 값의 자리. 글리프는 `StockRow` 와 같은 것을 쓴다. */
+const NO_VALUE = '—';
+
+/** 섹션 제목. 프로토타입 `.sh`·`.sht` 실측 — 18px/700 · 자간 -.01em · 아래 여백 14px. */
+const SECTION_TITLE_CLASS =
+  'mb-3.5 text-title-3 font-bold tracking-[-.01em] text-text-primary';
 
 /**
  * `ready` 실패 문구.
@@ -65,8 +78,26 @@ function readyErrorMessage(error: unknown): string {
   return '입금을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.';
 }
 
+/**
+ * CTA 라벨. 프로토타입 `depCtaLabel`(`app-logic.js:1074`)의 세 갈래를 그대로 따르고
+ * 용어만 입금으로 바꿨다 — 금액 없음 · 한도 초과 · 정상.
+ *
+ * **결제 수단을 안 고른 상태는 라벨을 바꾸지 않는다.** 프로토타입은 수단이 항상
+ * 하나 골라져 있어(`depMethod:"kakao"` 초기값) 그 갈래가 아예 없다. 우리는 수단을
+ * 미리 골라 주지 않으므로 비활성으로만 표현한다 — `design.md:977` 이 출금 CTA 에
+ * 같은 규칙("유효하지 않으면 비활성으로만 표현하고 버튼 문구를 바꾸지 않는다")을 적었다.
+ */
+function depositCtaLabel(amount: number | null, exceedsLimit: boolean): string {
+  if (amount === null || amount <= 0) {
+    return '입금 금액을 입력해 주세요';
+  }
+  if (exceedsLimit) {
+    return '입금 금액을 확인해 주세요';
+  }
+  return `${formatKrw(amount)} 결제하기`;
+}
+
 export function DepositPage() {
-  const [step, setStep] = useState<Step>('amount');
   const [amount, setAmount] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
     null,
@@ -78,16 +109,54 @@ export function DepositPage() {
   const readyMutation = useDepositReady();
 
   const limit = limitQuery.data;
+  /*
+   * 한도 초과 안내는 **한 문장이다.** 1회 초과와 누적 초과를 구분하지 않는다 —
+   * 프로토타입 `depOver` 가 `depAmt>10000000 || depAmt>cumLeft` 로 두 조건을 OR 로
+   * 묶고 문장을 하나만 만든다. 남은 한도 숫자에는 `depCumLeft`(=`cumLeft`, 누적
+   * 한도에서 쓴 만큼을 뺀 값)를 끼우는데, 우리 쪽 대응 값은 `GET /deposits/limit`
+   * 의 `remainingAmount` 다 (contracts C49).
+   *
+   * **근거 넷이 서로 다른 문장을 말한다.** 프로토타입을 골랐다 — 판정 기준이
+   * "UI 요소(배치·모양·문구·위계)는 프로토타입을 따른다" 이고 문구가 거기 든다.
+   *   프로토타입      한 문장. 남은 한도 하나만 넣는다 (아래 문장)
+   *   직전 구현       두 문장. 1회 초과와 누적 초과를 갈랐다
+   *   `ia.md:88`     합니다체 또 다른 문장. `design.md` §13 Tone 이 해요체를
+   *                  요구하고 프로토타입도 해요체라 버렸다
+   *   `depositErrorMessages.ts` 의 `depositLimitExceededMessage()`
+   *                  결제 복귀·모의 이체가 쓰는 또 다른 문장
+   *
+   * **마지막 것과 문장을 맞추지 않는다.** `design.md:969` 가 "한도 초과 문구는
+   * 충전 화면과 같은 문장을 쓴다" 고 요구하지만 프로토타입 자신이 두 화면에서
+   * 다른 문장을 쓴다. 문맥이 갈린다 — 이 화면은 "지금 넣은 금액이 넘었다" 를
+   * 알리고, 결제 실패 화면은 "무엇을 하라" 를 안내한다. 그래서 저 함수는
+   * 건드리지 않았다.
+   *
+   * **같은 화면에 저 함수의 문장도 나올 수 있다** — 아래 `readyErrorMessage` 가
+   * `ready` 의 `DEPOSIT_LIMIT_EXCEEDED`(409)를 그 함수로 그린다. 이 검사를
+   * 통과한 뒤 다른 충전이 끼어들어 한도가 줄었을 때만 오는 갈래라(C49, 진실은
+   * `confirm` 이다) 둘이 한 번에 뜨지는 않는다.
+   */
   const amountError =
-    amount !== null && limit !== undefined
-      ? amount > limit.perRequestLimit
-        ? `한 번에 ${formatKrw(limit.perRequestLimit)}까지 입금할 수 있어요`
-        : amount > limit.remainingAmount
-          ? `입금할 수 있는 금액을 넘었어요. (잔여 한도: ${formatKrw(limit.remainingAmount)})`
-          : undefined
+    amount !== null &&
+    limit !== undefined &&
+    (amount > limit.perRequestLimit || amount > limit.remainingAmount)
+      ? `입금 한도를 넘었어요. 남은 한도는 ${formatKrw(limit.remainingAmount)}이에요.`
       : undefined;
 
-  const canProceed = amount !== null && amount > 0 && amountError === undefined;
+  const exceedsLimit = amountError !== undefined;
+  const canSubmit =
+    amount !== null &&
+    amount > 0 &&
+    !exceedsLimit &&
+    paymentMethod !== null &&
+    !readyMutation.isPending;
+
+  const methodLabel =
+    paymentMethod === null
+      ? NO_VALUE
+      : paymentMethod === 'KAKAOPAY'
+        ? '카카오페이'
+        : '계좌이체';
 
   function handleReady() {
     if (amount === null || paymentMethod === null || readyMutation.isPending) {
@@ -111,106 +180,141 @@ export function DepositPage() {
   }
 
   return (
-    <PageMain className="pb-32">
+    /* ActionBar 가 fixed 라 마지막 내용이 그 밑에 깔린다. 바 높이만큼 띄운다
+       (`ActionBar` 주석: "이 바를 쓰는 화면은 본문 아래에 바 높이만큼 여백을 둔다"). */
+    <PageMain className="pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
       <h1 className="text-title-3 text-text-primary">입금</h1>
 
-      {step === 'amount' && (
-        <div className="mt-6 flex flex-col gap-6">
-          <AmountInput
-            label="입금할 금액"
-            value={amount}
-            onChange={setAmount}
-            presets={DEPOSIT_PRESETS}
-            errorMessage={amountError}
-          />
+      {/* 섹션 간격 32px 은 프로토타입 `.sec{margin-top:32px}` 실측값이다. */}
+      <div className="mt-8 flex flex-col gap-8">
+        <AmountInput
+          label="입금 금액"
+          value={amount}
+          onChange={setAmount}
+          presets={DEPOSIT_PRESETS}
+          errorMessage={amountError}
+        />
 
-          {/*
-           * 세 줄이다 — `1회 한도` · `누적 한도` · `잔여 한도`. 라벨과 순서는
-           * 프로토타입(`isDeposit` L2643-2645)과 `design.md:946` · `ia.md:87` 이
-           * 같은 것을 말한다. 어느 필드가 어느 줄인지도 계약이 정한다 —
-           * `perRequestLimit`(1회) · `cumulativeLimit`(계정 전체 누적 한도) ·
-           * `remainingAmount`(남은 몫). **`depositedAmount`(누적 입금액)는 이
-           * 박스에 없다** — `누적 한도` 는 한도이고 누적 입금액이 아니다
-           * (contracts C49 · apiSpec §4.1).
-           *
-           * 구분선은 마지막 `잔여 한도` 줄 위에 온다 — 앞 두 줄이 고정 한도이고
-           * 마지막 줄만 쓴 만큼에 따라 움직이는 값이라 묶음이 갈린다(프로토타입 L2645).
-           */}
-          {limit !== undefined && (
-            <SoftBox>
-              <SoftBoxRow
-                label="1회 한도"
-                value={formatKrw(limit.perRequestLimit)}
-              />
-              <SoftBoxRow
-                label="누적 한도"
-                value={formatKrw(limit.cumulativeLimit)}
-              />
-              <SoftBoxRow
-                label="잔여 한도"
-                value={formatKrw(limit.remainingAmount)}
-                divided
-              />
-            </SoftBox>
-          )}
-
-          <div>
-            <p className="mb-2.5 text-label text-text-secondary">결제 수단</p>
-            <PaymentMethodPicker
-              value={paymentMethod}
-              onChange={setPaymentMethod}
-            />
-          </div>
-        </div>
-      )}
-
-      {step === 'confirm' && amount !== null && paymentMethod !== null && (
-        <div className="mt-6 flex flex-col gap-6">
+        {/*
+         * 세 줄이다 — `1회 한도` · `누적 한도` · `잔여 한도`. 라벨과 순서는
+         * 프로토타입(`isDeposit` L2643-2645)과 `design.md:946` · `ia.md:87` 이
+         * 같은 것을 말한다. 어느 필드가 어느 줄인지도 계약이 정한다 —
+         * `perRequestLimit`(1회) · `cumulativeLimit`(계정 전체 누적 한도) ·
+         * `remainingAmount`(남은 몫). **`depositedAmount`(누적 입금액)는 이
+         * 박스에 없다** — `누적 한도` 는 한도이고 누적 입금액이 아니다
+         * (contracts C49 · apiSpec §4.1).
+         *
+         * 값은 서버가 준 것을 그대로 그린다. 화면이 계산하지 않는다(`ia.md:87`).
+         *
+         * 구분선은 마지막 `잔여 한도` 줄 위에 온다 — 앞 두 줄이 고정 한도이고
+         * 마지막 줄만 쓴 만큼에 따라 움직이는 값이라 묶음이 갈린다(프로토타입 L2645).
+         *
+         * **회색 Soft Box 다.** 아래 `확인` 은 흰 카드라 둘이 면색으로 갈린다
+         * (프로토타입 L2641 `.soft` vs L2663 `.card`).
+         */}
+        {limit !== undefined && (
           <SoftBox>
             <SoftBoxRow
-              label="결제 수단"
-              value={paymentMethod === 'KAKAOPAY' ? '카카오페이' : '계좌이체'}
+              label="1회 한도"
+              value={formatKrw(limit.perRequestLimit)}
             />
-            <SoftBoxRow label="입금 금액" value={formatKrw(amount)} divided />
+            <SoftBoxRow
+              label="누적 한도"
+              value={formatKrw(limit.cumulativeLimit)}
+            />
+            <SoftBoxRow
+              label="잔여 한도"
+              value={formatKrw(limit.remainingAmount)}
+              divided
+            />
+          </SoftBox>
+        )}
+
+        {/* 필드 라벨이 아니라 섹션 제목이다 (프로토타입 L2650 `.sh`>`.sht`). */}
+        <section>
+          <h2 className={SECTION_TITLE_CLASS}>결제 수단</h2>
+          <PaymentMethodPicker
+            value={paymentMethod}
+            onChange={setPaymentMethod}
+          />
+        </section>
+
+        {/*
+         * `확인` 은 프로토타입에 있던 섹션이다(L2662). 위저드를 없애면서 사라질
+         * 자리가 아니다 — 금액·수단을 고른 결과를 같은 화면에서 되짚는 요약이고,
+         * `ia.md:84` 가 "확인 화면은 그대로 남는다. 결제 수단·충전 금액·충전 후
+         * 예수금을 보여주고 최종 확인을 받는다" 고 적었다.
+         *
+         * 아직 고르지 않은 값은 `—` 로 둔다. 프로토타입은 금액·수단에 초기값이
+         * 있어(`depAmt:500000` · `depMethod:"kakao"`) 빈 자리가 없다.
+         */}
+        <section>
+          <h2 className={SECTION_TITLE_CLASS}>확인</h2>
+          <Card>
+            <SoftBoxRow label="결제 수단" value={methodLabel} />
+            <SoftBoxRow
+              label="입금 금액"
+              value={amount === null ? NO_VALUE : formatKrw(amount)}
+              divided
+            />
             {accountQuery.data !== undefined && (
               <SoftBoxRow
                 label="입금 후 예수금"
-                value={formatKrw(accountQuery.data.cashBalance + amount)}
+                value={formatKrw(accountQuery.data.cashBalance + (amount ?? 0))}
                 divided
               />
             )}
-          </SoftBox>
-
-          <p className="text-caption text-text-muted">
-            충전은 취소할 수 없습니다.
-          </p>
-
-          {readyMutation.error !== null && (
-            <p className="text-caption text-danger">
-              {readyErrorMessage(readyMutation.error)}
+            {/*
+             * 취소 불가는 카드 밖 독립 단락이 아니라 카드 안 구분선 아래 캡션이다
+             * (프로토타입 L2667). 문장은 해요체다 — 프로토타입과 `design.md:948`
+             * 이 해요체이고 `design.md` §13 Tone 이 그것을 요구한다. `ia.md:84` 만
+             * 합니다체("충전은 취소할 수 없습니다")인데 그쪽이 낡았다.
+             */}
+            <p className="mt-3.5 border-t border-border pt-3.5 text-caption leading-5 text-text-muted">
+              입금은 취소할 수 없어요.
             </p>
-          )}
+          </Card>
+        </section>
 
-          <button
-            type="button"
-            onClick={() => setStep('amount')}
-            className="text-label text-text-secondary underline"
-          >
-            금액·수단 다시 선택
-          </button>
+        {/*
+         * 모의 결제라는 사실을 알리는 안내 카드 (프로토타입 L2671-2675). 문구는
+         * 프로토타입 원문이다 — 이 문장에는 바꿀 용어가 없다.
+         *
+         * 면과 테두리는 안내 카드 전용 토큰이다 — `note-surface`(프로토타입
+         * `--note`) + `note-border`(`--note-b`). `design.md:151-152` 가 그 둘을
+         * "안내 카드" 토큰으로 적었고 `styles/index.css` 가 그 이름으로 들고 있다.
+         * 근사값(`surface-soft` + `divider`)으로 그렸던 것을 제 값으로 바꿨다.
+         *
+         * `Card` 를 쓰지 않은 이유 — 면색·테두리를 `className` 으로 덮으면 같은
+         * 특이도의 클래스가 둘이 되어 어느 쪽이 이길지 스타일시트 순서에 달린다.
+         * `OrderPage` 의 사유 카드도 같은 이유로 인라인 클래스를 쓴다.
+         */}
+        <div className="rounded-card border border-note-border bg-note-surface p-5">
+          <p className="text-body-2 text-text-secondary">
+            프로토타입이라 실제 결제는 일어나지 않아요. 금액만 계좌에 반영돼요.
+          </p>
         </div>
-      )}
 
-      <ActionBar>
-        {step === 'amount' ? (
-          <Button disabled={!canProceed} onClick={() => setStep('confirm')}>
-            다음
-          </Button>
-        ) : (
-          <Button disabled={readyMutation.isPending} onClick={handleReady}>
-            {readyMutation.isPending ? '확인하고 있어요' : '입금하기'}
-          </Button>
+        {readyMutation.error !== null && (
+          <p className="text-caption text-danger">
+            {readyErrorMessage(readyMutation.error)}
+          </p>
         )}
+      </div>
+
+      {/*
+       * CTA 는 하나다 (프로토타입 L2678). 위저드의 `다음` 과 단계 되돌리기
+       * (`금액·수단 다시 선택`)는 단계가 없어져 함께 사라졌다.
+       *
+       * 잠금은 남긴다 — `isPending` 동안 눌리지 않아야 `ready` 가 두 번 나가지
+       * 않는다(contracts C92).
+       */}
+      <ActionBar>
+        <Button disabled={!canSubmit} onClick={handleReady}>
+          {readyMutation.isPending
+            ? '확인하고 있어요'
+            : depositCtaLabel(amount, exceedsLimit)}
+        </Button>
       </ActionBar>
     </PageMain>
   );
