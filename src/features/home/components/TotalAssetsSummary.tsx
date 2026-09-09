@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
+import { formatKstMonthDayTime } from '@/shared/lib/formatDate';
 import {
   formatAmount,
   formatSignedAmount,
@@ -18,18 +19,6 @@ const DIRECTION_TEXT_CLASS = {
   fall: 'text-stock-down',
   flat: 'text-stock-neutral',
 } as const;
-
-/**
- * 기준 시각을 `MM.DD HH:mm` 으로 자른다 (프로토타입 `asOf: "08.28 09:00"`).
- * 날짜를 빼면 어제 값인지 오늘 값인지 알 수 없다. 초 단위는 화면에 필요 없다.
- */
-function formatAsOfTime(iso: string): string {
-  const match = /^\d{4}-(\d{2})-(\d{2})T(\d{2}:\d{2})/.exec(iso);
-  if (match === null) {
-    return iso;
-  }
-  return `${match[1]}.${match[2]} ${match[3]}`;
-}
 
 /**
  * `원` 단위는 숫자와 띄어 쓰고 한 단계 낮춘다 (프로토타입 `.d36` 안의 별도 span —
@@ -139,7 +128,7 @@ export function TotalAssetsSummary({
             {formatSignedRate(evaluationTotals.rate)}
           </p>
           <p className="mt-2 text-caption text-text-muted">
-            {formatAsOfTime(account.data.asOf)} 기준
+            {formatKstMonthDayTime(account.data.asOf)} 기준
           </p>
         </>
       )}
