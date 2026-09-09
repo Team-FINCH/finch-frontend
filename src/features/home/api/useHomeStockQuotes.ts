@@ -25,8 +25,11 @@ export function useHomeStockQuotes(stockCodes: readonly string[]) {
     queryKey: queryKeys.stockQuotes.batch(capped),
     queryFn: ({ signal }) => getHomeStockQuotes(capped, signal),
     enabled: capped.length > 0,
-    staleTime: QUOTE_POLLING_INTERVAL_MS.list,
     refetchInterval: QUOTE_POLLING_INTERVAL_MS.list,
+    // 폴링 값이라 항상 오래된 것으로 본다. staleTime 이 주기와 같으면 타이머가 깨어나는
+    // 순간이 막 stale 이 되는 경계라 한 주기를 통째로 건너뛸 수 있다.
+    // useStockQuote·useOrderAvailable 도 같은 이유로 0 이다.
+    staleTime: 0,
     // 창이 백그라운드에 있어도 다음 포커스 때 낡은 값이 잠깐 보이지 않게 유지한다.
     refetchIntervalInBackground: false,
   });
