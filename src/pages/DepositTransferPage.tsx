@@ -139,7 +139,7 @@ export function DepositTransferPage() {
         <DepositResultScreen
           variant="error"
           errorMessage={errorMessage}
-          primaryLabel="다시 충전하기"
+          primaryLabel="다시 입금하기"
           onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
           secondaryLabel="나중에 하기"
           onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
