@@ -2,14 +2,13 @@ import { Link } from 'react-router-dom';
 
 import { isHttpError } from '@/shared/api';
 import type { AiBriefingItem } from '@/shared/types/ai/briefing';
+import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useHomeBriefing } from '../api/useHomeBriefing';
 import { briefingCategoryLabel } from '../lib/briefingCategoryLabel';
-
-import { AiSegmentText } from './AiSegmentText';
 
 /**
  * 브리핑 전체 화면 본문 (ia.md §4 "1번 슬롯 — 브리핑은 블록 하나에 항목 최대

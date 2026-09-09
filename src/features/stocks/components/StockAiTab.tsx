@@ -5,13 +5,13 @@ import {
   type AiAnalysisSection,
 } from '@/shared/types/ai/analysis';
 import { AiCard } from '@/shared/ui/AiCard';
+import { AiCitationList } from '@/shared/ui/AiCitationList';
+import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
+import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useStockAnalysis } from '../api/useStockAnalysis';
-
-import { AiCitationList } from './AiCitationList';
-import { AiFeedbackRow } from './AiFeedbackRow';
 
 /**
  * AI 분석 탭 (프로토타입 `isDtAi` 블록, ia.md §4 슬롯 3번).
@@ -70,64 +70,6 @@ type StockAiTabProps = {
   isActive: boolean;
 };
 
-/** 등락색. `direction` 이 `up`/`down` 일 때만 쓴다 (국내 관례 — 상승 적색·하락 청색). */
-const DIRECTION_CLASS: Record<'up' | 'down', string> = {
-  up: 'text-stock-up',
-  down: 'text-stock-down',
-};
-
-/**
- * 서술 한 덩어리의 문장 (C55 · ia.md §4 "문장은 `text` 하나면 렌더된다").
- *
- * `segments` 를 이어 붙이면 `text` 와 정확히 일치한다는 보장이 있어 숫자를 정규식으로
- * 찾아 칠하지 않고 조각을 순회한다. 조각이 비어 있으면 `text` 를 그대로 쓴다.
- *
- * **검정 면에서는 등락색을 쓰지 않는다.** `--color-stock-up`(#c93b3b) ·
- * `-down`(#2258c9)은 `--color-ai-surface`(#24272c) 위에서 대비가 3.0 · 2.4 로 AA 에
- * 못 미친다. 그 자리는 design.md §8.1 "AI Accent는 핵심 결과에만" 에 따라
- * `--color-ai-accent` 로 강조만 한다. 색만으로 등락을 말하지 않는다는 규약
- * (frontConvention §11)은 `value` 문자열에 부호가 이미 들어 있어 유지된다.
- *
- * **`features/home` 의 `AiSegmentText` 와 같은 일을 한다.** feature 끼리 import 하지
- * 못하고(frontConvention 의존 방향, ESLint `import-x/no-restricted-paths`)
- * `shared/ui` 로 올리려면 `features/home` 쪽을 함께 고쳐야 해서 이 티켓에서는
- * 옮기지 않았다. 세 번째 자리가 생기면 그때 `shared/ui` 로 올린다.
- */
-function AnalysisSentence({
-  section,
-  onDark = false,
-}: {
-  section: AiAnalysisSection;
-  onDark?: boolean;
-}) {
-  if (section.segments.length === 0) {
-    return <>{section.text}</>;
-  }
-
-  return (
-    <>
-      {section.segments.map((segment, index) => {
-        if (segment.direction === null) {
-          return <span key={index}>{segment.value}</span>;
-        }
-
-        const emphasis = onDark
-          ? 'text-ai-accent'
-          : DIRECTION_CLASS[segment.direction];
-
-        return (
-          <span
-            key={index}
-            className={`font-semibold tabular-nums ${emphasis}`}
-          >
-            {segment.value}
-          </span>
-        );
-      })}
-    </>
-  );
-}
-
 /**
  * 검정 카드 아래의 평면 섹션 하나 (design.md §8.3 — "기본 Background 위 Flat Section",
  * "모든 Section을 Card로 만들지 않는다", "Section 간 충분한 여백").
@@ -143,7 +85,7 @@ function AnalysisSectionBlock({ section }: { section: AiAnalysisSection }) {
         </h3>
       )}
       <p className="text-body-2 leading-6 text-pretty text-text-secondary">
-        <AnalysisSentence section={section} />
+        <AiSegmentText segments={section.segments} text={section.text} />
       </p>
     </section>
   );
@@ -228,7 +170,11 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
           </span>
         ) : current === null ? null : (
           <span className="mt-3 block text-body-2 leading-6 text-pretty text-ai-text-secondary">
-            <AnalysisSentence section={current} onDark />
+            <AiSegmentText
+              segments={current.segments}
+              text={current.text}
+              onDark
+            />
           </span>
         )}
       </AiCard>
@@ -237,7 +183,12 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
         <AnalysisSectionBlock key={entry.key} section={entry.section} />
       ))}
 
-      <AiCitationList citations={citations} />
+      <AiCitationList
+        citations={citations}
+        title="근거"
+        showPublisher
+        className="mt-8"
+      />
 
       {/* disclaimer 는 하드코딩하지 않고 응답 값을 그대로 쓴다 — 규제 문구가 바뀌면
           서버만 고치게 하기 위해서다 (envelope.ts 주석). */}
@@ -245,7 +196,7 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
         {disclaimer}
       </p>
 
-      <AiFeedbackRow requestId={requestId} />
+      <AiFeedbackRow requestId={requestId} className="mt-5" />
     </div>
   );
 }

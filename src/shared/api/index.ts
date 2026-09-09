@@ -8,4 +8,5 @@ export {
   parseRetryAfterMs,
 } from './errors';
 export { request, requestNoContent } from './httpClient';
+export { postAiFeedback } from './postAiFeedback';
 export { createQueryClient } from './queryClient';

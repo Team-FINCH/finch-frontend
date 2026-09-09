@@ -6,13 +6,12 @@ import { formatSignedPercent } from '@/shared/lib/formatNumber';
 import { type AiAttributionRow } from '@/shared/types/ai/attribution';
 import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
+import { AiCitationList } from '@/shared/ui/AiCitationList';
+import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { usePortfolioAttribution } from '../api/usePortfolioAttribution';
-
-import { AiCitationList } from './AiCitationList';
-import { AiFeedbackRow } from './AiFeedbackRow';
 
 const DIRECTION_TEXT_CLASS = {
   up: 'text-stock-up',

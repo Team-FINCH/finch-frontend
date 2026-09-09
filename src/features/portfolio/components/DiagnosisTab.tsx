@@ -3,12 +3,11 @@ import { isRetryableAiErrorCode } from '@/shared/lib/aiErrorRetry';
 import { formatPercent } from '@/shared/lib/formatNumber';
 import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
+import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { usePortfolioDiagnosis } from '../api/usePortfolioDiagnosis';
-
-import { AiCitationList } from './AiCitationList';
 
 const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as const;
 
