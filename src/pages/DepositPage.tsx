@@ -13,6 +13,7 @@ import { formatKrw } from '@/shared/lib/formatNumber';
 import { type PaymentMethod } from '@/shared/types/deposit';
 import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
+import { Card } from '@/shared/ui/Card';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
 
@@ -42,6 +43,10 @@ const DEPOSIT_PRESETS = [10_000, 100_000, 1_000_000] as const;
 
 /** 아직 고르지 않은 값의 자리. 글리프는 `StockRow` 와 같은 것을 쓴다. */
 const NO_VALUE = '—';
+
+/** 섹션 제목. 프로토타입 `.sh`·`.sht` 실측 — 18px/700 · 자간 -.01em · 아래 여백 14px. */
+const SECTION_TITLE_CLASS =
+  'mb-3.5 text-title-3 font-bold tracking-[-.01em] text-text-primary';
 
 /**
  * `ready` 실패 문구.
@@ -158,6 +163,9 @@ export function DepositPage() {
          *
          * 구분선은 마지막 `잔여 한도` 줄 위에 온다 — 앞 두 줄이 고정 한도이고
          * 마지막 줄만 쓴 만큼에 따라 움직이는 값이라 묶음이 갈린다(프로토타입 L2645).
+         *
+         * **회색 Soft Box 다.** 아래 `확인` 은 흰 카드라 둘이 면색으로 갈린다
+         * (프로토타입 L2641 `.soft` vs L2663 `.card`).
          */}
         {limit !== undefined && (
           <SoftBox>
@@ -177,13 +185,14 @@ export function DepositPage() {
           </SoftBox>
         )}
 
-        <div>
-          <p className="mb-2.5 text-label text-text-secondary">결제 수단</p>
+        {/* 필드 라벨이 아니라 섹션 제목이다 (프로토타입 L2650 `.sh`>`.sht`). */}
+        <section>
+          <h2 className={SECTION_TITLE_CLASS}>결제 수단</h2>
           <PaymentMethodPicker
             value={paymentMethod}
             onChange={setPaymentMethod}
           />
-        </div>
+        </section>
 
         {/*
          * `확인` 은 프로토타입에 있던 섹션이다(L2662). 위저드를 없애면서 사라질
@@ -194,25 +203,48 @@ export function DepositPage() {
          * 아직 고르지 않은 값은 `—` 로 둔다. 프로토타입은 금액·수단에 초기값이
          * 있어(`depAmt:500000` · `depMethod:"kakao"`) 빈 자리가 없다.
          */}
-        <SoftBox>
-          <SoftBoxRow label="결제 수단" value={methodLabel} />
-          <SoftBoxRow
-            label="입금 금액"
-            value={amount === null ? NO_VALUE : formatKrw(amount)}
-            divided
-          />
-          {accountQuery.data !== undefined && (
+        <section>
+          <h2 className={SECTION_TITLE_CLASS}>확인</h2>
+          <Card>
+            <SoftBoxRow label="결제 수단" value={methodLabel} />
             <SoftBoxRow
-              label="입금 후 예수금"
-              value={formatKrw(accountQuery.data.cashBalance + (amount ?? 0))}
+              label="입금 금액"
+              value={amount === null ? NO_VALUE : formatKrw(amount)}
               divided
             />
-          )}
-        </SoftBox>
+            {accountQuery.data !== undefined && (
+              <SoftBoxRow
+                label="입금 후 예수금"
+                value={formatKrw(accountQuery.data.cashBalance + (amount ?? 0))}
+                divided
+              />
+            )}
+            {/* 취소 불가는 카드 밖 독립 단락이 아니라 카드 안 구분선 아래
+                캡션이다 (프로토타입 L2667). */}
+            <p className="mt-3.5 border-t border-border pt-3.5 text-caption leading-5 text-text-muted">
+              충전은 취소할 수 없습니다.
+            </p>
+          </Card>
+        </section>
 
-        <p className="text-caption text-text-muted">
-          충전은 취소할 수 없습니다.
-        </p>
+        {/*
+         * 모의 결제라는 사실을 알리는 안내 카드 (프로토타입 L2671-2675).
+         *
+         * 프로토타입은 `--note`(#F4F6F8) 면 + `--note-b`(#E1E6EB) 테두리이고
+         * `design.md:151-152` 가 그 둘을 "안내 카드" 토큰으로 적었다. 토큰 파일에는
+         * 아직 그 이름이 없어(`styles/index.css:87` 이 죽은 AI 토큰으로 보고 지웠다)
+         * 값이 가장 가까운 `surface-soft`(#F1F3F6) + `divider`(#DFE4EA)로 그렸다.
+         * 색값을 화면에 직접 박지 않는다는 토큰 파일 방침을 지키기 위한 것이다.
+         *
+         * `Card` 를 쓰지 않은 이유 — 면색·테두리를 `className` 으로 덮으면 같은
+         * 특이도의 클래스가 둘이 되어 어느 쪽이 이길지 스타일시트 순서에 달린다.
+         * `OrderPage` 의 사유 카드도 같은 이유로 인라인 클래스를 쓴다.
+         */}
+        <div className="rounded-card border border-divider bg-surface-soft p-5">
+          <p className="text-body-2 text-text-secondary">
+            프로토타입이라 실제 결제는 일어나지 않아요. 금액만 계좌에 반영돼요.
+          </p>
+        </div>
 
         {readyMutation.error !== null && (
           <p className="text-caption text-danger">
