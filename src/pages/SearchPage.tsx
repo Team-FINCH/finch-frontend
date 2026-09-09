@@ -96,17 +96,24 @@ export function SearchPage() {
 
   return (
     <PageMain>
-      {/* 프로토타입 isSearch 블록의 `<div class="nav"><span class="navt">탐색</span></div>`.
-          다른 상시 화면(홈·포트폴리오·내 정보)과 같은 자리·같은 크기의 제목이다 —
-          여기만 sr-only 로 두면 탭을 옮길 때 이 화면만 제목이 사라져 보인다.
-          알림함 뱃지는 넣지 않는다. 프로토타입의 탐색 nav 에는 없다 (ia.md §1). */}
-      <h1 className="mb-4 text-title-3 font-bold tracking-[-.01em] text-text-primary">
-        탐색
-      </h1>
+      {/* 프로토타입 isSearch 블록의 `<div class="nav"><span class="navt">탐색</span></div>`
+          와 그 아래 검색 입력 줄이다. 다른 상시 화면(홈·포트폴리오·내 정보)과 같은
+          자리·같은 크기의 제목이라 여기만 sr-only 로 두면 탭을 옮길 때 이 화면만
+          제목이 사라져 보인다. 알림함 뱃지는 넣지 않는다 — 프로토타입의 탐색 nav
+          에는 없다 (ia.md §1).
 
-      <StockSearchField value={input} onChange={setInput} />
+          **둘 다 스크롤 밖에 남는다.** 프로토타입은 `.nav` 와 입력 줄을 `flex:none`
+          으로 `.sc` 앞에 두어 본문만 굴린다(proto L1566-1572). 우리는 `PageMain`
+          자신이 `.sc` 자리라 그 안에서 `sticky top-0` 로 같은 결과를 만든다 —
+          `PageHeader` 가 쓰는 방식과 같고, 좌우 26px·위 24px 여백을 음수 마진으로
+          끌어와 배경을 깔아야 본문이 글자 뒤로 지나간다.
+          아래 16px 은 입력 줄의 `padding-bottom` 이다 (proto L1567). */}
+      <div className="sticky top-0 z-10 -mx-6.5 -mt-6 bg-bg px-6.5 pt-6 pb-4">
+        <h1 className="mb-4 text-section-title text-text-primary">탐색</h1>
+        <StockSearchField value={input} onChange={setInput} />
+      </div>
 
-      <div className="mt-4">
+      <div>
         {isTooShort && (
           <p className="pt-1 text-body-2 text-text-secondary">
             {STOCK_SEARCH_MIN_KEYWORD_LENGTH}글자 이상 입력해 주세요
