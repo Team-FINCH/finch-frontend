@@ -3,9 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useDepositConfirm } from '@/features/deposit/api/useDepositConfirm';
 import { DepositResultScreen } from '@/features/deposit/components/DepositResultScreen';
-import { isDepositExpiredErrorCode } from '@/features/deposit/lib/depositErrorMessages';
+import { depositConfirmErrorMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { parsePositiveIntParam } from '@/features/deposit/lib/queryParams';
-import { isHttpError } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
 import { PageMain } from '@/shared/ui/PageMain';
 
@@ -26,8 +25,9 @@ import { PageMain } from '@/shared/ui/PageMain';
  *
  * **만료 처리** — 시한이 지난 뒤 `confirm` 을 부르면 `DEPOSIT_NOT_APPROVED` 또는
  * `DEPOSIT_PAYMENT_FAILED` 둘 중 하나가 온다(만료 정리 배치가 하루 1회만 돌아서
- * DB 상태가 갈리기 때문). 이 화면은 `isDepositExpiredErrorCode` 로 둘을 같은
- * 만료 화면(`DepositResultScreen` 의 `expired` 배리언트)으로 묶는다.
+ * DB 상태가 갈리기 때문). **만료 전용 화면은 없다** — `design.md:967` 이 "결제
+ * 만료(15분)도 실패 상태로 처리하고 별도 화면을 만들지 않는다" 고 명시했으므로,
+ * 두 코드는 실패 화면의 문구 하나로 묶인다(`depositConfirmErrorMessage`).
  *
  * 돌아갈 곳 — 예수금 부족으로 충전에 왔다가 원래 화면(주문 등)으로 복귀하는 경로는
  * `redirect` 쿼리를 실어 보낼 수 있는지가 복귀 URL 형태에 달렸는데 그 값을 아직
@@ -85,28 +85,19 @@ export function DepositCompletePage() {
   }
 
   if (confirmMutation.isError) {
-    const error = confirmMutation.error;
-    const code = isHttpError(error) ? error.code : null;
-
-    if (isDepositExpiredErrorCode(code)) {
-      return (
-        <PageMain>
-          <DepositResultScreen
-            variant="expired"
-            primaryLabel="다시 입금하기"
-            onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
-          />
-        </PageMain>
-      );
-    }
-
+    /*
+     * 확정 실패는 코드를 가리지 않고 한 화면이다(위 "만료 처리"). 주 동작은
+     * 어느 코드든 입금 화면으로 되돌리는 것이다 — 확정에서 막힌 건은 `FAILED`
+     * 로 굳어 같은 건을 다시 확정할 수 없으므로 처음부터 다시 하는 경로만
+     * 준다(`ia.md:85` · contracts C85).
+     */
     return (
       <PageMain>
         <DepositResultScreen
           variant="error"
-          errorMessage={isHttpError(error) ? error.message : undefined}
-          primaryLabel="홈으로"
-          onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
+          errorMessage={depositConfirmErrorMessage(confirmMutation.error)}
+          primaryLabel="다시 충전하기"
+          onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
         />
       </PageMain>
     );

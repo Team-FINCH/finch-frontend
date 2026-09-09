@@ -7,14 +7,14 @@ import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
 /**
  * 충전 확정(`confirm`)의 결과 화면. 결제 복귀 성공(`DepositCompletePage`)과
  * 모의 이체(`DepositTransferPage`) 둘이 함께 쓴다 — 둘 다 마지막에 같은 `confirm`
- * 을 부르고 같은 세 갈래(성공·만료·그 밖의 에러)로 갈리기 때문이다.
+ * 을 부르고 같은 세 갈래(확정 중·성공·실패)로 갈리기 때문이다.
  *
- * **만료(`expired`)는 `DEPOSIT_NOT_APPROVED`·`DEPOSIT_PAYMENT_FAILED` 두 코드를
- * 하나로 묶은 것이다** — 만료 정리 배치가 하루 1회만 돌아 어느 코드가 오는지가
- * 시각에 따라 갈리므로, 사용자에게는 같은 뜻("제시간에 확인되지 않았다")으로 보여준다.
+ * **실패는 하나다. 결제 만료에 전용 배리언트를 두지 않는다** — `design.md:967` 이
+ * "결제 만료(15분)도 실패 상태로 처리하고 별도 화면을 만들지 않는다" 고 명시했다.
+ * 만료를 나타내는 문장은 `depositConfirmErrorMessage` 가 `errorMessage` 로 넣는다.
  */
 type DepositResultScreenProps = {
-  variant: 'pending' | 'success' | 'expired' | 'error';
+  variant: 'pending' | 'success' | 'error';
   amount?: number;
   cashBalanceAfter?: number;
   /** `error` 일 때만 쓴다. 서버 `message` 를 그대로 보여준다(컨벤션 §5). */
@@ -24,21 +24,10 @@ type DepositResultScreenProps = {
   secondary?: ReactNode;
 };
 
-const CONTENT: Record<
-  Exclude<DepositResultScreenProps['variant'], 'pending' | 'error'>,
-  { glyph: string; title: string; description: string }
-> = {
-  success: {
-    glyph: '✓',
-    title: '입금이 완료됐어요',
-    description: '예수금에 반영됐어요.',
-  },
-  expired: {
-    glyph: '◌',
-    title: '결제 확인 시간이 지났어요',
-    description:
-      '결제창이 열려 있던 사이 시간이 초과됐어요. 다시 입금해 주세요.',
-  },
+const SUCCESS_CONTENT = {
+  glyph: '✓',
+  title: '입금이 완료됐어요',
+  description: '예수금에 반영됐어요.',
 };
 
 export function DepositResultScreen({
@@ -71,7 +60,7 @@ export function DepositResultScreen({
           title: '입금을 확정하지 못했어요',
           description: errorMessage ?? '잠시 후 다시 시도해 주세요.',
         }
-      : CONTENT[variant];
+      : SUCCESS_CONTENT;
 
   return (
     <div className="flex flex-col items-center px-6 pt-14.5 pb-5 text-center">
