@@ -4,7 +4,7 @@ import { StockCodeSchema, type StockCode } from '@/shared/types/primitives';
 /**
  * `/chat` 은 전용 화면만이 아니다 — 값이 있는 화면에서 열면 `screen`·`ticker` 를
  * 쿼리로 실어 보낸다(`ia.md` §2 "채팅은 `/chat` 전용 화면만이 아니다"). 이 화면
- * 자체로 들어오면(플로팅 버튼 없이 직접 `/chat`) `screen` 은 다섯 열거값 중
+ * 자체로 들어오면(플로팅 버튼 없이 직접 `/chat`) `screen` 은 여섯 열거값 중
  * `chat` 을 쓴다(티켓 프롬프트).
  *
  * **`stock_detail` 인데 `ticker` 가 없거나 6자리 종목코드가 아니면 맥락을 신뢰하지
