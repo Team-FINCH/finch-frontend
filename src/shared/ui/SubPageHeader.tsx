@@ -80,7 +80,7 @@ export function SubPageHeader({
         </button>
       ) : null}
       <h1
-        className={`flex-1 text-title-3 font-bold tracking-[-.01em] text-text-primary ${
+        className={`flex-1 text-section-title text-text-primary ${
           showBack ? '' : 'pl-2.75'
         }`}
       >

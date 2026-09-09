@@ -130,7 +130,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative pb-2 text-title-3 font-bold tracking-[-0.01em] ${
+      className={`relative pb-2 text-section-title ${
         active ? 'text-text-primary' : 'text-text-secondary'
       }`}
     >

@@ -23,9 +23,9 @@ import { ROUTES } from '@/shared/config/routes';
  * `features/inbox` 를 부르는 것은 페이지 계층에서 하고, 여기는 숫자만 받는다
  * (컨벤션 §2, feature 끼리 서로 import 할 수 없다).
  *
- * 제목 굵기는 700 이다. `text-title-3` 토큰 자체는 600 인데, 프로토타입 `.navt` 가
- * `font-weight:700; letter-spacing:-.01em` 이라 이 자리에서만 올린다 — 토큰을 바꾸면
- * `text-title-3` 을 쓰는 다른 자리(빈 상태 제목 등)까지 함께 굵어진다.
+ * 제목은 `text-section-title`(18px/700/-.01em, 프로토타입 `.navt`)이다. 1회차에
+ * 이 자리에서만 `text-title-3 font-bold tracking-[-0.01em]` 로 굵기를 올려 뒀던 것을
+ * 토큰으로 걷어냈다 — 같은 위계가 화면·섹션 제목 여러 곳에 반복되기 때문이다.
  *
  * 뱃지 색은 `--color-notify`(design.md §4·§7.11 "미확인 알림은 --notify 의 작은
  * Dot/Badge 만 사용") 다. `InboxItemRow` 의 미확인 점과 같은 토큰이다.
@@ -43,9 +43,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className={`flex items-center justify-between gap-3 ${className}`}>
-      <h1 className="text-title-3 font-bold tracking-[-0.01em] text-text-primary">
-        {title}
-      </h1>
+      <h1 className="text-section-title text-text-primary">{title}</h1>
       <Link
         to={ROUTES.inbox}
         aria-label={

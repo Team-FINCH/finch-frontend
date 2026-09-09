@@ -247,6 +247,24 @@
   --text-title-3--line-height: 26px;
   --text-title-3--font-weight: 600;
 
+  /* 섹션 제목·화면 제목 (프로토타입 `.sht`·`.navt`).
+     둘 다 `font-size:18px;font-weight:700;letter-spacing:-.01em` 이다.
+     크기·행간은 --text-title-3 과 같은데 굵기가 600 이 아니라 700 이라 토큰을
+     따로 둔다 — Tailwind 타이포 토큰은 크기·행간·굵기·자간을 한 이름에 묶어
+     내보내므로 한쪽만 재사용할 수 없다.
+
+     **--text-title-3 의 굵기를 700 으로 올리지 않은 이유** — 프로토타입은 제목
+     자리를 둘로 가른다. `.sht`·`.navt`(700)와, 빈 상태 제목처럼 700 이 아닌
+     자리다. 토큰을 올리면 `text-title-3` 을 쓰는 모든 자리가 함께 굵어진다.
+
+     쓰는 자리 — 화면 제목(`PageHeader`·`SubPageHeader`), 섹션 제목(`.sh>.sht`),
+     섹션 제목 위계의 목록 탭(홈의 `내 종목`·`관심 종목`).
+     `text-title-3 font-bold tracking-[-0.01em]` 을 손으로 겹쳐 쓰지 않는다. */
+  --text-section-title: 18px;
+  --text-section-title--line-height: 26px;
+  --text-section-title--font-weight: 700;
+  --text-section-title--letter-spacing: -0.01em;
+
   --text-body-1: 16px;
   --text-body-1--line-height: 24px;
 

@@ -103,9 +103,7 @@ export function TotalAssetsSummary({
 
   return (
     <div className="pt-1.5">
-      <p className="text-title-3 font-bold tracking-[-0.01em] text-text-primary">
-        총자산
-      </p>
+      <p className="text-section-title text-text-primary">총자산</p>
       <p className="mt-3 text-[33px] leading-[41px] font-bold tracking-[-0.03em] text-text-primary tabular-nums">
         {formatAmount(account.data.totalAsset)}
         <KrwUnit className={isEmpty ? 'text-[17px]' : 'text-[20px]'} />
