@@ -5,12 +5,12 @@ import {
   type AiAnalysisSection,
 } from '@/shared/types/ai/analysis';
 import { AiCard } from '@/shared/ui/AiCard';
+import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useStockAnalysis } from '../api/useStockAnalysis';
 
-import { AiCitationList } from './AiCitationList';
 import { AiFeedbackRow } from './AiFeedbackRow';
 
 /**
@@ -237,7 +237,12 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
         <AnalysisSectionBlock key={entry.key} section={entry.section} />
       ))}
 
-      <AiCitationList citations={citations} />
+      <AiCitationList
+        citations={citations}
+        title="근거"
+        showPublisher
+        className="mt-8"
+      />
 
       {/* disclaimer 는 하드코딩하지 않고 응답 값을 그대로 쓴다 — 규제 문구가 바뀌면
           서버만 고치게 하기 위해서다 (envelope.ts 주석). */}

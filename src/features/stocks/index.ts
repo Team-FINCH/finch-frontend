@@ -11,7 +11,6 @@ export { useStockQuote } from './api/useStockQuote';
 export { useStockSearch } from './api/useStockSearch';
 export { useToggleWatchlist } from './api/useToggleWatchlist';
 
-export { AiCitationList } from './components/AiCitationList';
 export { AiFeedbackRow } from './components/AiFeedbackRow';
 export { CandleChart } from './components/CandleChart';
 export { ChartPeriodSegment } from './components/ChartPeriodSegment';
