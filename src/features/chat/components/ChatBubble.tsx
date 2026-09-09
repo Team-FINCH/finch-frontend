@@ -1,5 +1,5 @@
-import { ChatFeedbackButtons } from '@/features/chat/components/ChatFeedbackButtons';
 import { type ChatMessage } from '@/features/chat/model/chatMessages';
+import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 
 /**
  * 말풍선 하나.
@@ -12,6 +12,14 @@ import { type ChatMessage } from '@/features/chat/model/chatMessages';
  * 꼬리 모서리 6px 는 프로토타입 실측값이다(`styles/index.css` `--radius-xs` 주석 —
  * "AI 챗 버블도 왼쪽 위 꼬리 모서리에 6px 을 쓴다"). 사용자 말풍선은 좌우를 뒤집어
  * 오른쪽 꼬리로 맞춘다.
+ *
+ * 피드백은 `shared/ui/AiFeedbackRow` 하나를 쓴다 — design.md §9 "슬롯 3곳(종목 상세
+ * AI 탭 · 채팅 · 수익률 분석)이 같은 시트를 쓴다". 채팅은 답변 말풍선마다 `requestId`
+ * 가 다르므로 말풍선마다 슬롯이 하나씩 붙는다(`requestId` 하나 = 슬롯 하나). 한 번
+ * 평가하면 잠기는 것도 3곳 동일이다 — contracts C66 의 "재전송은 열어 둘 수 있되" 는
+ * 허용이지 의무가 아니고, 프로토타입 `fbOf` 도 채팅 말풍선을 `idle → sent` 한 방향으로만
+ * 옮긴다. 배치는 말풍선 **밖** 아래다. 프로토타입은 말풍선 안(검정 면)에 두지만 shared
+ * 판의 색이 검정 면용이 아니라 안에 넣으면 대비가 깨진다 — 대조표 3차 판정 뒤 별건.
  */
 type ChatBubbleProps = {
   message: ChatMessage;
@@ -59,7 +67,10 @@ export function ChatBubble({ message, onRetry }: ChatBubbleProps) {
           {message.disclaimer}
         </p>
       </div>
-      <ChatFeedbackButtons requestId={message.requestId} />
+      <AiFeedbackRow
+        requestId={message.requestId}
+        className="mt-2 self-stretch"
+      />
     </div>
   );
 }
