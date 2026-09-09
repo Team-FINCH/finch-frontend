@@ -108,7 +108,7 @@ export function AiFeedbackRow({
           type="button"
           disabled={feedback.isPending}
           onClick={() => submit('up')}
-          className="h-7.5 rounded-sm border border-border px-2.75 text-caption font-medium text-text-secondary disabled:opacity-50"
+          className="h-7.5 rounded-tag border border-border px-2.75 text-caption font-medium text-text-secondary disabled:opacity-50"
         >
           도움됐어요
         </button>
@@ -116,7 +116,7 @@ export function AiFeedbackRow({
           type="button"
           disabled={feedback.isPending}
           onClick={() => submit('down')}
-          className="h-7.5 rounded-sm border border-border px-2.75 text-caption font-medium text-text-secondary disabled:opacity-50"
+          className="h-7.5 rounded-tag border border-border px-2.75 text-caption font-medium text-text-secondary disabled:opacity-50"
         >
           아쉬워요
         </button>

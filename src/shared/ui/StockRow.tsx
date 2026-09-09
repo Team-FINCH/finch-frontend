@@ -109,7 +109,7 @@ function InitialBadge({ stockName }: { stockName: string }) {
  */
 function SuspendedBadge() {
   return (
-    <span className="inline-flex h-6 flex-none items-center rounded-sm bg-primary-soft px-2 text-caption font-medium text-text-secondary">
+    <span className="inline-flex h-6 flex-none items-center rounded-tag bg-primary-soft px-2 text-caption font-medium text-text-secondary">
       거래정지
     </span>
   );

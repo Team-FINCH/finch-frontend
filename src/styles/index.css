@@ -364,10 +364,15 @@
      이 토큰을 재사용한다. */
   --radius-12: 12px;
   --radius-card: 12px; /* Standard Card (.card). 이슈 #32 회신(2026-09-04)으로 16→12 확정 */
-  /* AI 박스. design.md 는 18px 이었지만 프로토타입 `.ai` 는 16px 로 카드와 같았다.
-     이슈 #32 회신은 --radius-card 를 12px 로 확정했지만 --radius-ai 도 12px 로
-     내리라는 확인은 아직 없다 — 두 값이 갈라졌을 수 있다. 확인 전까지 16px 유지. */
-  --radius-ai: 16px;
+  /* 태그·AI 피드백 버튼 (.tag, AI 응답 아래 `도움됐어요`·`아쉬워요`).
+     프로토타입이 이 두 자리에만 8px 을 쓴다. --radius-xs(6px)·--radius-sm(10px)
+     사이라 계단에 자리가 없어 역할 이름으로 뒀다. */
+  --radius-tag: 8px;
+  /* AI 박스 (.ai). 전에는 16px 이었다 — 그때 읽은 프로토타입의 `.ai` 가 16px 이라
+     "--radius-card 만 12px 로 내리는 것인지 확인이 필요하다" 고 남겨 뒀었다.
+     재내보내기된 프로토타입의 `.ai` 는 12px 이고 design.md 도 12px 라 확인이
+     끝났다. --radius-card 와 값이 같지만 토큰은 둘로 둔다. 역할이 다르다. */
+  --radius-ai: 12px;
   --radius-sheet: 24px; /* Bottom Sheet 상단 (.sheet) */
 
   /* ── 그림자 (프로토타입 .fab·.toast) ──────────────────────────────── */
