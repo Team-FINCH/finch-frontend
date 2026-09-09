@@ -62,6 +62,7 @@ import { nowKstIso, toKstDateString } from '../lib/time';
  * | 진단·원인 분석 · 보유 종목 0개 | `409 INSUFFICIENT_DATA` — 에러가 아니라 정상 거절이다 (contracts C12) |
  * | `GET /ai/briefing?date=` 에 오늘이 아닌 날짜 | `status: 'empty'` + 빈 `items` (200) |
  * | `POST /ai/orders/preview` 주문 금액이 예수금 초과 | `feasible: false` + `shortfall` — **200 응답의 본문이다** |
+ * | `POST /ai/orders/preview` 논지를 기록해 둔 종목(`005930`)이 아닌 주문 | `thesisConflicts: []` — 에러가 아니라 정상이다. 화면은 그 덩어리만 감춘다 (ia.md §4) |
  * | `POST /ai/feedback` `requestId` 누락 · `rating` 열거값 밖 · `reasons` 열거값 밖 · `comment` 1,000자 초과 | `400 INVALID_REQUEST` |
  * | `POST /ai/feedback` 정상 | `content: {recorded: true}` — 같은 `requestId` 로 다시 보내면 앞의 평가를 덮어쓴다 |
  * | `POST /ai/feedback` 모르는 `requestId` | **갈래를 만들지 않았다.** 정상 접수로 답한다 — 아래 참고 |
@@ -82,6 +83,12 @@ import { nowKstIso, toKstDateString } from '../lib/time';
 const CHAT_UPSTREAM_UNAVAILABLE_PREFIX = 'upstream';
 const CHAT_UPSTREAM_TIMEOUT_PREFIX = 'timeout';
 const CHAT_GUARDRAIL_PREFIX = 'guardrail';
+
+/**
+ * 논지를 기록해 둔 종목. `POST /ai/orders/preview` 의 `thesisConflicts` 픽스처가
+ * 이 종목의 것이라 다른 종목 주문에는 딸려 나가지 않는다 (AI 명세 §7).
+ */
+const THESIS_RECORDED_TICKER = '005930';
 
 /**
  * 보유 종목이 없을 때의 정상 거절 (AI 명세 §2.6).
@@ -713,21 +720,29 @@ export const aiHandlers = [
               ],
             },
           ],
-          thesisConflicts: [
-            {
-              id: 'thesis_1',
-              ticker: '005930',
-              fact: '반도체 비중을 절반 아래로 줄이겠다고 적었어요',
-              source: 'user_stated',
-              recordedAt: '2026-08-27T21:12:00+09:00',
-              conflict: '이 주문은 반도체 비중을 68.1%로 올려요.',
-              segments: [
-                textSegment('이 주문은 반도체 비중을 '),
-                metricSegment('68.1%', 0.681, 'ratio', 'risk_engine', 'up'),
-                textSegment('로 올려요.'),
-              ],
-            },
-          ],
+          // 논지는 종목별 기록이다. **주문에 오른 종목의 논지만 낸다** (AI 명세 §7 —
+          // "주문에 오른 종목의 `user_stated` 논지 중 어긋난 것만"). 어느 종목을
+          // 주문해도 이 한 건이 나오면 다른 종목 주문에 근거 없는 참견이 붙고,
+          // "배열이 비면 그 덩어리를 통째로 감춘다"(ia.md §4)는 갈래도 볼 수 없다.
+          thesisConflicts: orderSummary.some(
+            (row) => row.ticker === THESIS_RECORDED_TICKER,
+          )
+            ? [
+                {
+                  id: 'thesis_1',
+                  ticker: THESIS_RECORDED_TICKER,
+                  fact: '반도체 비중을 절반 아래로 줄이겠다고 적었어요',
+                  source: 'user_stated',
+                  recordedAt: '2026-08-27T21:12:00+09:00',
+                  conflict: '이 주문은 반도체 비중을 68.1%로 올려요.',
+                  segments: [
+                    textSegment('이 주문은 반도체 비중을 '),
+                    metricSegment('68.1%', 0.681, 'ratio', 'risk_engine', 'up'),
+                    textSegment('로 올려요.'),
+                  ],
+                },
+              ]
+            : [],
           summary: section(
             null,
             '집중도가 올라가는 주문이에요. 승인이나 거절을 판단하지는 않아요.',

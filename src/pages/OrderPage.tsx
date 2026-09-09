@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import {
+  OrderAiPreview,
+  OrderBlockNotice,
   OrderQuantityField,
   OrderRatioButtons,
   OrderResultSheet,
   OrderSummaryBox,
   createIdempotencyKey,
-  describeOrderBlockReason,
   parseOrderSideParam,
   toApiOrderSide,
   useCreateOrder,
@@ -18,7 +19,6 @@ import {
 import { isHttpError } from '@/shared/api';
 import { ROUTES, STOCK_CODE_PARAM } from '@/shared/config/routes';
 import { formatAmount } from '@/shared/lib/formatNumber';
-import { ORDER_ERROR_CODES } from '@/shared/types/errorCodes';
 import { type OrderResponse } from '@/shared/types/order';
 import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
@@ -53,10 +53,15 @@ import { Skeleton } from '@/shared/ui/Skeleton';
  * "주문 제출" 을 쓰는 곳으로 지목했다). 매수/매도 바(`TradeTabBar`)는 종목 상세의
  * 것이고 두 개를 겹쳐 두면 바가 둘이 된다.
  *
- * AI 주문 전 점검 슬롯(ia.md §4 슬롯 4번, `POST /ai/orders/preview`)은 이 커밋에
- * 넣지 않았다. 티켓이 요청한 범위가 수량 입력 + 매수/매도라서다. 붙일 자리는
- * 요약 상자 아래·제출 버튼 위쪽 영역 안이고, 제출 버튼과 붙여 놓지 않는다
- * (ia.md §4:538 — 오탭하면 주문이 나간다).
+ * ## AI 주문 전 점검 (FINCH-191)
+ *
+ * 요약 상자 아래·제출 버튼 위쪽 영역 안에 있다 (ia.md §4 슬롯 4번, design.md §7.7 이
+ * 적은 기본 구조 `… → 주문 금액/주문 후 예수금 → AI 주문 전 점검 → 제출`).
+ * **제출 버튼과 붙여 놓지 않는다** (ia.md §4:538 — 오탭하면 주문이 나간다). 그래서
+ * 본문 아래 여백을 바 높이보다 넉넉히 준다. 내용은 `OrderAiPreview` 가 그린다.
+ *
+ * **점검은 주문을 막지 않는다.** 경고가 있어도 `canSubmit` 은 그대로다 —
+ * 버튼을 잠그는 것은 `GET /orders/available` 뿐이다 (AI 명세 §7 · ia.md §4).
  */
 export function OrderPage() {
   const params = useParams();
@@ -180,8 +185,10 @@ export function OrderPage() {
   return (
     <>
       {/* ActionBar 가 fixed 라 마지막 내용이 그 밑에 깔린다. 바 높이만큼 띄운다
-          (`ActionBar` 주석: "이 바를 쓰는 화면은 본문 아래에 바 높이만큼 여백을 둔다"). */}
-      <PageMain className="pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
+          (`ActionBar` 주석: "이 바를 쓰는 화면은 본문 아래에 바 높이만큼 여백을 둔다").
+          바 높이 6.5rem 에 1.5rem 을 더 얹은 것은 AI 점검 슬롯이 제출 버튼에 붙지 않게
+          하려는 것이다 (ia.md §4:538 — 주문 확인 단계에서 오탭하면 주문이 나간다). */}
+      <PageMain className="pb-[calc(8rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -222,22 +229,13 @@ export function OrderPage() {
           </p>
         )}
 
-        {/* 서버가 막은 경우. 사유는 200 본문의 `reason` 코드로 온다 (apiSpec §7.3). */}
+        {/* 서버가 막은 경우. 사유는 200 본문의 `reason` 코드로 온다 (apiSpec §7.3).
+            빨간 박스가 아니라 원형 `!` + 문구다 (design.md §7.7 "주문할 수 없는 상태").
+            **화면이 시계로 장외 시간을 판정하지 않는다** — 세 상태 모두 이 응답의
+            `tradable`·`reason` 으로만 갈린다. `stale` 임계 시간은 아직 미확정이라
+            (contracts P10) 숫자를 코드에 박지 않는다. */}
         {!orderAvailable.tradable && (
-          <div className="mt-6 rounded-card border border-border bg-danger-surface p-5">
-            <p className="text-body-2 font-medium text-text-primary">
-              {describeOrderBlockReason(orderAvailable.reason)}
-            </p>
-            {orderAvailable.reason === ORDER_ERROR_CODES.INSUFFICIENT_CASH && (
-              <Button
-                variant="secondary"
-                className="mt-3.5"
-                onClick={() => void navigate(ROUTES.deposit)}
-              >
-                입금하기
-              </Button>
-            )}
-          </div>
+          <OrderBlockNotice reason={orderAvailable.reason} />
         )}
 
         {/* 제출 실패. 문구는 서버가 완성해 준 message 를 그대로 쓴다 (컨벤션 §5).
@@ -253,6 +251,10 @@ export function OrderPage() {
             </p>
           </div>
         )}
+
+        {/* 주문 흐름의 마지막 칸이다 (design.md §7.7 기본 구조).
+            수량이 0 이면 이 컴포넌트가 스스로 아무것도 그리지 않는다. */}
+        <OrderAiPreview stockCode={stockCode} side={side} quantity={quantity} />
       </PageMain>
 
       <ActionBar>

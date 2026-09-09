@@ -101,6 +101,20 @@ export const queryKeys = {
     /** `POST /ai/portfolio/attribution`. */
     attribution: (period: string) =>
       [...queryKeys.ai.all(), 'attribution', period] as const,
+    /**
+     * `POST /ai/orders/preview` (AI 슬롯 4번).
+     * **수량까지 키에 싣는다** — 점검 결과가 수량마다 다르다.
+     * 한 번 본 수량으로 돌아가면 AI 를 다시 부르지 않게 된다.
+     */
+    orderPreview: (stockCode: string, side: string, quantity: number) =>
+      [
+        ...queryKeys.ai.all(),
+        'orders',
+        'preview',
+        stockCode,
+        side,
+        quantity,
+      ] as const,
     /** `GET /ai/wiki`. */
     wiki: () => [...queryKeys.ai.all(), 'wiki'] as const,
   },
