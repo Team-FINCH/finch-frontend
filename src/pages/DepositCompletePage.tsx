@@ -7,6 +7,7 @@ import { depositConfirmErrorMessage } from '@/features/deposit/lib/depositErrorM
 import { parsePositiveIntParam } from '@/features/deposit/lib/queryParams';
 import { ROUTES } from '@/shared/config/routes';
 import { PageMain } from '@/shared/ui/PageMain';
+import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
  * 결제 복귀(성공) — 카카오페이 승인 뒤 돌아오는 자리. 카카오가 서버의
@@ -62,6 +63,7 @@ export function DepositCompletePage() {
   if (paymentId === null || paymentKey === null || amount === null) {
     return (
       <PageMain>
+        <SubPageHeader title="결제 결과" showBack={false} />
         <DepositResultScreen
           variant="error"
           errorMessage="결제 정보를 확인할 수 없어요."
@@ -75,6 +77,7 @@ export function DepositCompletePage() {
   if (confirmMutation.isPending || confirmMutation.isIdle) {
     return (
       <PageMain>
+        <SubPageHeader title="결제 결과" showBack={false} />
         <DepositResultScreen
           variant="pending"
           primaryLabel=""
@@ -93,6 +96,7 @@ export function DepositCompletePage() {
      */
     return (
       <PageMain>
+        <SubPageHeader title="결제 결과" showBack={false} />
         <DepositResultScreen
           variant="error"
           errorMessage={depositConfirmErrorMessage(confirmMutation.error)}
@@ -113,6 +117,7 @@ export function DepositCompletePage() {
    */
   return (
     <PageMain>
+      <SubPageHeader title="결제 결과" showBack={false} />
       <DepositResultScreen
         variant="success"
         amount={confirmMutation.data.amount}

@@ -13,6 +13,7 @@ import {
 import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
 import { PageMain } from '@/shared/ui/PageMain';
+import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
  * 모의 이체 — `TRANSFER` 수단의 `checkoutUrl` 도착지. 승인을 흉내 낸다.
@@ -90,6 +91,7 @@ export function DepositTransferPage() {
   if (paymentId === null) {
     return (
       <PageMain>
+        <SubPageHeader title="결제 결과" showBack={false} />
         <DepositResultScreen
           variant="error"
           errorMessage="이체할 결제를 찾을 수 없어요."
@@ -103,6 +105,7 @@ export function DepositTransferPage() {
   if (phase === 'processing') {
     return (
       <PageMain>
+        <SubPageHeader title="결제 결과" showBack={false} />
         <DepositResultScreen
           variant="pending"
           primaryLabel=""
@@ -115,6 +118,7 @@ export function DepositTransferPage() {
   if (phase === 'success' && result !== undefined) {
     return (
       <PageMain>
+        <SubPageHeader title="결제 결과" showBack={false} />
         <DepositResultScreen
           variant="success"
           amount={result.amount}
@@ -136,6 +140,7 @@ export function DepositTransferPage() {
      */
     return (
       <PageMain>
+        <SubPageHeader title="결제 결과" showBack={false} />
         <DepositResultScreen
           variant="error"
           errorMessage={errorMessage}
@@ -150,7 +155,13 @@ export function DepositTransferPage() {
 
   return (
     <PageMain className="pb-32">
-      <h1 className="text-title-3 text-text-primary">모의 이체</h1>
+      {/*
+       * 제목은 프로토타입 `isMock` 의 `.navt`(L2683)를 그대로 쓴다 — 사용자가 읽을 말은
+       * `계좌이체 승인` 이고 `모의 이체` 는 내부 용어다(prototype-diff.md B절). 뒤로가기의
+       * 되돌아갈 곳이 없으면 입금 화면으로 보낸다. 승인 뒤의 결과 화면들은 프로토타입
+       * `isPayReturn`(L2714)처럼 제목 `결제 결과` 만 두고 뒤로가기를 빼 이중 확정을 막는다.
+       */}
+      <SubPageHeader title="계좌이체 승인" fallbackTo={ROUTES.deposit} />
       <p className="mt-2 text-body-2 text-text-secondary">
         실제 계좌이체 대신 승인을 흉내 내는 화면이에요. 시연용 결과를 골라
         보세요.

@@ -14,6 +14,7 @@ import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
+import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
  * 출금 — 예수금을 뺀다. 입력은 금액 하나뿐이다(은행·계좌번호 없음). 출금 가능액은
@@ -79,7 +80,8 @@ export function WithdrawPage() {
 
   return (
     <PageMain className="pb-32">
-      <h1 className="text-title-3 text-text-primary">출금</h1>
+      {/* 프로토타입 `.nav`(L2757 `출금`). 진입점이 마이페이지라 그쪽을 fallback 으로 둔다. */}
+      <SubPageHeader title="출금" fallbackTo={ROUTES.my} />
 
       <div className="mt-6 flex flex-col gap-6">
         <AmountInput

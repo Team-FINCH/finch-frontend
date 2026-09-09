@@ -9,6 +9,7 @@ import { PaymentMethodPicker } from '@/features/deposit/components/PaymentMethod
 import { depositLimitExceededMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { toSameOriginPath } from '@/features/deposit/lib/queryParams';
 import { isHttpError, isSchemaError } from '@/shared/api';
+import { ROUTES } from '@/shared/config/routes';
 import { formatKrw } from '@/shared/lib/formatNumber';
 import { type PaymentMethod } from '@/shared/types/deposit';
 import { ActionBar } from '@/shared/ui/ActionBar';
@@ -16,6 +17,7 @@ import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
+import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
  * 입금 — 모의 결제로 예수금 충전. 4단계(준비 → 결제창 → 승인 → 확정) 중 이 화면이
@@ -183,7 +185,11 @@ export function DepositPage() {
     /* ActionBar 가 fixed 라 마지막 내용이 그 밑에 깔린다. 바 높이만큼 띄운다
        (`ActionBar` 주석: "이 바를 쓰는 화면은 본문 아래에 바 높이만큼 여백을 둔다"). */
     <PageMain className="pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
-      <h1 className="text-title-3 text-text-primary">입금</h1>
+      {/*
+       * 제목·뒤로가기는 프로토타입 `.nav` 묶음(L2623 `충전` — 용어 통일 뒤 `입금`)이다.
+       * 진입점이 마이페이지라(ia.md §1) 새 탭에서 바로 열었을 때는 그쪽으로 보낸다.
+       */}
+      <SubPageHeader title="입금" fallbackTo={ROUTES.my} />
 
       {/* 섹션 간격 32px 은 프로토타입 `.sec{margin-top:32px}` 실측값이다. */}
       <div className="mt-8 flex flex-col gap-8">
