@@ -94,8 +94,9 @@ export function WikiTab() {
 
   if (profile.length === 0 && theses.length === 0) {
     return (
+      // 프로토타입 `wikiEmpty` 는 `.est` 기본 여백(56/24/40)을 그대로 쓴다
+      // (proto L2362-2368). 전에 두었던 `pt-8` 은 근거가 없어 걷었다.
       <EmptyState
-        className="pt-8"
         title="아직 기록한 투자 기준이 없어요."
         description="투자하며 남긴 기록이 조금씩 여기에 쌓여요."
         action={
