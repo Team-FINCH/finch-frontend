@@ -6,12 +6,11 @@ import {
 } from '@/shared/types/ai/analysis';
 import { AiCard } from '@/shared/ui/AiCard';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
+import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useStockAnalysis } from '../api/useStockAnalysis';
-
-import { AiFeedbackRow } from './AiFeedbackRow';
 
 /**
  * AI 분석 탭 (프로토타입 `isDtAi` 블록, ia.md §4 슬롯 3번).
@@ -250,7 +249,7 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
         {disclaimer}
       </p>
 
-      <AiFeedbackRow requestId={requestId} />
+      <AiFeedbackRow requestId={requestId} className="mt-5" />
     </div>
   );
 }
