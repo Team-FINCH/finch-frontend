@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { formatKstDate } from '@/shared/lib/formatDate';
 import { formatAmount } from '@/shared/lib/formatNumber';
+import { type CandleInterval } from '@/shared/types/candleInterval';
 import { type Candle } from '@/shared/types/stock';
 
 import { readCssToken } from '../lib/readCssToken';
@@ -54,6 +55,8 @@ import { readCssToken } from '../lib/readCssToken';
 
 type CandleChartProps = {
   candles: readonly Candle[];
+  /** 봉 종류. 초기 표시 범위를 몇 개로 잡을지가 여기서 갈린다. */
+  interval: CandleInterval;
   /** 보유 중이면 평균 매수가에 점선을 긋는다. 없으면 긋지 않는다. */
   avgBuyPrice?: number | null;
   className?: string;
@@ -67,6 +70,24 @@ const FALLBACK_NEUTRAL = 'gray';
 
 /** 차트 높이. 프로토타입 SVG 가 150px 이다 (새 디코드 L1782). */
 const CHART_HEIGHT_CLASS = 'h-[150px]';
+
+/**
+ * 첫 진입에 보일 봉 개수 (봉 종류별).
+ *
+ * **`fitContent()` 를 쓰지 않는다.** 받은 봉을 전량 화면 폭에 맞추는 함수라,
+ * 확대·축소 여유분으로 넉넉히 받아 두는 설계와 정면으로 부딪힌다 — 여유분이
+ * 그대로 초기 화면이 돼 버린다. 390px 폭에 일봉 1,000개를 맞추면 봉 하나가
+ * 0.5px 이라 캔들이 실선으로 뭉갠다. 되돌리고 싶어지는 자리지만 되돌리지 마라.
+ *
+ * 숫자는 계약이 실제로 주는 개수다 (apiSpec §5.3 · `CANDLE_INTERVAL_REQUEST_PERIOD`).
+ * 일봉은 `3M`(90일 중 거래일 약 60개), 주봉은 `1Y`(52주), 월봉은 `3Y`(36개월).
+ * 목 서버가 이보다 많이 주더라도 초기 화면은 이 개수만 보이고, 축소하면 과거가 나온다.
+ */
+const INITIAL_VISIBLE_BAR_COUNT: Record<CandleInterval, number> = {
+  DAY: 60,
+  WEEK: 52,
+  MONTH: 36,
+};
 
 /** `YYYY-MM-DD` 를 차트가 쓰는 UTC 초로 바꾼다. 일봉이라 자정 기준이면 충분하다. */
 function toTimestamp(date: string): UTCTimestamp {
@@ -91,6 +112,7 @@ type TooltipState = { point: ChartPoint; side: 'left' | 'right' };
 
 export function CandleChart({
   candles,
+  interval,
   avgBuyPrice,
   className = '',
 }: CandleChartProps) {
@@ -222,7 +244,19 @@ export function CandleChart({
       });
     }
 
-    chart.timeScale().fitContent();
+    /*
+     * 초기 표시 범위를 봉 개수로 고정한다 (위 `INITIAL_VISIBLE_BAR_COUNT` 주석 참고).
+     * 논리 인덱스는 봉 하나가 1 이고, 봉 중심이 정수 자리라 좌우로 반 칸씩 넓혀야
+     * 첫 봉과 끝 봉이 잘리지 않는다. 봉이 정해진 개수보다 적게 오면(신규 상장·
+     * 시세가 며칠뿐인 종목) `from` 이 음수가 되지 않게 0 에서 끊는다 —
+     * `fixLeftEdge` 가 켜져 있어 음수 범위는 어차피 되밀리지만, 되밀리는 만큼
+     * 오른쪽에 빈 칸이 생긴다.
+     */
+    const visibleBarCount = INITIAL_VISIBLE_BAR_COUNT[interval];
+    chart.timeScale().setVisibleLogicalRange({
+      from: Math.max(0, candles.length - visibleBarCount) - 0.5,
+      to: candles.length - 0.5,
+    });
 
     /**
      * 툴팁에 쓸 값을 시각(초) 키로 미리 다 만들어 둔다. 십자선 이동마다 다시
@@ -261,7 +295,7 @@ export function CandleChart({
       chart.remove();
       chartRef.current = null;
     };
-  }, [candles, avgBuyPrice]);
+  }, [candles, interval, avgBuyPrice]);
 
   return (
     <div className={`relative w-full ${className}`}>

@@ -146,6 +146,7 @@ export function StockChartTab({
               ) : (
                 <CandleChart
                   candles={candles.data.candles}
+                  interval={interval}
                   avgBuyPrice={avgBuyPrice}
                 />
               ))}
