@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import {
   RecentKeywordChips,
@@ -14,6 +14,7 @@ import {
   useStockSearch,
 } from '@/features/stocks';
 import { STOCK_SEARCH_MIN_KEYWORD_LENGTH } from '@/shared/config/apiContract';
+import { ROUTES } from '@/shared/config/routes';
 import { type StockSummary } from '@/shared/types/stock';
 import { PageMain } from '@/shared/ui/PageMain';
 import { Skeleton } from '@/shared/ui/Skeleton';
@@ -99,13 +100,15 @@ export function SearchPage() {
           다른 상시 화면(홈·포트폴리오·내 정보)과 같은 자리·같은 크기의 제목이다 —
           여기만 sr-only 로 두면 탭을 옮길 때 이 화면만 제목이 사라져 보인다.
           알림함 뱃지는 넣지 않는다. 프로토타입의 탐색 nav 에는 없다 (ia.md §1). */}
-      <h1 className="mb-4 text-title-3 text-text-primary">탐색</h1>
+      <h1 className="mb-4 text-title-3 font-bold tracking-[-.01em] text-text-primary">
+        탐색
+      </h1>
 
       <StockSearchField value={input} onChange={setInput} />
 
       <div className="mt-4">
         {isTooShort && (
-          <p className="text-body-2 text-text-secondary">
+          <p className="pt-1 text-body-2 text-text-secondary">
             {STOCK_SEARCH_MIN_KEYWORD_LENGTH}글자 이상 입력해 주세요
           </p>
         )}
@@ -151,8 +154,21 @@ export function SearchPage() {
               )}
             </section>
 
-            <section className="mt-8">
-              <SearchSectionHeader label="최근 본 종목" />
+            <section className="mt-9">
+              <SearchSectionHeader
+                label="최근 본 종목"
+                className="mb-1.5"
+                action={
+                  viewedStocks.length > 0 ? (
+                    <Link
+                      to={ROUTES.recent}
+                      className="text-caption text-text-muted"
+                    >
+                      전체 보기
+                    </Link>
+                  ) : undefined
+                }
+              />
               {viewedStocks.length > 0 ? (
                 <RecentStockList stocks={viewedStocks} />
               ) : (
