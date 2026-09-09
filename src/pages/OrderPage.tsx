@@ -234,7 +234,7 @@ export function OrderPage() {
                 className="mt-3.5"
                 onClick={() => void navigate(ROUTES.deposit)}
               >
-                충전하기
+                입금하기
               </Button>
             )}
           </div>

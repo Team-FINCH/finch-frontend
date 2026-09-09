@@ -123,7 +123,7 @@ export function WithdrawPage() {
          * (ia.md §1 "출금 화면"). 아래는 임시 문안이고, 확정 문안이 오면 교체한다.
          */}
         <p className="text-caption text-text-muted">
-          출금해도 충전할 수 있는 한도는 늘어나지 않아요.
+          출금해도 입금할 수 있는 한도는 늘어나지 않아요.
         </p>
 
         {isHttpError(withdrawal.error) && (
