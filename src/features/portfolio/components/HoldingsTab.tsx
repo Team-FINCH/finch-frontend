@@ -131,7 +131,7 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
 
       {/* 종목 개수는 `.sh` 의 오른쪽 끝이다. 정렬은 그 아래 별도 줄로 내려간다. */}
       <div className="mt-8 mb-3.5 flex items-baseline justify-between gap-3">
-        <span className="min-w-0 text-title-3 text-text-primary">
+        <span className="min-w-0 text-section-title text-text-primary">
           보유 종목
         </span>
         <span className="flex-none text-caption text-text-muted">

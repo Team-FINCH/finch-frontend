@@ -113,7 +113,9 @@ export function DiagnosisTab() {
       />
 
       <div className="mt-8">
-        <h2 className="mb-3.5 text-title-3 text-text-primary">확인된 사항</h2>
+        <h2 className="mb-3.5 text-section-title text-text-primary">
+          확인된 사항
+        </h2>
         {findings.length === 0 ? (
           <p className="py-3.5 text-body-1 text-text-secondary">
             특별히 짚어드릴 사항이 없어요.
@@ -142,7 +144,9 @@ export function DiagnosisTab() {
       </div>
 
       <div className="mt-8">
-        <h2 className="mb-3.5 text-title-3 text-text-primary">위험 지표</h2>
+        <h2 className="mb-3.5 text-section-title text-text-primary">
+          위험 지표
+        </h2>
         <div className="flex flex-col gap-2.5">
           <IndicatorRow label="1위 종목 비중" ratio={indicators.top1Weight} />
           <IndicatorRow label="상위 3종목 비중" ratio={indicators.top3Weight} />

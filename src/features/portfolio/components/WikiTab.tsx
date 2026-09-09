@@ -163,7 +163,7 @@ export function WikiTab() {
 
       <section className="mb-12">
         <div className="mb-1 flex items-baseline justify-between">
-          <span className="text-title-3 text-text-primary">
+          <span className="text-section-title text-text-primary">
             확정된 투자 기준
           </span>
           <span className="text-caption text-text-secondary">
@@ -204,7 +204,7 @@ export function WikiTab() {
       {guessFacts.length > 0 && (
         <section className="mb-12">
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-title-3 text-text-primary">
+            <span className="text-section-title text-text-primary">
               FINCH가 이해한 투자 기준
             </span>
             <span
@@ -232,7 +232,7 @@ export function WikiTab() {
 
       <section>
         <div className="mb-1 flex items-baseline justify-between">
-          <span className="text-title-3 text-text-primary">
+          <span className="text-section-title text-text-primary">
             종목별 매수 이유
           </span>
           <span className="text-caption text-text-secondary">
