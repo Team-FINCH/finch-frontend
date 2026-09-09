@@ -1,4 +1,6 @@
 import { isHttpError } from '@/shared/api';
+import { formatKrw } from '@/shared/lib/formatNumber';
+import { type ErrorDetail } from '@/shared/types/error';
 import { DEPOSIT_ERROR_CODES } from '@/shared/types/errorCodes';
 
 /**
@@ -52,6 +54,49 @@ const DEPOSIT_EXPIRED_MESSAGE =
   '결제창에서 응답이 오지 않았어요. 다시 시도해 주세요.';
 
 /**
+ * `DEPOSIT_LIMIT_EXCEEDED` 의 남은 한도. 계약은 `detail.remainingAmount` 다
+ * (contracts C49·C85 · apiSpec §4.2 판정 4 · §4.4 판정 5).
+ *
+ * **`detail` 이 없거나 숫자가 아닐 때가 있다고 보고 짠다.** `confirm` 쪽 판정표
+ * (apiSpec §4.4)는 이 코드에 `detail` 을 명기하지 않았다 — `ready` 쪽(§4.2)만
+ * 명기한다. 없는 값을 그대로 문장에 끼우면 `잔여 한도: undefined원` 이 나간다.
+ */
+function readRemainingAmount(detail: ErrorDetail | null): number | undefined {
+  const value = detail?.remainingAmount;
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+/**
+ * 누적 한도 초과 문구. 해당 코드가 아니면 `null` 이다.
+ *
+ * **입금 화면과 같은 문장을 쓴다** — `design.md:969` 가 "한도 초과 문구는 충전
+ * 화면과 **같은 문장**을 쓴다. 남은 한도 숫자가 들어간 쪽이다 — 같은 사유인데
+ * 문장이 갈리면 다른 문제로 읽힌다" 고 요구한다. 그래서 이 문구를 쓰는 화면
+ * (입금 · 결제 복귀 · 모의 이체)이 전부 이 함수 하나를 부른다.
+ *
+ * `DEPOSIT_LIMIT_EXCEEDED` 는 `ready`(contracts C49)와 `confirm`(C85) 둘 다에서
+ * 난다. **`/deposit/fail` 에는 오지 않는다** — 그 화면의 `code` 는 C89 가 명기한
+ * 다섯(`NOT_FOUND`·`INVALID_STATE`·`PAYMENT_FAILED`·`PG_UNAVAILABLE`·
+ * `AMOUNT_MISMATCH`)이 전부이고 이 코드는 그 안에 없다. 그래서
+ * `depositFailMessage` 에 case 를 더하지 않았다.
+ */
+export function depositLimitExceededMessage(error: unknown): string | null {
+  if (
+    !isHttpError(error) ||
+    error.code !== DEPOSIT_ERROR_CODES.LIMIT_EXCEEDED
+  ) {
+    return null;
+  }
+  const remainingAmount = readRemainingAmount(error.detail);
+  if (remainingAmount === undefined) {
+    return '입금할 수 있는 금액을 넘었어요.';
+  }
+  return `입금할 수 있는 금액을 넘었어요. (잔여 한도: ${formatKrw(remainingAmount)})`;
+}
+
+/**
  * 결제 복귀·모의 이체의 **실패 문구**. 둘 다 마지막에 같은
  * `POST /deposits/confirm` 을 부르므로 문구도 한 곳에서 만든다.
  * 모의 이체는 그 앞의 `mock-approve` 실패도 이 함수로 보낸다 — 그쪽 코드는
@@ -67,5 +112,5 @@ export function depositConfirmErrorMessage(error: unknown): string | undefined {
   if (isDepositExpiredErrorCode(error.code)) {
     return DEPOSIT_EXPIRED_MESSAGE;
   }
-  return error.message;
+  return depositLimitExceededMessage(error) ?? error.message;
 }

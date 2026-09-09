@@ -6,6 +6,7 @@ import { useDepositLimit } from '@/features/deposit/api/useDepositLimit';
 import { useDepositReady } from '@/features/deposit/api/useDepositReady';
 import { AmountInput } from '@/features/deposit/components/AmountInput';
 import { PaymentMethodPicker } from '@/features/deposit/components/PaymentMethodPicker';
+import { depositLimitExceededMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { toSameOriginPath } from '@/features/deposit/lib/queryParams';
 import { isHttpError, isSchemaError } from '@/shared/api';
 import { formatKrw } from '@/shared/lib/formatNumber';
@@ -43,6 +44,15 @@ type Step = 'amount' | 'confirm';
  * **실패했다는 사실은 반드시 보여야 한다.**
  */
 function readyErrorMessage(error: unknown): string {
+  /*
+   * 누적 한도 초과만 우리가 문장을 만든다. 남은 한도 숫자가 들어간 쪽을 써야 하고
+   * (`design.md:969`) 그 숫자는 `detail.remainingAmount` 로만 온다 — 서버 `message`
+   * 에는 없다. 결제 복귀·모의 이체와 같은 함수를 부른다.
+   */
+  const limitExceeded = depositLimitExceededMessage(error);
+  if (limitExceeded !== null) {
+    return limitExceeded;
+  }
   if (isHttpError(error)) {
     // 서버가 완성해 준 문구를 그대로 쓴다 (컨벤션 §5).
     return error.message;
