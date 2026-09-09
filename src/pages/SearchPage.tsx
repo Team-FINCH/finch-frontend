@@ -161,7 +161,7 @@ export function SearchPage() {
               )}
             </section>
 
-            <section className="mt-9">
+            <section className="mt-9 pb-5">
               <SearchSectionHeader
                 label="최근 본 종목"
                 className="mb-1.5"
