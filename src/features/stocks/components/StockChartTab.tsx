@@ -83,9 +83,8 @@ export function StockChartTab({
           {/*
             정지 화면 (새 디코드 L1749–L1759). `.est` 실측 여백은 위 52 · 좌우 20 ·
             아래 40 이라 `EmptyState` 의 기본 여백을 덮어 쓴다.
-            **문구 위계 차이 두 개는 남는다** — 프로토타입 `.est>b` 는 17px/600 `--t2`,
-            `.est>p` 는 15px `--t3` 인데 `EmptyState` 는 18px `--t1` / 15px `--t2` 다.
-            `shared/ui/EmptyState` 는 이 티켓에서 고치지 않는 파일이라 그대로 뒀다.
+            글자 위계는 `EmptyState` 가 이미 `.est` 를 따른다 (제목 17px/23px/600 ·
+            설명 15px/22px) — 여기서 다시 덮지 않는다.
           */}
           <EmptyState
             className="px-5 pt-13 pb-10"
