@@ -1,11 +1,11 @@
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { HOME_LIST_TAB_PARAM, ROUTES } from '@/shared/config/routes';
 import { formatKrw } from '@/shared/lib/formatNumber';
 import type { WatchlistSort } from '@/shared/types/stock';
+import { ListEmpty } from '@/shared/ui/ListEmpty';
 import { Skeleton } from '@/shared/ui/Skeleton';
-import { SoftBox } from '@/shared/ui/SoftBox';
 import { StockRow } from '@/shared/ui/StockRow';
 
 import type { useHomeData } from '../model/useHomeData';
@@ -144,32 +144,6 @@ function TabButton({
         }`}
       />
     </button>
-  );
-}
-
-/**
- * 목록 자리의 빈 상태 (`.soft`). 화면 전체를 채우는 `EmptyState` 와 다른 물건이다 —
- * 프로토타입은 이 자리에 옅은 회색 면을 깔아 "목록이 있어야 하는 곳" 임을 남긴다.
- */
-function ListEmpty({
-  title,
-  description,
-  action,
-  className = '',
-}: {
-  title: string;
-  description: string;
-  action?: ReactNode;
-  className?: string;
-}) {
-  return (
-    <SoftBox className={`px-5 text-center ${className}`}>
-      <p className="text-body-1 font-medium text-text-primary">{title}</p>
-      <p className="mt-1.5 text-body-2 text-pretty text-text-secondary">
-        {description}
-      </p>
-      {action === undefined ? null : <div className="mt-3.5">{action}</div>}
-    </SoftBox>
   );
 }
 
