@@ -24,6 +24,7 @@ import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
 import { PageMain } from '@/shared/ui/PageMain';
 import { Skeleton } from '@/shared/ui/Skeleton';
+import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
  * 주문 — 시장가 매수·매도 실행. `?side=buy|sell`. 지정가·호가창은 범위 밖이다.
@@ -62,6 +63,16 @@ import { Skeleton } from '@/shared/ui/Skeleton';
  *
  * **점검은 주문을 막지 않는다.** 경고가 있어도 `canSubmit` 은 그대로다 —
  * 버튼을 잠그는 것은 `GET /orders/available` 뿐이다 (AI 명세 §7 · ia.md §4).
+ *
+ * ## 상단 헤더 (FINCH-200)
+ *
+ * `shared/ui/SubPageHeader` 다 — FINCH-196 이 인라인 뒤로가기 넷을 공용화할 때
+ * 이 화면만 남겼던 것(주문 점검 슬롯 MR 과 같은 파일이라 충돌을 피했다)을 마무리했다.
+ * 제목은 프로토타입 `isOrder` 의 `.navt` 가 `{{ sideLabel }}`(`app-logic.js` L719,
+ * `매수`/`매도`)이므로 `ORDER_SIDE_LABEL` 을 그대로 쓴다. 뒤로가기는 스택을 하나
+ * 되돌리고, 새 탭에서 바로 열었으면 종목 상세로 보낸다 — 이 화면의 진입점은 종목
+ * 상세의 매수·매도 바 하나뿐이고(ia.md §1 주문 행의 선행 조건 `종목 상세`),
+ * 체결 뒤 `OrderResultSheet` 도 같은 곳으로 돌아간다.
  */
 export function OrderPage() {
   const params = useParams();
@@ -189,19 +200,10 @@ export function OrderPage() {
           바 높이 6.5rem 에 1.5rem 을 더 얹은 것은 AI 점검 슬롯이 제출 버튼에 붙지 않게
           하려는 것이다 (ia.md §4:538 — 주문 확인 단계에서 오탭하면 주문이 나간다). */}
       <PageMain className="pb-[calc(8rem+env(safe-area-inset-bottom))]">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => void navigate(-1)}
-            aria-label="뒤로 가기"
-            className="flex size-11 flex-none items-center justify-center rounded-12 text-title-2 leading-none text-text-primary active:bg-primary-soft"
-          >
-            ‹
-          </button>
-          <h1 className="text-title-3 font-bold text-text-primary">
-            {sideLabel}
-          </h1>
-        </div>
+        <SubPageHeader
+          title={sideLabel}
+          fallbackTo={ROUTES.stockDetail(stockCode)}
+        />
 
         <p className="mt-4 text-body-2 text-text-secondary">
           시장가 · 현재가 {formatAmount(orderAvailable.currentPrice)}원
