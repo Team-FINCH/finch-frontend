@@ -10,13 +10,8 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { formatKstDate } from '@/shared/lib/formatDate';
-import {
-  formatAmount,
-  formatSignedAmount,
-  formatSignedRate,
-  getPriceDirection,
-  type PriceDirection,
-} from '@/shared/lib/formatNumber';
+import { formatAmount } from '@/shared/lib/formatNumber';
+import { type CandleInterval } from '@/shared/types/candleInterval';
 import { type Candle } from '@/shared/types/stock';
 
 import { readCssToken } from '../lib/readCssToken';
@@ -46,14 +41,34 @@ import { readCssToken } from '../lib/readCssToken';
  * 켜 핀치 줌·휠 줌·드래그 팬을 허용한다. `timeScale.fixLeftEdge`·`fixRightEdge` 는
  * 그대로 켜 둬 데이터 범위 밖으로는 못 끌려나가게 막는다 — 팬·줌 자체를 막는
  * 옵션이 아니라 "빈 공간을 보여주지 않는다" 는 제약이라 서로 충돌하지 않는다.
- * 값은 세로 십자선 + 차트 위 고정 표시줄(`activePoint`)로 읽는다. 아래 크로스헤어
- * 옵션 주석 참고.
+ *
+ * **값은 짚은 동안만 검정 툴팁으로 읽는다** (프로토타입 `xtip`·`xhOn`, 새 디코드
+ * L1770–L1781). 전에는 차트 위에 고정 표시줄을 두고 손을 뗀 뒤에도 마지막 봉 값을
+ * 남겼는데, 프로토타입과 design.md L436("Press/Hover 시에만 세부 포인트 라벨 표시")
+ * 둘이 함께 "짚었을 때만" 을 말한다. 그래서 표시줄을 걷어내고 툴팁으로 바꿨다.
+ * 툴팁은 차트 위에 겹치고 **커서가 오른쪽 절반이면 왼쪽으로 붙는다**(위치 반전) —
+ * 손가락이 툴팁을 가리지 않게 하는 프로토타입 규칙이다(`xh.tipSide`).
+ *
+ * 툴팁이 담는 것은 날짜 · 시/고/저/종 2×2 격자 · 거래량 세 줄이다.
+ * **등락을 넣지 않는다** — 프로토타입 격자가 두 줄이고 거기에 등락 칸이 없다.
+ *
+ * **첫 진입에만 Wipe 로 그린다** (`animateIn`, 프로토타입 `.pfirst`). 봉 종류를
+ * 바꿔 다시 그릴 때는 즉시 나타난다 — design.md §7.4 가 그렇게 갈랐다.
  */
 
 type CandleChartProps = {
   candles: readonly Candle[];
+  /** 봉 종류. 초기 표시 범위를 몇 개로 잡을지가 여기서 갈린다. */
+  interval: CandleInterval;
   /** 보유 중이면 평균 매수가에 점선을 긋는다. 없으면 긋지 않는다. */
   avgBuyPrice?: number | null;
+  /**
+   * 첫 진입이면 왼쪽에서 오른쪽으로 훑는 Wipe 로 그린다 (프로토타입 `.pfirst`,
+   * 새 디코드 L1019–L1020·L3726). **봉 종류를 바꿔 다시 그릴 때는 켜지 않는다** —
+   * design.md §7.4 "첫 진입 Wipe 효과는 짧고 절제되게, 기간 전환은 즉시".
+   * 판정은 호출부가 한다(`StockChartTab`).
+   */
+  animateIn?: boolean;
   className?: string;
 };
 
@@ -63,11 +78,47 @@ type CandleChartProps = {
  */
 const FALLBACK_NEUTRAL = 'gray';
 
-/** 고정 표시줄의 등락 색. `StockDetailHeader` 등 다른 화면과 같은 매핑이다. */
-const DIRECTION_TEXT_CLASS: Record<PriceDirection, string> = {
-  rise: 'text-stock-up',
-  fall: 'text-stock-down',
-  flat: 'text-stock-neutral',
+/** 차트 높이. 프로토타입 SVG 가 150px 이다 (새 디코드 L1782). */
+const CHART_HEIGHT_CLASS = 'h-[150px]';
+
+/**
+ * 첫 진입 Wipe 실측 (프로토타입 `@keyframes wipeA` + `.pfirst>svg`, 새 디코드
+ * L1019–L1020). 끝값이 `0` 이 아니라 `-2%` 인 것도 그대로다 — 오른쪽 끝의 반올림
+ * 한 픽셀이 잘려 보이지 않게 살짝 넘겨 두는 값이라 다듬으면 마지막 봉이 깎인다.
+ * 이징도 `--ease-standard`(`cubic-bezier(.2,0,0,1)`)와 달라 따로 적는다.
+ *
+ * **`@keyframes` 가 아니라 Web Animations API 로 건다.** 이 레포의 다른 등장
+ * 애니메이션은 `styles/index.css` 에 키프레임을 두고 Tailwind `animate-[…]` 로
+ * 부르지만, 그 파일은 `FINCH-209` 소유라 이 티켓에서 건드리지 않는다.
+ * 한 자리에서만 쓰는 520ms 짜리라 전역 이름을 하나 더 만들 이유도 크지 않다.
+ * 209 가 키프레임을 받아 주면 이 상수와 아래 `useEffect` 를 지우고 클래스 한 줄로
+ * 바꾸면 된다.
+ */
+const WIPE_IN_KEYFRAMES: Keyframe[] = [
+  { clipPath: 'inset(0 100% 0 0)' },
+  { clipPath: 'inset(0 -2% 0 0)' },
+];
+const WIPE_IN_OPTIONS: KeyframeAnimationOptions = {
+  duration: 520,
+  easing: 'cubic-bezier(0.25, 0, 0.2, 1)',
+};
+
+/**
+ * 첫 진입에 보일 봉 개수 (봉 종류별).
+ *
+ * **`fitContent()` 를 쓰지 않는다.** 받은 봉을 전량 화면 폭에 맞추는 함수라,
+ * 확대·축소 여유분으로 넉넉히 받아 두는 설계와 정면으로 부딪힌다 — 여유분이
+ * 그대로 초기 화면이 돼 버린다. 390px 폭에 일봉 1,000개를 맞추면 봉 하나가
+ * 0.5px 이라 캔들이 실선으로 뭉갠다. 되돌리고 싶어지는 자리지만 되돌리지 마라.
+ *
+ * 숫자는 계약이 실제로 주는 개수다 (apiSpec §5.3 · `CANDLE_INTERVAL_REQUEST_PERIOD`).
+ * 일봉은 `3M`(90일 중 거래일 약 60개), 주봉은 `1Y`(52주), 월봉은 `3Y`(36개월).
+ * 목 서버가 이보다 많이 주더라도 초기 화면은 이 개수만 보이고, 축소하면 과거가 나온다.
+ */
+const INITIAL_VISIBLE_BAR_COUNT: Record<CandleInterval, number> = {
+  DAY: 60,
+  WEEK: 52,
+  MONTH: 36,
 };
 
 /** `YYYY-MM-DD` 를 차트가 쓰는 UTC 초로 바꾼다. 일봉이라 자정 기준이면 충분하다. */
@@ -75,28 +126,37 @@ function toTimestamp(date: string): UTCTimestamp {
   return (Date.parse(`${date}T00:00:00Z`) / 1000) as UTCTimestamp;
 }
 
-/** 고정 표시줄에 그릴 한 캔들의 값. 전일 종가가 없는 첫 봉은 등락을 못 구해 `null`. */
+/** 툴팁에 그릴 한 캔들의 값 (프로토타입 `xh` payload). */
 type ChartPoint = {
   date: string;
+  open: number;
+  high: number;
+  low: number;
   close: number;
-  changeAmount: number | null;
-  changeRate: number | null;
+  volume: number;
 };
+
+/**
+ * 툴팁이 붙는 쪽. 커서가 차트 오른쪽 절반이면 왼쪽에 붙인다 — 프로토타입
+ * `tipSide: cx > 175 ? "left:0" : "right:0"` (viewBox 폭 350 의 절반).
+ */
+type TooltipState = { point: ChartPoint; side: 'left' | 'right' };
 
 export function CandleChart({
   candles,
+  interval,
   avgBuyPrice,
+  animateIn = false,
   className = '',
 }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   /**
-   * 십자선이 가리키는 캔들의 값. 마운트 직후와 손을 뗐을 때는 마지막(최신) 캔들로
-   * 돌아간다 — 표시를 감추는 대신이다. 감추면 표시줄이 있다 없다 하며 레이아웃이
-   * 흔들리고, 손을 뗀 상태는 "최신가를 보는 중"이라 마지막 값을 보여주는 쪽이
-   * 오히려 자연스럽다 (헤더의 실시간 현재가와 같은 자리 감각).
+   * 짚은 캔들. 짚지 않았으면 `null` 이고 툴팁을 그리지 않는다 — 프로토타입
+   * `xhOn`(`s.xhIdx != null`) 과 같은 조건이다. 차트가 캔버스라 툴팁은 그 위에
+   * 겹치는 일반 DOM 이고, 자리는 위 `TooltipState` 주석 참고.
    */
-  const [activePoint, setActivePoint] = useState<ChartPoint | null>(null);
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -176,10 +236,13 @@ export function CandleChart({
       priceLineVisible: false,
       lastValueVisible: false,
     });
-    // 거래량을 아래 25% 에만 깔아 캔들과 겹치지 않게 한다.
+    /*
+     * 거래량은 아래 15% 에만 깐다. 프로토타입 막대는 150px 중 6~28px 이고
+     * design.md L431 도 "하단 약 15~20%" 다 — 전에 쓰던 22% 는 그 범위 밖이었다.
+     */
     chart
       .priceScale('volume')
-      .applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } });
+      .applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
 
     candleSeries.setData(
       candles.map((candle) => ({
@@ -199,94 +262,162 @@ export function CandleChart({
     );
 
     if (avgBuyPrice !== null && avgBuyPrice !== undefined) {
+      /*
+       * 라벨 문구는 프로토타입 그대로 `내 평균 {금액}원` 이다 (새 디코드 L1802,
+       * `chartAvgLabel`). 전에는 축 라벨에 값만 띄우고 선 위에 `평균` 만 적었는데,
+       * 프로토타입은 선 왼쪽에 문장 하나로 적고 축에는 아무것도 띄우지 않는다.
+       */
       candleSeries.createPriceLine({
         price: avgBuyPrice,
         color: textColor,
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
-        title: '평균',
+        axisLabelVisible: false,
+        title: `내 평균 ${formatAmount(avgBuyPrice)}원`,
       });
     }
 
-    chart.timeScale().fitContent();
+    /*
+     * 초기 표시 범위를 봉 개수로 고정한다 (위 `INITIAL_VISIBLE_BAR_COUNT` 주석 참고).
+     * 논리 인덱스는 봉 하나가 1 이고, 봉 중심이 정수 자리라 좌우로 반 칸씩 넓혀야
+     * 첫 봉과 끝 봉이 잘리지 않는다. 봉이 정해진 개수보다 적게 오면(신규 상장·
+     * 시세가 며칠뿐인 종목) `from` 이 음수가 되지 않게 0 에서 끊는다 —
+     * `fixLeftEdge` 가 켜져 있어 음수 범위는 어차피 되밀리지만, 되밀리는 만큼
+     * 오른쪽에 빈 칸이 생긴다.
+     */
+    const visibleBarCount = INITIAL_VISIBLE_BAR_COUNT[interval];
+    chart.timeScale().setVisibleLogicalRange({
+      from: Math.max(0, candles.length - visibleBarCount) - 0.5,
+      to: candles.length - 0.5,
+    });
 
     /**
-     * 고정 표시줄에 쓸 값을 시각(초) 키로 미리 다 만들어 둔다. 십자선 이동마다
-     * 다시 계산하지 않는다 — 이동은 마우스무브·터치무브만큼 잦다.
-     * 등락은 하루 전 종가 대비다. 첫 봉은 전일이 없어 `null` (표시줄에서 갈라 그림).
+     * 툴팁에 쓸 값을 시각(초) 키로 미리 다 만들어 둔다. 십자선 이동마다 다시
+     * 계산하지 않는다 — 이동은 마우스무브·터치무브만큼 잦다.
      */
     const pointByTime = new Map<UTCTimestamp, ChartPoint>();
-    let lastPoint: ChartPoint | null = null;
-    let prevClose: number | null = null;
     for (const candle of candles) {
-      const point: ChartPoint = {
+      pointByTime.set(toTimestamp(candle.date), {
         date: candle.date,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
         close: candle.close,
-        changeAmount: prevClose === null ? null : candle.close - prevClose,
-        changeRate:
-          prevClose === null
-            ? null
-            : ((candle.close - prevClose) / prevClose) * 100,
-      };
-      pointByTime.set(toTimestamp(candle.date), point);
-      lastPoint = point;
-      prevClose = candle.close;
+        volume: candle.volume,
+      });
     }
 
-    // 마운트 직후 기본값 — 아직 아무 데도 짚지 않았을 때 최신 캔들을 보여준다.
-    setActivePoint(lastPoint);
-
     chart.subscribeCrosshairMove((param) => {
-      if (param.time === undefined) {
-        // 차트 밖으로 나갔거나(마우스아웃) 손을 뗐다. 최신 값으로 되돌린다.
-        setActivePoint(lastPoint);
+      const point =
+        param.time === undefined
+          ? undefined
+          : pointByTime.get(param.time as UTCTimestamp);
+      if (point === undefined || param.point === undefined) {
+        // 차트 밖으로 나갔거나 손을 뗐다. 툴팁을 지운다 (프로토타입 `xhOff`).
+        setTooltip(null);
         return;
       }
-      setActivePoint(pointByTime.get(param.time as UTCTimestamp) ?? lastPoint);
+      const width = container.clientWidth;
+      setTooltip({
+        point,
+        side: param.point.x > width / 2 ? 'left' : 'right',
+      });
     });
 
     return () => {
       chart.remove();
       chartRef.current = null;
     };
-  }, [candles, avgBuyPrice]);
+  }, [candles, interval, avgBuyPrice]);
 
-  const direction: PriceDirection =
-    activePoint === null || activePoint.changeAmount === null
-      ? 'flat'
-      : getPriceDirection(activePoint.changeAmount);
+  /**
+   * 첫 진입 Wipe. **마운트 한 번만 탄다** — 의존성이 비어 있어 봉 종류를 바꿔
+   * 차트를 다시 그려도 재생되지 않고, 그 판정 자체는 호출부가 `animateIn` 으로
+   * 미리 내린다.
+   *
+   * 움직임을 끈 사람에게는 그리지 않는다. 차트는 값을 읽는 자리라 등장 연출이
+   * 없어도 잃는 것이 없다.
+   *
+   * `animate` 는 `clip-path` 를 컨테이너에만 건다. 바깥 상자에 걸면 툴팁까지
+   * 함께 잘린다 — `clip-path` 는 자식을 통째로 자르는 속성이다.
+   */
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container === null || !animateIn) {
+      return;
+    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    container.animate(WIPE_IN_KEYFRAMES, WIPE_IN_OPTIONS);
+    // 마운트 한 번만. `animateIn` 은 이 컴포넌트가 사는 동안 바뀌지 않는다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* 십자선이 가리키는 값. 캔버스 밖 일반 DOM 이라 손가락에 가려지지 않는다. */}
-      <div
-        className="flex items-baseline justify-between gap-3 px-1 pb-2"
-        aria-live="polite"
-      >
-        <span className="text-caption text-text-muted tabular-nums">
-          {activePoint === null ? '' : formatKstDate(activePoint.date)}
-        </span>
-        {activePoint !== null && (
-          <span
-            className={`text-body-2 font-medium tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
-          >
-            {formatAmount(activePoint.close)}원
-            {activePoint.changeAmount !== null &&
-              activePoint.changeRate !== null && (
-                <>
-                  {' '}
-                  · {formatSignedAmount(activePoint.changeAmount)} (
-                  {formatSignedRate(activePoint.changeRate)})
-                </>
-              )}
-          </span>
-        )}
-      </div>
+    <div className={`relative w-full ${className}`}>
+      {tooltip !== null && (
+        /*
+          검정 툴팁 (프로토타입 `.xtip`, 새 디코드 L1123·L1771–L1781).
+          실측 — `top:0` · `max-width:63%` · 반경 9 · 안쪽 8/10 ·
+          면 `rgba(36,39,44,.95)`(`--color-ai-surface` 가 `#24272C` 로 같은 색이다) ·
+          그림자 `0 4px 14px rgba(31,35,40,.18)` · `pointer-events:none`.
+
+          종가는 `--color-tip-up`(`#F08A8A`) · `--color-tip-down`(`#8FB6F5`) 으로
+          칠한다 — 프로토타입 `tipTone` 이 종가와 시가를 견줘 가르는 값이다
+          (새 디코드 L1777·L3790, `c>=o` 면 상승색). **검정 면 위에서만 쓰는 색이라
+          툴팁 밖으로 넘겨 쓰지 않는다** (`shared/styles/index.css` 의 토큰 주석).
+        */
+        <div
+          aria-live="polite"
+          className={`pointer-events-none absolute top-0 z-3 max-w-[63%] rounded-[9px] bg-ai-surface/95 px-2.5 py-2 shadow-[0_4px_14px_rgba(31,35,40,0.18)] ${
+            tooltip.side === 'left' ? 'left-0' : 'right-0'
+          }`}
+        >
+          <div className="mb-1.25 text-[11px] text-white/55 tabular-nums">
+            {formatKstDate(tooltip.point.date)}
+          </div>
+          <div className="grid grid-cols-[auto_auto] gap-x-3 gap-y-0.75">
+            <span className="text-[11.5px] whitespace-nowrap text-white/50">
+              시{' '}
+              <b className="font-semibold text-white tabular-nums">
+                {formatAmount(tooltip.point.open)}
+              </b>
+            </span>
+            <span className="text-[11.5px] whitespace-nowrap text-white/50">
+              고{' '}
+              <b className="font-semibold text-white tabular-nums">
+                {formatAmount(tooltip.point.high)}
+              </b>
+            </span>
+            <span className="text-[11.5px] whitespace-nowrap text-white/50">
+              저{' '}
+              <b className="font-semibold text-white tabular-nums">
+                {formatAmount(tooltip.point.low)}
+              </b>
+            </span>
+            <span className="text-[11.5px] whitespace-nowrap text-white/50">
+              종{' '}
+              <b
+                className={`font-bold tabular-nums ${
+                  tooltip.point.close >= tooltip.point.open
+                    ? 'text-tip-up'
+                    : 'text-tip-down'
+                }`}
+              >
+                {formatAmount(tooltip.point.close)}
+              </b>
+            </span>
+          </div>
+          <div className="mt-1.25 text-[11px] whitespace-nowrap text-white/50 tabular-nums">
+            거래량 {formatAmount(tooltip.point.volume)}
+          </div>
+        </div>
+      )}
 
       <div
         ref={containerRef}
-        className="h-[220px] w-full"
+        className={`${CHART_HEIGHT_CLASS} w-full`}
         role="img"
         aria-label="주가 캔들 차트"
       />

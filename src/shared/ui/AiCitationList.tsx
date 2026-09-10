@@ -26,6 +26,19 @@ import { type AiCitation } from '@/shared/types/ai/envelope';
  * hover 툴팁 미리보기·각주 팝오버·발췌 접기는 만들지 않는다 — 모바일에 hover 가
  * 없다 (ia.md §4).
  *
+ * **같은 문서를 한 줄로 묶는다** (`groupByDocument`). 이것이 위의 "접거나 생략하지
+ * 않는다" 를 어기는 것이 아니다. 그 규약이 막는 것은 **목록 자체를 감추는 것**이다 —
+ * "이 목록이 없으면 AI 답변과 유튜브 추천이 화면에서 구별되지 않는다"(ia.md §4) 는
+ * 근거를 볼 수 있어야 한다는 말이지, 한 문서를 청크 수만큼 반복해 적어야 한다는
+ * 말이 아니다. AI 는 문서를 통째로 주지 않고 검색된 청크 단위로 준다. 실제 응답에서
+ * `citations` 6건 중 5건이 같은 반기보고서의 다른 청크였고, 사용자에게는 근거가
+ * 여섯 가지인 것이 아니라 같은 줄이 다섯 번 반복된 고장으로 읽힌다. 묶은 뒤에도
+ * 근거는 하나도 사라지지 않는다 — 문서도 링크도 그대로 있고 줄만 겹치지 않는다.
+ * 서버에 합쳐 달라고 하지 않은 이유는 `citations[].id` 를
+ * `AiThesisEvidence.citationId` 가 가리키기 때문이다(`types/ai/analysis.ts`
+ * ·`attribution.ts`). 합치면 그 참조가 끊어진다. 그래서 계약은 그대로 두고 표시만
+ * 정리한다.
+ *
  * 여백은 컴포넌트가 갖지 않는다. 앞 요소와의 간격이 화면마다 달라 호출부가
  * `className` 으로 정한다.
  */
@@ -38,6 +51,62 @@ const CITATION_TYPE_LABEL: Record<string, string> = {
   engine: '자체 계산',
   wiki: '내 논지',
 };
+
+/**
+ * 문서 하나에 해당하는 줄. 같은 `url` 의 청크 여럿이 여기로 접힌다.
+ */
+type CitationGroup = {
+  /** 화면에 그릴 대표 청크. 묶음 안에서 `relevance` 가 가장 높은 것이다. */
+  head: AiCitation;
+  /** 이 줄이 접은 청크 수. 묶이지 않은 줄은 `1` 이다. */
+  size: number;
+  /** 정렬 기준. 묶음의 `relevance` **최댓값**이다. */
+  relevance: number;
+};
+
+/**
+ * `url` 이 같은 청크를 한 줄로 묶고 묶음의 `relevance` 최댓값으로 내림차순 정렬한다.
+ *
+ * **`url` 이 `null` 인 `type` 은 묶지 않는다.** `engine`(자체 계산)·`wiki`(내 논지)가
+ * 그렇다 — 묶을 키가 없고, 애초에 같은 외부 문서를 여러 번 인용한 경우가 아니다.
+ * 제목으로 묶으면 서로 다른 계산 근거가 제목만 같다는 이유로 하나로 접힌다.
+ *
+ * 평균이 아니라 최댓값으로 정렬하는 이유는, 청크가 많이 잡힌 문서일수록 관련 없는
+ * 청크가 딸려 와 평균을 끌어내리기 때문이다. 가장 관련 높은 대목이 어디에 있었는지가
+ * 그 문서의 순위여야 한다.
+ *
+ * 동점이면 응답이 준 순서가 남는다 (`Array.prototype.sort` 는 안정 정렬이다).
+ */
+function groupByDocument(citations: readonly AiCitation[]): CitationGroup[] {
+  const groups: CitationGroup[] = [];
+  const byUrl = new Map<string, CitationGroup>();
+
+  for (const citation of citations) {
+    const existing =
+      citation.url === null ? undefined : byUrl.get(citation.url);
+
+    if (existing === undefined) {
+      const group: CitationGroup = {
+        head: citation,
+        size: 1,
+        relevance: citation.relevance,
+      };
+      groups.push(group);
+      if (citation.url !== null) {
+        byUrl.set(citation.url, group);
+      }
+      continue;
+    }
+
+    existing.size += 1;
+    if (citation.relevance > existing.relevance) {
+      existing.relevance = citation.relevance;
+      existing.head = citation;
+    }
+  }
+
+  return groups.sort((a, b) => b.relevance - a.relevance);
+}
 
 type AiCitationListProps = {
   citations: readonly AiCitation[];
@@ -61,12 +130,13 @@ export function AiCitationList({
     return null;
   }
 
-  // relevance 내림차순. 원본 배열을 건드리지 않으려고 복사한 뒤 정렬한다.
-  const sorted = [...citations].sort((a, b) => b.relevance - a.relevance);
+  // 같은 문서를 한 줄로 접고 묶음의 relevance 최댓값으로 내림차순 정렬한다.
+  // 원본 배열은 건드리지 않는다.
+  const groups = groupByDocument(citations);
 
   const list = (
     <ul className={`flex flex-col ${showPublisher ? 'gap-2.5' : 'gap-2'}`}>
-      {sorted.map((citation) => {
+      {groups.map(({ head: citation }) => {
         const label = CITATION_TYPE_LABEL[citation.type] ?? citation.type;
         const rowClass = showPublisher
           ? 'flex items-start gap-2.5'

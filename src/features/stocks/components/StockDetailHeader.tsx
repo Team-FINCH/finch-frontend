@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-import { formatKstTime } from '@/shared/lib/formatDate';
+import { formatKstShortTime } from '@/shared/lib/formatDate';
 import {
   formatAmount,
   formatSignedAmount,
@@ -75,29 +75,53 @@ export function StockDetailHeader({
           type="button"
           onClick={() => void navigate(-1)}
           aria-label="뒤로 가기"
-          className="flex size-11 flex-none items-center justify-center rounded-12 text-title-2 leading-none text-text-primary active:bg-primary-soft"
+          className="flex size-11 flex-none items-center justify-center rounded-12 text-[20px] leading-none text-text-primary active:bg-primary-soft"
         >
           ‹
         </button>
         <span className="flex min-w-0 flex-1 flex-col gap-0.75 pt-2.25">
-          <span className="truncate text-title-3 font-bold text-text-primary">
+          <span className="truncate text-[17px] leading-[23px] font-bold tracking-[-0.01em] text-text-primary">
             {detail.stockName}
           </span>
           <span className="text-caption text-text-muted">
             {detail.stockCode} · {MARKET_LABEL[detail.market] ?? detail.market}
           </span>
         </span>
+        {detail.suspended && (
+          /*
+            거래정지 뱃지 (프로토타입 `.tag.ne`, 새 디코드 L1702).
+            중립 회색이다 — `--up` 을 쓰지 않는다. 실측 —
+            높이 24 · 좌우 8 · 반경 8 · 13px/500 · 면 `#F1F3F6`(`--color-surface-soft`) ·
+            글씨 `--t3`(`--color-text-muted`).
+            반경 8px 은 `--radius-tag` 다 (`--radius-sm` 은 10px 이라 쓸 수 없다).
+          */
+          <span className="mr-0.5 flex h-6 flex-none items-center rounded-tag bg-surface-soft px-2 text-caption font-medium text-text-muted">
+            거래정지
+          </span>
+        )}
+        {/*
+          관심 토글. 프로토타입은 색을 두 값으로 갈라 쓴다 —
+          선택 `#1F2328`(`--color-text-primary` 와 같은 값) ·
+          비선택 `#C6CEDA` (새 디코드 L3716 `starColor`).
+
+          비선택 쪽은 글자색 계단이 아니라 **글리프 토큰**을 쓴다.
+          `--color-text-muted`(#78828E)는 흰 배경 대비 3.90 이라
+          `styles/index.css` 가 "캡션·기준 시각·출처에만" 으로 쓰는 자리를
+          좁혀 둔 색이고, `#C6CEDA` 는 그보다 더 옅다. 글자색 계단에 넷째로
+          붙이면 그 결정을 뒤집는 것이 되므로 읽을 필요가 없는 장식 글리프
+          전용 토큰으로 분리했다. 라벨·본문에는 쓰지 않는다.
+        */}
         <button
           type="button"
           onClick={onToggleWatch}
           disabled={isTogglePending}
           aria-pressed={detail.watched}
           aria-label={detail.watched ? '관심 종목 해제' : '관심 종목 담기'}
-          className={`flex size-11 flex-none items-center justify-center rounded-12 text-title-3 leading-none active:bg-primary-soft disabled:opacity-40 ${
-            detail.watched ? 'text-text-primary' : 'text-text-muted'
+          className={`flex size-11 flex-none items-center justify-center rounded-12 text-[20px] leading-none active:bg-primary-soft disabled:opacity-40 ${
+            detail.watched ? 'text-text-primary' : 'text-glyph-disabled'
           }`}
         >
-          {detail.watched ? '★' : '☆'}
+          {detail.watched ? '♥' : '♡'}
         </button>
       </div>
 
@@ -110,7 +134,7 @@ export function StockDetailHeader({
           <>
             <p className="text-display text-text-primary tabular-nums">
               {formatAmount(currentPrice)}
-              <span className="text-title-2 font-medium text-text-secondary">
+              <span className="text-[20px] font-medium text-text-secondary">
                 {' '}
                 원
               </span>
@@ -123,7 +147,7 @@ export function StockDetailHeader({
                 {formatSignedRate(changeRate)}
               </span>
               <span className="text-[12px] whitespace-nowrap text-text-muted">
-                {formatKstTime(asOf)} 기준
+                {formatKstShortTime(asOf)} 기준
               </span>
             </div>
           </>
@@ -144,18 +168,12 @@ export function StockDetailHeader({
           </p>
         )}
 
-        {detail.suspended && (
-          <div className="mt-4 rounded-sm bg-surface-soft p-4">
-            <p className="text-body-2 font-medium text-text-primary">
-              거래정지 종목이에요
-            </p>
-            {detail.suspendedReason !== null && (
-              <p className="mt-1 text-caption text-text-secondary">
-                {detail.suspendedReason}
-              </p>
-            )}
-          </div>
-        )}
+        {/*
+          거래정지 안내 회색 박스는 걷어냈다. 프로토타입은 헤더에 **중립 회색 뱃지**만
+          두고(위 `.tag.ne`) 정지 사유는 차트 탭의 정지 화면에서 말한다
+          (새 디코드 L1749–L1759, `StockChartTab` 참고). `ia.md` L134 · contracts C46 이
+          요구한 "뱃지 노출 + `suspendedReason`" 도 그 둘로 함께 만족한다.
+        */}
       </div>
     </header>
   );
