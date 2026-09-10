@@ -99,6 +99,18 @@ export function StockDetailHeader({
             거래정지
           </span>
         )}
+        {/*
+          관심 토글. 프로토타입은 색을 두 값으로 갈라 쓴다 —
+          선택 `#1F2328`(`--color-text-primary` 와 같은 값) ·
+          비선택 `#C6CEDA` (새 디코드 L3716 `starColor`).
+
+          비선택 쪽은 글자색 계단이 아니라 **글리프 토큰**을 쓴다.
+          `--color-text-muted`(#78828E)는 흰 배경 대비 3.90 이라
+          `styles/index.css` 가 "캡션·기준 시각·출처에만" 으로 쓰는 자리를
+          좁혀 둔 색이고, `#C6CEDA` 는 그보다 더 옅다. 글자색 계단에 넷째로
+          붙이면 그 결정을 뒤집는 것이 되므로 읽을 필요가 없는 장식 글리프
+          전용 토큰으로 분리했다. 라벨·본문에는 쓰지 않는다.
+        */}
         <button
           type="button"
           onClick={onToggleWatch}
@@ -106,7 +118,7 @@ export function StockDetailHeader({
           aria-pressed={detail.watched}
           aria-label={detail.watched ? '관심 종목 해제' : '관심 종목 담기'}
           className={`flex size-11 flex-none items-center justify-center rounded-12 text-[20px] leading-none active:bg-primary-soft disabled:opacity-40 ${
-            detail.watched ? 'text-text-primary' : 'text-text-muted'
+            detail.watched ? 'text-text-primary' : 'text-glyph-disabled'
           }`}
         >
           {detail.watched ? '♥' : '♡'}
