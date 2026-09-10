@@ -325,6 +325,23 @@
      프로토타입 값도 대부분 4의 배수라 스케일에 실린다. 화면 좌우 여백 26px 처럼
      4로 나뉘지 않는 값은 Tailwind v4 의 소수 배수(px-6.5)로 적는다. */
 
+  /* ── 치수 ─────────────────────────────────────────────────────────── */
+  /* 상단 헤더 한 줄의 높이. 프로토타입 `.nav{height:56px}` 실측값이다
+     (`template.html` L1038). `shared/ui/PageHeader` 와 `shared/ui/SubPageHeader`
+     가 이 높이를 갖는다.
+
+     **값을 토큰으로 둔 이유는 헤더 밖에서 읽어야 하기 때문이다.** 헤더는
+     `PageMain`(스크롤 컨테이너) 안에서 `sticky top-0` 으로 붙는다. 그 아래에
+     또 sticky 로 붙어야 하는 줄 — 포트폴리오 4탭 줄 같은 것 — 은 `top` 을
+     헤더 높이만큼 내려야 헤더 밑으로 파고들지 않는다.
+
+       top: var(--page-header-height)
+
+     그래서 헤더 높이가 안쪽 여백과 글자 크기로 우연히 정해지면 안 된다.
+     아래 여백은 이 높이에 들어 있지 않다 — 호출부가 margin 으로 준다.
+     padding 으로 주면 그만큼 높이가 늘어 위 계산이 화면마다 어긋난다. */
+  --page-header-height: 56px;
+
   /* ── 반경 (프로토타입 .sk·.btn·.card·.sheet) ──────────────────────── */
   /* Tailwind 기본 --radius-xs/sm/md 를 우리 값으로 덮어쓴다.
      rounded-xs·rounded-sm·rounded-md 의 값이 Tailwind 기본과 달라진다. 의도한 것이다.

@@ -42,7 +42,7 @@ export function MyPage() {
       <PageHeader
         title="마이페이지"
         unreadCount={inbox.data?.unreadCount ?? 0}
-        className="pb-3.5"
+        className="mb-3.5"
       />
 
       <MyPageProfile

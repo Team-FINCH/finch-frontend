@@ -16,14 +16,35 @@ import { ROUTES } from '@/shared/config/routes';
  * 기준으로 삼았다 — `PortfolioHeader` 는 그 시점에 알림함 API 계약이 없어 카운트를
  * 못 붙였을 뿐, 지금은 `useInboxItems` 가 이미 있다.
  *
- * 아래 여백은 컴포넌트가 갖지 않는다. 화면마다 다음 요소와의 간격이 달라서(홈은
- * 14px, 포트폴리오는 4px) 호출부가 `className` 으로 정한다.
+ * 아래 여백은 컴포넌트가 갖지 않는다. 화면마다 다음 요소와의 간격이 달라서(홈·
+ * 마이페이지는 14px, 포트폴리오는 4px) 호출부가 `className` 으로 정한다.
+ * **호출부는 그 간격을 `margin` 으로 준다. `padding` 으로 주면 안 된다** — 아래
+ * "높이" 절에 적은 대로 이 요소의 높이가 곧 다른 화면의 sticky 기준점이라,
+ * padding 은 그 기준점을 화면마다 다르게 밀어 버린다.
  *
  * **위·좌우 여백과 배경은 컴포넌트가 갖는다.** 프로토타입은 `.nav` 를 `.sc` 밖에
  * `flex:none` 으로 두어 본문만 굴러가게 한다(`TabBarLayout` 주석). 우리는 헤더가
  * `PageMain` 안에 있어서 같은 결과를 `sticky top-0` 로 만든다 — `PageMain` 의
  * 좌우 26px·위 24px 여백을 음수 마진으로 끌어와 헤더 자신이 갖고, 배경을 깔아
  * 본문이 그 아래로 지나가게 한다. 배경이 없으면 글자가 겹쳐 읽힌다.
+ *
+ * ## 높이
+ *
+ * 높이는 `--page-header-height`(56px, 프로토타입 `.nav` 실측)로 고정한다.
+ * 전에는 `pt-6` + 40px 아이콘으로 우연히 정해졌고, 거기에 호출부가 준
+ * `pb-3.5` 가 더해져 홈·마이페이지 78px, 포트폴리오 64px 로 화면마다 달랐다.
+ * 그래서 헤더 아래에 sticky 로 붙어야 하는 줄(포트폴리오 4탭)이 `top` 에 적을
+ * 값을 갖지 못했다. 이제 세 화면 모두 56px 이고 아래처럼 쓸 수 있다.
+ *
+ * ```
+ * top: var(--page-header-height)
+ * ```
+ *
+ * 값을 고정하면서 `pt-6` 을 뺐다 — 56px 안에 24px 짜리 위 여백을 넣으면 40px
+ * 아이콘이 들어가지 않는다. 프로토타입도 `.nav` 는 56px 안에 44px 아이콘을
+ * 세로 가운데 두고 위아래 6px 만 남기는 구조다. `-mt-6` 는 그대로 둔다 —
+ * `PageMain` 의 위 여백 24px 을 헤더가 삼켜 스크롤 컨테이너 맨 위(0)부터
+ * 56px 까지를 헤더가 차지하게 하는 것이 `top` 계산의 전제다.
  *
  * 미읽음 개수는 이 컴포넌트가 직접 조회하지 않는다 — `features/mypage` 가
  * `features/inbox` 를 부르는 것은 페이지 계층에서 하고, 여기는 숫자만 받는다
@@ -49,7 +70,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div
-      className={`sticky top-0 z-10 -mx-6.5 -mt-6 flex items-center justify-between gap-3 bg-bg px-6.5 pt-6 ${className}`}
+      className={`sticky top-0 z-10 -mx-6.5 -mt-6 flex h-(--page-header-height) items-center justify-between gap-3 bg-bg px-6.5 ${className}`}
     >
       <h1 className="text-section-title text-text-primary">{title}</h1>
       <Link

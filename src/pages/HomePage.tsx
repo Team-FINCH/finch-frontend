@@ -63,7 +63,7 @@ export function HomePage() {
       <PageHeader
         title="홈"
         unreadCount={inbox.data?.unreadCount ?? 0}
-        className="pb-3.5"
+        className="mb-3.5"
       />
       <BriefingSection
         hasNoStocks={hasNoStocks}

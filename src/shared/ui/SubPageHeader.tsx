@@ -16,7 +16,8 @@ import { ROUTES } from '@/shared/config/routes';
  * (FINCH-196). 마크업의 기준은 프로토타입 `.nav` 묶음이다(디코드본 L1038-1042).
  *
  * 프로토타입 실측값:
- * - `.nav`  — 높이 56px, `align-items:center`, `gap:4px`, 좌우 padding 15px
+ * - `.nav`  — 높이 56px, `align-items:center`, `gap:4px`, 좌우 padding 15px.
+ *   그 56px 은 `--page-header-height` 다 — `PageHeader` 와 값을 함께 쓴다
  * - `.ico`  — 44×44, 글자 20px, `border-radius:12px`, 눌림 배경 140ms 전환
  * - `.navt` — 18px/700, `letter-spacing:-.01em`, `flex:1`. 뒤로가기 뒤에 오면
  *   `padding-left:0`, 뒤로가기가 없으면 `padding-left:11px`(본문 여백 26px 에 맞춘다)
@@ -67,7 +68,7 @@ export function SubPageHeader({
 
   return (
     <div
-      className={`-mx-2.75 flex h-14 flex-none items-center gap-1 ${className}`}
+      className={`-mx-2.75 flex h-(--page-header-height) flex-none items-center gap-1 ${className}`}
     >
       {showBack ? (
         <button
