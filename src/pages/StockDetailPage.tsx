@@ -211,7 +211,11 @@ export function StockDetailPage() {
         )}
         {activeTab === 'info' && <StockInfoTab />}
         {activeTab === 'ai' && (
-          <StockAiTab stockCode={stockCode} isActive={activeTab === 'ai'} />
+          <StockAiTab
+            stockCode={stockCode}
+            isActive={activeTab === 'ai'}
+            owned={data.holding !== null}
+          />
         )}
       </PageMain>
 

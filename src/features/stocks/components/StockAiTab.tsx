@@ -61,8 +61,8 @@ import { useStockAnalysis } from '../api/useStockAnalysis';
  * 배열이라(contracts C56) 전용 UI 를 만들지 않았다 — 그 자리를 그리려면 목이 계약보다
  * 관대해져야 한다. 값이 실제로 실려 오면 스키마는 이미 받고 있으니 여기만 고친다.
  *
- * `thesisCheck` 가 `null` 일 때의 논지 입력 유도 카드(ia.md §4 ★)는 AI 채팅 진입이
- * 필요해 이 티켓 범위 밖이다.
+ * `thesisCheck` 가 `null` 일 때의 논지 입력 유도는 **만들었다** (`ThesisPromptBlock`).
+ * 보유 여부가 있어야 세는 자리라 `owned` 를 받는다 — 아래 그 주석 참고.
  *
  * ## 실패 자리
  *
@@ -76,6 +76,13 @@ type StockAiTabProps = {
   stockCode: string;
   /** AI 탭이 열려 있을 때만 부른다 — 안 그러면 차트만 보는 사람에게 AI 요금이 나간다. */
   isActive: boolean;
+  /**
+   * 보유 중인가 (`GET /stocks/{stockCode}` 의 `holding !== null`).
+   * **논지 없음 유도를 띄울지가 여기서 갈린다** — 프로토타입 `d.needThesis` 가
+   * `owned && !thesis` 다(새 디코드 L3712). `thesisCheck` 가 `null` 인 것만으로는
+   * 미보유와 구별되지 않아 응답만으로는 셀 수 없다.
+   */
+  owned: boolean;
 };
 
 /**
@@ -177,6 +184,61 @@ function ThesisCheckBlock({ section }: { section: AiAnalysisSection }) {
 }
 
 /**
+ * 나의 투자 기준 — 논지가 **없을** 때의 유도 (프로토타입 `d.needThesis`,
+ * 새 디코드 L1970–L1976). 보유 중인데 기록이 없을 때만 나온다.
+ *
+ * 제목·문장은 응답이 아니라 **시안 문구**다. `thesisCheck` 가 `null` 이라 서버
+ * `title` 이 애초에 오지 않는 자리이고, "섹션 제목을 화면이 짓지 않는다"(ia.md:453)
+ * 는 응답이 있는 섹션에 거는 규약이다. `SECTION_CAPTION` 과 같은 성격이다.
+ *
+ * 실측 — 제목 아래 10px · 본문 `.b1` 행간 24 `--t2` · 행 50px, 위 14px, 안쪽 16,
+ * 반경 13, 면 `#F5F6F8` · 라벨 15px/600 `--t1` · `›` 15px `--t3`. 논지가 있을 때의
+ * `기록 확인하기` 행과 같은 모양이라 클래스를 맞췄다.
+ *
+ * **도착지는 AI 채팅이다. 프로토타입의 기록 시트가 아니다.** 프로토타입은
+ * `openRecordSheet` 로 입력 시트를 열지만(L1974) **프론트에는 논지를 새로 쓸 API 가
+ * 없다** — `POST /wiki/theses` 는 AI 서비스가 대화 안에서 스스로 부르는 경로이고
+ * 프론트가 가진 것은 열람·수정·사실 삭제 셋뿐이다(contracts C5·C80·P34).
+ * 그래서 ia.md:456 이 "입력 폼이 아니라 AI 채팅으로 보내는 버튼" 으로 못박은 쪽을
+ * 따른다. 시트를 만들면 저장할 곳이 없는 폼이 된다.
+ */
+function ThesisPromptBlock({ stockCode }: { stockCode: string }) {
+  const navigate = useNavigate();
+
+  return (
+    <section className="mt-10">
+      <h3 className="mb-2.5 text-section-title text-text-primary">
+        나의 투자 기준
+      </h3>
+      <p className="text-body-1 leading-6 text-pretty text-text-secondary">
+        매수 이유를 기록해두면
+        <br />
+        다음 판단에서 다시 꺼내볼 수 있어요.
+      </p>
+      <button
+        type="button"
+        onClick={() =>
+          void navigate(
+            `${ROUTES.chat}?screen=stock_detail&ticker=${stockCode}`,
+          )
+        }
+        className="mt-3.5 flex h-12.5 w-full items-center gap-3 rounded-[13px] bg-surface-soft px-4 text-left active:bg-primary-soft"
+      >
+        <span className="min-w-0 flex-1 text-[15px] font-semibold text-text-primary">
+          ＋ 매수 이유 기록하기
+        </span>
+        <span
+          aria-hidden="true"
+          className="flex-none text-[15px] text-text-muted"
+        >
+          ›
+        </span>
+      </button>
+    </section>
+  );
+}
+
+/**
  * 섹션별 고정 캡션. 프로토타입이 `확인해볼 위험` 아래에만 한 줄 두었다
  * (새 디코드 L1946). 제목과 달리 이 문장은 응답에 없는 **시안 문구**라 화면이 갖는다.
  */
@@ -184,7 +246,7 @@ const SECTION_CAPTION: Partial<Record<AiAnalysisSectionKey, string>> = {
   risks: '공시와 실적에서 확인한 내용이에요.',
 };
 
-export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
+export function StockAiTab({ stockCode, isActive, owned }: StockAiTabProps) {
   const analysis = useStockAnalysis(stockCode, isActive);
 
   if (analysis.isPending) {
@@ -268,6 +330,15 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   const current = content.sections.current ?? null;
   const flat = present.filter((entry) => entry.key !== 'current');
 
+  /**
+   * 보유 중인데 논지가 없으면 그 자리에 유도를 둔다 (프로토타입 `d.needThesis`).
+   * `thesisCheck` 는 기록된 활성 논지가 없을 때 `null` 이고(ia.md §4 표) 미보유일
+   * 때도 `null` 이라(C58) 응답만으로는 둘을 못 가른다 — 보유 여부는 상세 응답에서
+   * 온다. `null` 섹션을 빈 상자로 채우는 것과 다르다(ia.md:452): 그 규약은 "정보
+   * 없음" 박스를 금지하는 것이고 이 자리는 다음 행동을 주는 유도다.
+   */
+  const needThesis = owned && (content.sections.thesisCheck ?? null) === null;
+
   return (
     // 위 4px · 아래 24px 은 프로토타입 실측이다 (새 디코드 L1926·L1994).
     <div className="mt-1 pb-6">
@@ -306,6 +377,8 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
           />
         ),
       )}
+
+      {needThesis && <ThesisPromptBlock stockCode={stockCode} />}
 
       <AiCitationList
         citations={citations}
