@@ -28,19 +28,27 @@ export function errorResponse(
   );
 }
 
-/** AI 중계 에러. 최상위 `requestId` 가 더 실린다 (apiSpec §10.3 · contracts C14). */
+/**
+ * AI 중계 에러. 최상위 `requestId` 가 더 실린다 (apiSpec §10.3 · contracts C14).
+ *
+ * `headers` 는 `429 AI_UPSTREAM_RATE_LIMITED` 의 `Retry-After` 때문에 열었다
+ * (apiSpec §10.4). **AI 서버가 준 경우에만 실리는 헤더**라서 기본값을 두지 않는다 —
+ * 목이 없는 헤더를 지어내면 `daily_token_budget` 갈래에서 프론트가 재시도 간격을
+ * 받아 버린다.
+ */
 export function aiErrorResponse(
   code: string,
   message: string,
   status: number,
   requestId: string,
   detail?: Record<string, unknown>,
+  headers?: Record<string, string>,
 ): HttpResponse<JsonBodyType> {
   return HttpResponse.json(
     detail === undefined
       ? { code, message, requestId }
       : { code, message, detail, requestId },
-    { status },
+    { status, headers },
   );
 }
 

@@ -52,6 +52,8 @@ import { nowKstIso, toKstDateString } from '../lib/time';
  * | `POST /ai/chat` `message` 가 `upstream` 으로 시작 | `502 AI_UPSTREAM_UNAVAILABLE` — **`requestId` 가 없다** (§10.4) |
  * | `POST /ai/chat` `message` 가 `timeout` 으로 시작 | `504 AI_UPSTREAM_TIMEOUT` — `requestId` 없음 |
  * | `POST /ai/chat` `message` 가 `guardrail` 로 시작 | `422 GUARDRAIL_BLOCKED` — `requestId` 있음 |
+ * | `POST /ai/chat` `message` 가 `ratelimit` 으로 시작 | `429 AI_UPSTREAM_RATE_LIMITED` + `detail.reason: 'request_rate_limit'` + `Retry-After: 2` — **자동 재시도가 2초 뒤에 나간다** |
+ * | `POST /ai/chat` `message` 가 `budget` 으로 시작 | `429 AI_UPSTREAM_RATE_LIMITED` + `detail.reason: 'daily_token_budget'`, `Retry-After` 없음 — **재시도가 나가지 않는다** (요청 1건으로 끝) |
  * | `POST /ai/chat` 빈 `message` 나 2,000자 초과 | `400 INVALID_REQUEST` |
  * | `POST /ai/stocks/{stockCode}/analysis` 카탈로그에 없는 종목 | `404 INSTRUMENT_NOT_FOUND` (AI 서버 코드가 그대로 통과) |
  * | 분석 · 보유 중이고 활성 논지가 있는 종목(`005930`) | 섹션 **일곱 전부** |
@@ -83,6 +85,18 @@ import { nowKstIso, toKstDateString } from '../lib/time';
 const CHAT_UPSTREAM_UNAVAILABLE_PREFIX = 'upstream';
 const CHAT_UPSTREAM_TIMEOUT_PREFIX = 'timeout';
 const CHAT_GUARDRAIL_PREFIX = 'guardrail';
+const CHAT_RATE_LIMIT_PREFIX = 'ratelimit';
+const CHAT_BUDGET_PREFIX = 'budget';
+
+/**
+ * `429 AI_UPSTREAM_RATE_LIMITED` 의 두 갈래 문구 (apiSpec §10.4 v0.8.6).
+ * **AI 서버가 준 `message` 를 백엔드가 그대로 내려보낸다** — 화면이 문구를 새로
+ * 만들지 않으므로 목도 명세에 적힌 문장을 그대로 쓴다.
+ */
+const CHAT_RATE_LIMIT_MESSAGE =
+  '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.';
+const CHAT_BUDGET_MESSAGE =
+  '오늘 사용할 수 있는 AI 분석량을 모두 사용했습니다.';
 
 /**
  * 논지를 기록해 둔 종목. `POST /ai/orders/preview` 의 `thesisConflicts` 픽스처가
@@ -400,6 +414,36 @@ export const aiHandlers = [
         '투자 권유나 가격 예측에는 답할 수 없어요',
         422,
         requestId,
+      );
+    }
+
+    /**
+     * 429 두 갈래 (apiSpec §10.4 v0.8.6 · MR !195). AI 서버가 응답은 했으므로
+     * **`requestId` 가 실린다** — 도달 실패분(502·504)과 반대다.
+     *
+     * `request_rate_limit` 만 `Retry-After` 를 받는다. 명세가 초 단위 정수에 최소 1을
+     * 요구하는데 목은 재시도가 실제로 나가는 것을 눈으로 보려고 2초로 둔다.
+     * `daily_token_budget` 에는 **헤더를 붙이지 않는다** — AI 서버가 주지 않는 값이고,
+     * 목이 지어내면 자정까지 안 풀릴 요청을 프론트가 다시 보내게 된다.
+     */
+    if (message.startsWith(CHAT_RATE_LIMIT_PREFIX)) {
+      return aiErrorResponse(
+        AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED,
+        CHAT_RATE_LIMIT_MESSAGE,
+        429,
+        requestId,
+        { reason: 'request_rate_limit' },
+        { 'Retry-After': '2' },
+      );
+    }
+
+    if (message.startsWith(CHAT_BUDGET_PREFIX)) {
+      return aiErrorResponse(
+        AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED,
+        CHAT_BUDGET_MESSAGE,
+        429,
+        requestId,
+        { reason: 'daily_token_budget' },
       );
     }
 
