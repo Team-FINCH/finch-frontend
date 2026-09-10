@@ -256,9 +256,12 @@ type TradeTabBarProps = {
  * 있었다. 그 판단은 당시 티켓 범위로는 맞았지만 `design.md` v2.2 가 이 변형을
  * "Tab Bar 변형" 표에 명세로 올렸다(FINCH-166).
  *
- * 라벨은 프로토타입 실측인 `거래정지 · 주문 불가` 다 — `design.md` 표는
- * `거래정지` 한 줄로 적었지만, 문서와 프로토타입이 갈릴 때 프로토타입 실측을
- * 따르기로 한 선례가 이 파일 위쪽 AI 버튼 주석에 있다.
+ * 라벨은 프로토타입 실측인 `거래정지된 종목이에요` 다 (새 디코드 L2922). 세 갈래가
+ * 있었다 — `design.md` §6 표의 `거래정지`, 우리가 쓰던 `거래정지 · 주문 불가`,
+ * 프로토타입의 이 문장. **프로토타입으로 정해졌고 `design.md` §6 "Tab Bar 변형"
+ * 표와 §7.7 "주문할 수 없는 상태" 표 두 줄도 같은 MR 에서 이 문장으로 고쳤다.**
+ * 캡슐은 사유를 말해 주는 자리라 `거래정지` 한 낱말보다 문장이 맞고, `·` 로 두
+ * 토막을 잇는 우리 판은 프로토타입에 없다.
  *
  * **AI 버튼도 이 변형에 들어간다.** 근거는 `showTabs`가 아니라 `showTabAi`다.
  * 이 화면에서 그리는 것은 나브 탭이 아니라 매수/매도 바(`.tabpill.trade`)지만
@@ -285,7 +288,7 @@ export function TradeTabBar({
             disabled
             className={`h-12 flex-1 rounded-full border border-border text-[15px] font-medium text-text-muted ${TAB_ITEM_IN_CLASS}`}
           >
-            거래정지 · 주문 불가
+            거래정지된 종목이에요
           </button>
         ) : (
           <>
