@@ -1,15 +1,16 @@
+import { Link } from 'react-router-dom';
+
 import { ROUTES } from '@/shared/config/routes';
 import {
-  formatKrw,
+  formatAmount,
   formatSignedAmount,
   formatSignedRate,
   getPriceDirection,
 } from '@/shared/lib/formatNumber';
-import { type PortfolioSort } from '@/shared/types/portfolio';
-import { LinkButton } from '@/shared/ui/Button';
-import { EmptyState } from '@/shared/ui/EmptyState';
+import { type Holding, type PortfolioSort } from '@/shared/types/portfolio';
+import { ListEmpty } from '@/shared/ui/ListEmpty';
+import { RollingNumber } from '@/shared/ui/RollingNumber';
 import { Skeleton } from '@/shared/ui/Skeleton';
-import { StockRow } from '@/shared/ui/StockRow';
 
 import { usePortfolio } from '../api/usePortfolio';
 
@@ -32,6 +33,15 @@ const DIRECTION_TEXT_CLASS = {
 /**
  * "보유" 탭 (프로토타입 `isPfHold` 블록). `GET /portfolio?sort=` 하나로 상단 자산
  * 요약과 보유 목록을 함께 그린다(apiSpec §8.1).
+ *
+ * **헤드라인은 `평가 자산` 이라는 라벨 그대로 평가금액 합계를 넣는다.** 예전에는
+ * `totalAsset`(예수금 + 평가금액)을 넣었는데, 바로 아래 줄에 예수금이 또 나와 같은
+ * 돈을 두 번 세는 것처럼 읽혔다. 프로토타입도 `evalTotal` 을 넣는다(proto L2156).
+ *
+ * **보유 행은 `shared/ui/StockRow` 를 쓰지 않는다.** 프로토타입의 이 자리는 2단
+ * 행이다 — 위 줄에 이름과 평가금액, 아래 줄에 수량·평단·비중과 손익을 놓아 위계를
+ * 만든다(proto L2189-2205). `StockRow` 는 홈·탐색·종목 상세가 함께 쓰는 1단 행이라
+ * 여기 모양으로 바꿀 수 없다.
  */
 export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
   const { data, isPending, isError, refetch } = usePortfolio(sort);
@@ -68,7 +78,7 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
     return null;
   }
 
-  const { cashBalance, evaluationAmount, totalAsset, holdings } = data;
+  const { cashBalance, evaluationAmount, holdings } = data;
   const totalCost = holdings.reduce(
     (sum, holding) => sum + holding.avgBuyPrice * holding.quantity,
     0,
@@ -78,12 +88,23 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
   // formatSignedAmount 로 부호만 맞추고 %는 별도 계산한다.
   const totalProfitRate = totalCost === 0 ? 0 : (totalProfit / totalCost) * 100;
   const direction = getPriceDirection(totalProfit);
+  const hasHoldings = holdings.length > 0;
 
   return (
     <div className="pt-4">
-      <p className="text-body-2 text-text-secondary">평가 자산</p>
-      <p className="mt-1 text-title-1 text-text-primary tabular-nums">
-        {formatKrw(totalAsset)}
+      <p className="text-caption text-text-muted">평가 자산</p>
+      {/*
+        프로토타입 `.d36` (36px/44px/700, -.03em) + `원` 은 20px/500 별도 span.
+        숫자는 `.odo` 롤링이다 — 칸 높이 44px 은 `.d36` 의 행간이고
+        `.ocell` 실측값과 같다(proto L1028, L1084).
+      */}
+      <p className="mt-1 text-[36px] leading-11 font-bold tracking-[-0.03em] text-text-primary tabular-nums">
+        <RollingNumber
+          value={evaluationAmount}
+          text={formatAmount(evaluationAmount)}
+          label={`${formatAmount(evaluationAmount)}원`}
+        />
+        <span className="text-[20px] font-medium text-text-secondary"> 원</span>
       </p>
 
       <div className="mt-5.5 flex items-center justify-between">
@@ -95,72 +116,162 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
           {formatSignedRate(totalProfitRate)})
         </span>
       </div>
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-3 flex items-center justify-between gap-3">
         <span className="text-body-2 text-text-secondary">예수금</span>
-        <span className="text-body-1 font-medium text-text-primary tabular-nums">
-          {formatKrw(cashBalance)}
+        <span className="flex items-baseline gap-3">
+          <span className="text-body-1 font-medium text-text-primary tabular-nums">
+            {formatAmount(cashBalance)} 원
+          </span>
+          {/*
+            매매하려다 돈이 모자란 순간이 이 자리다 — 프로토타입 `goDeposit`
+            (proto L2170)과 `design.md` L610 이 같이 요구한다. 프로토타입
+            재내보내기(커밋 `99c6c71`)에서 문구가 `충전하기` → `입금하기` 로
+            바뀌었다(이슈 #45).
+          */}
+          <Link
+            to={ROUTES.deposit}
+            className="flex-none text-caption font-semibold text-text-secondary"
+          >
+            입금하기
+          </Link>
         </span>
       </div>
 
+      {/* 종목 개수는 `.sh` 의 오른쪽 끝이다. 정렬은 그 아래 별도 줄로 내려간다. */}
       <div className="mt-8 mb-3.5 flex items-baseline justify-between gap-3">
-        <span className="text-title-3 text-text-primary">
-          보유 종목{' '}
-          <span className="text-caption text-text-secondary">
-            {holdings.length}종목
-          </span>
+        <span className="min-w-0 text-section-title text-text-primary">
+          보유 종목
         </span>
-        <span className="flex gap-1">
+        <span className="flex-none text-caption text-text-muted">
+          {holdings.length}종목
+        </span>
+      </div>
+
+      {/* 정렬할 것이 없으면 정렬도 없다 — 프로토타입은 `hasHold` 로 감춘다. */}
+      {hasHoldings && (
+        <div className="-mt-1.5 mb-2.5 flex items-center gap-3.5">
           {SORT_OPTIONS.map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => onSortChange(option.value)}
               className={[
-                'h-7 rounded-sm px-2.5 text-caption font-medium transition-colors duration-(--motion-fast) ease-standard',
+                'py-0.5 text-caption transition-colors duration-(--motion-fast) ease-standard',
                 option.value === sort
-                  ? 'bg-primary-soft text-text-primary'
-                  : 'text-text-muted',
+                  ? 'font-bold text-text-primary'
+                  : 'font-medium text-text-muted',
               ].join(' ')}
             >
               {option.label}
             </button>
           ))}
-        </span>
-      </div>
+        </div>
+      )}
 
-      {holdings.length === 0 ? (
-        <EmptyState
-          title="아직 보유한 종목이 없어요."
-          description="관심있는 종목을 담아보세요."
-          action={
-            <LinkButton
-              to={ROUTES.search}
-              variant="secondary"
-              className="w-auto px-6"
-            >
-              종목 둘러보기
-            </LinkButton>
-          }
-        />
-      ) : (
+      {hasHoldings ? (
         <div className="flex flex-col">
           {holdings.map((holding) => (
-            <StockRow
+            <HoldingRow
               key={holding.stockCode}
-              stockCode={holding.stockCode}
-              stockName={holding.stockName}
-              to={ROUTES.stockDetail(holding.stockCode)}
-              sub={`${holding.quantity}주 · 평균 ${formatKrw(holding.avgBuyPrice)}`}
-              figures={{
-                kind: 'holding',
-                evaluationAmount: holding.evaluationAmount,
-                evaluationProfitRate: holding.evaluationProfitRate,
-                evaluationProfit: holding.evaluationProfit,
-              }}
+              holding={holding}
+              evaluationTotal={evaluationAmount}
             />
           ))}
         </div>
+      ) : (
+        /*
+          목록 자리의 빈 상태라 화면 전체를 채우는 `EmptyState` 가 아니라
+          `ListEmpty`(회색 면 `.soft`, 여백 28px 20px)를 쓴다. 동작은
+          `.chip.sel` — 34px 캡슐에 검정 면이다(proto L2182-2186, L1107-1109).
+          테두리 버튼으로 두면 회색 면 위에서 안내와 동작의 위계가 뒤집힌다.
+        */
+        <ListEmpty
+          className="py-7"
+          title="아직 보유 종목이 없어요."
+          description="종목을 담으면 평가금액과 비중을 여기에서 볼 수 있어요."
+          action={
+            <Link
+              to={ROUTES.search}
+              className="inline-flex h-8.5 items-center rounded-[11px] bg-primary px-3.5 text-label font-medium text-surface"
+            >
+              종목 찾아보기
+            </Link>
+          }
+        />
       )}
     </div>
+  );
+}
+
+type HoldingRowProps = {
+  holding: Holding;
+  /** 비중의 분모. 프로토타입도 예수금을 뺀 평가금액 합계로 나눈다. */
+  evaluationTotal: number;
+};
+
+/**
+ * 보유 종목 한 줄 (프로토타입 `holdsFull`, proto L2188-2206).
+ * 비중은 응답에 필드가 없어 화면이 계산한다 — 평가금액 합계가 이미 있어서
+ * 지어내는 값이 아니다. 자릿수는 프로토타입과 같은 정수 %다.
+ *
+ * **시세가 없는 종목은 평가 네 필드가 전부 `null` 이다**(apiSpec v0.8.2). 그때는
+ * 값 자리에 없다고 적는다 — 0 으로 치면 자산이 사라진 것처럼 보인다.
+ */
+function HoldingRow({ holding, evaluationTotal }: HoldingRowProps) {
+  const { evaluationAmount, evaluationProfit, evaluationProfitRate } = holding;
+  const weight =
+    evaluationAmount === null || evaluationTotal === 0
+      ? null
+      : Math.round((evaluationAmount / evaluationTotal) * 100);
+  const direction =
+    evaluationProfitRate === null
+      ? 'flat'
+      : getPriceDirection(evaluationProfitRate);
+
+  return (
+    <Link
+      to={ROUTES.stockDetail(holding.stockCode)}
+      data-stock-code={holding.stockCode}
+      className="flex w-full items-start gap-3 rounded-12 py-3.5 text-left transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
+    >
+      <span
+        aria-hidden="true"
+        className="flex size-11 flex-none items-center justify-center rounded-md bg-surface-soft text-body-1 font-bold text-text-secondary"
+      >
+        {holding.stockName.slice(0, 1)}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span className="flex items-center justify-between gap-2.5">
+          <span className="truncate text-body-1 font-medium text-text-primary">
+            {holding.stockName}
+          </span>
+          <span className="flex-none text-body-1 font-semibold text-text-primary tabular-nums">
+            {evaluationAmount === null
+              ? '시세 없음'
+              : formatAmount(evaluationAmount)}
+          </span>
+        </span>
+        <span className="flex items-start justify-between gap-2.5">
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-caption whitespace-nowrap text-text-secondary">
+              {formatAmount(holding.quantity)}주 · 평균{' '}
+              {formatAmount(holding.avgBuyPrice)}원
+            </span>
+            {weight === null ? null : (
+              <span className="text-caption whitespace-nowrap text-text-muted tabular-nums">
+                비중 {weight}%
+              </span>
+            )}
+          </span>
+          <span
+            className={`flex-none text-caption font-semibold whitespace-nowrap tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
+          >
+            {evaluationProfit === null || evaluationProfitRate === null
+              ? '등락 없음'
+              : `${formatSignedAmount(evaluationProfit)} (${formatSignedRate(evaluationProfitRate)})`}
+          </span>
+        </span>
+      </span>
+    </Link>
   );
 }

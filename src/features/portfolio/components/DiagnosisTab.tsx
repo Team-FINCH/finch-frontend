@@ -5,28 +5,58 @@ import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiStatus } from '@/shared/ui/AiStatus';
+import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
+import { usePortfolio } from '../api/usePortfolio';
 import { usePortfolioDiagnosis } from '../api/usePortfolioDiagnosis';
+
+import { PortfolioStateSection } from './PortfolioStateSection';
+import { StockConcentrationSection } from './StockConcentrationSection';
 
 const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as const;
 
 /**
  * "AI 진단" 탭 (프로토타입 `isPfDiag` 블록, AI 슬롯 5번).
  *
- * **프로토타입의 "포트폴리오 상태"(등급 막대)·"종목 집중도"(색색 스택 바)는
- * 그대로 옮기지 않는다.** 그 UI는 프로토타입 고유의 가상 등급 체계(우수/보통/주의)를
- * 전제로 하는데, 실제 `POST /ai/portfolio/diagnosis` 응답(`AiDiagnosisContent`)은
- * `findings[]`(문제 항목 배열)와 `indicators`(숫자 지표)만 준다 — 등급·막대색을
- * 프론트가 지어내면 "프론트는 AI 응답을 조립하지 않는다"(ia.md §4)를 어긴다.
- * 그래서 실제 스키마를 그대로 보여주는 목록형 레이아웃으로 다시 짰다.
+ * 섹션 순서는 프로토타입을 따른다 — AI 카드 → `포트폴리오 상태` → `종목 집중도`
+ * (proto L2231–L2275). 그 뒤의 `확인된 사항`·`위험 지표`·근거·면책은 프로토타입에
+ * 대응물이 없는 우리 쪽 추가분이라 뒤에 붙인다. `findings[]`·`indicators` 는 실제
+ * 응답이 주는 것 전부이고, 프로토타입의 지표 3개는 그중 셋을 골라 그린 것이라
+ * 두 묶음이 겹쳐도 지우지 않는다.
  *
  * **피드백을 붙이지 않는다.** 프로토타입 실제 UI에서 피드백이 붙는 자리는 셋뿐이고
  * 이 탭은 그중 하나가 아니다(ia.md §4 "피드백 슬롯 배치 규칙" 각주).
+ *
+ * **보유가 0이면 요청을 보내지 않는다** — 프로토타입 `diagCold`(proto L2209,
+ * `aiOk && hk.length===0`)와 같다. 진단할 것이 없다는 것은 프론트가 이미 아는
+ * 사실이라 빈 계좌에서 AI 요청 한 번을 낭비할 이유가 없다. 보유 조회가 실패해
+ * 개수를 모를 때는 요청을 보낸다 — 곁가지 실패가 본문을 막지 않게 한다.
  */
 export function DiagnosisTab() {
-  const { data, isPending, isError, error, refetch } =
-    usePortfolioDiagnosis(true);
+  const portfolio = usePortfolio('EVALUATION');
+  const isColdStart = portfolio.data?.holdings.length === 0;
+  const { data, isPending, isError, error, refetch } = usePortfolioDiagnosis(
+    !portfolio.isPending && !isColdStart,
+  );
+
+  if (portfolio.isPending) {
+    return (
+      <div className="flex flex-col gap-3 pt-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
+
+  if (isColdStart) {
+    return (
+      <EmptyState
+        title="아직 진단할 정보가 없어요."
+        description="한 종목만 담아도 집중도와 분산을 알려드릴게요."
+      />
+    );
+  }
 
   if (isPending) {
     return (
@@ -84,8 +114,20 @@ export function DiagnosisTab() {
         caption={riskScore === null ? undefined : `위험 점수 ${riskScore}/100`}
       />
 
+      <PortfolioStateSection
+        indicators={indicators}
+        findings={findings}
+        holdingCount={portfolio.data?.holdings.length ?? null}
+      />
+
+      {portfolio.data !== undefined && (
+        <StockConcentrationSection holdings={portfolio.data.holdings} />
+      )}
+
       <div className="mt-8">
-        <h2 className="mb-3.5 text-title-3 text-text-primary">확인된 사항</h2>
+        <h2 className="mb-3.5 text-section-title text-text-primary">
+          확인된 사항
+        </h2>
         {findings.length === 0 ? (
           <p className="py-3.5 text-body-1 text-text-secondary">
             특별히 짚어드릴 사항이 없어요.
@@ -114,7 +156,9 @@ export function DiagnosisTab() {
       </div>
 
       <div className="mt-8">
-        <h2 className="mb-3.5 text-title-3 text-text-primary">위험 지표</h2>
+        <h2 className="mb-3.5 text-section-title text-text-primary">
+          위험 지표
+        </h2>
         <div className="flex flex-col gap-2.5">
           <IndicatorRow label="1위 종목 비중" ratio={indicators.top1Weight} />
           <IndicatorRow label="상위 3종목 비중" ratio={indicators.top3Weight} />
@@ -145,6 +189,7 @@ export function DiagnosisTab() {
   );
 }
 
+/** 비율은 프로토타입과 같은 정수 % 다 (`toFixed(0)`, proto L4000-4001). */
 function IndicatorRow({
   label,
   ratio,
@@ -156,7 +201,7 @@ function IndicatorRow({
     <div className="flex items-center justify-between">
       <span className="text-body-2 text-text-secondary">{label}</span>
       <span className="text-body-1 font-medium text-text-primary tabular-nums">
-        {ratio === null ? '—' : formatPercent(ratio)}
+        {ratio === null ? '—' : formatPercent(ratio, 0)}
       </span>
     </div>
   );

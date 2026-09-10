@@ -33,7 +33,11 @@ export function UnrecordedStockList({ holdings }: UnrecordedStockListProps) {
   }
 
   return (
-    <section className="mt-12">
+    /*
+      프로토타입은 위에 불투명도 .4 구분선을 두고 여백을 18px 만 준다
+      (proto L2462-2464). 구분선 없이 48px 을 띄우던 것을 맞췄다.
+    */
+    <section className="mt-0.5 border-t border-border/40 pt-4.5 pb-1">
       <div className="flex items-baseline gap-2">
         <span className="text-[15px] font-semibold text-text-primary">
           아직 적지 않은 종목

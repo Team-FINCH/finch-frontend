@@ -17,13 +17,17 @@ import { Button } from '@/shared/ui/Button';
  * 강조색 `#8A6B3D` 은 프로토타입 실측이다. AI 추측을 "확인 필요"로 표시하는 이
  * 자리에만 쓰이고 토큰이 없어 값을 직접 적었다.
  */
-const ACCENT = '#8A6B3D';
+export const WIKI_ACCENT_COLOR = '#8A6B3D';
+const ACCENT = WIKI_ACCENT_COLOR;
 
-/** 프로토타입 `.gnav` — 24px 정사각 · 반경 8px. */
+/**
+ * 프로토타입 `.gnav` — 24px 정사각 · 반경 8px.
+ * 양 끝에서 흐려지지 않는다 — 프로토타입 `guessPrev`/`guessNext` 가 `% n` 으로
+ * 마지막↔처음을 잇는다(proto L4140-4143).
+ */
 const NAV_BUTTON_CLASS =
   'flex size-6 items-center justify-center rounded-lg border border-border ' +
-  'bg-surface text-[14px] leading-none text-text-secondary ' +
-  'disabled:opacity-40';
+  'bg-surface text-[14px] leading-none text-text-secondary';
 
 type WikiGuessCarouselProps = {
   facts: WikiFact[];
@@ -79,20 +83,20 @@ export function WikiGuessCarousel({
                 <button
                   type="button"
                   aria-label="이전"
-                  disabled={current === 0}
-                  onClick={() => setIndex(current - 1)}
+                  onClick={() =>
+                    setIndex((current - 1 + facts.length) % facts.length)
+                  }
                   className={NAV_BUTTON_CLASS}
                 >
                   ‹
                 </button>
                 <span className="min-w-8.5 text-center text-[12px] font-semibold text-text-muted">
-                  {current + 1}/{facts.length}
+                  {current + 1} / {facts.length}
                 </span>
                 <button
                   type="button"
                   aria-label="다음"
-                  disabled={current === facts.length - 1}
-                  onClick={() => setIndex(current + 1)}
+                  onClick={() => setIndex((current + 1) % facts.length)}
                   className={NAV_BUTTON_CLASS}
                 >
                   ›
@@ -101,7 +105,7 @@ export function WikiGuessCarousel({
             ) : null}
           </div>
 
-          <p className="text-[17px] leading-[25px] font-semibold tracking-[-0.01em] text-pretty text-text-primary">
+          <p className="text-[17px] leading-[25px] font-semibold tracking-[-0.01em] text-pretty whitespace-pre-line text-text-primary">
             {fact.text}
           </p>
           <p className="mt-2.25 text-caption leading-[19px] text-text-secondary">
@@ -119,7 +123,7 @@ export function WikiGuessCarousel({
               variant="secondary"
               disabled={isRejecting}
               onClick={() => onReject(fact)}
-              className="h-10.5 flex-1 rounded-[11px] text-[15px]"
+              className="h-10.5 flex-1 rounded-[11px] text-[15px] font-semibold"
             >
               아니에요
             </Button>
