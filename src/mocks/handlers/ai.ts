@@ -121,6 +121,16 @@ function insufficientData(requestId: string) {
  *   내지 않는 것을 목만 내게 된다
  *
  * `cached` 는 항상 `false`, `cachedAt` 은 항상 `null` 이다(C56).
+ *
+ * **근거 각주(`[^cit_N]`)를 세 갈래로 심어 뒀다** (AI 명세 §2.4 · `envelope.ts`).
+ * 서술 안에 각주가 오는 것이 계약인데 목에 없으면 `AiSegmentText` 가 그것을
+ * 지우는지를 화면에서 확인할 방법이 없다. 셋은 각각 다른 것을 본다.
+ * - `changes` — 정본 `[^cit_1]`. `MOCK_CITATIONS` 에 있는 id 이고 강조 조각 바로 뒤다
+ * - `attention` — `MOCK_CITATIONS` 에 **없는** `[^cit_9]`. 가드레일이 반려하는 사유가
+ *   `used_citations 에 존재하지 않는 근거` 라 실제로 올 수 있는 값이다
+ * - `risks` — 대괄호가 빠진 맨몸 `^cit_2`. 실제 응답 로그에 섞여 나온 형태다
+ *
+ * 셋 다 화면에는 남지 않아야 한다. 앞 공백까지 걷혀 `…나왔어요.` 로 보이면 맞다.
  */
 type AiSegmentFixture = ReturnType<typeof textSegment | typeof metricSegment>;
 
@@ -186,7 +196,9 @@ function analysisSections(stock: MockStock) {
     changes: analysisSection('최근 변화', [
       textSegment('반기보고서에서 영업이익률이 '),
       metricSegment('19.0%', 0.19, 'ratio', 'filing', 'up'),
-      textSegment('로 올라왔고, 공시 이후 3주 동안 같은 방향이 이어졌어요.'),
+      textSegment(
+        '로 올라왔고[^cit_1], 공시 이후 3주 동안 같은 방향이 이어졌어요.',
+      ),
     ]),
     attention: analysisSection(
       stock.stockCode === ANALYSIS_TITLELESS_STOCK
@@ -194,7 +206,7 @@ function analysisSections(stock: MockStock) {
         : '시장이 주목하는 요인',
       [
         textSegment(
-          '다음 분기 계약가 인상 폭과 경쟁사 증설 일정을 함께 보고 있어요. 최근 공시에서 같은 주제가 반복해서 나왔어요.',
+          '다음 분기 계약가 인상 폭과 경쟁사 증설 일정을 함께 보고 있어요. 최근 공시에서 같은 주제가 반복해서 나왔어요 [^cit_9].',
         ),
       ],
     ),
@@ -203,7 +215,7 @@ function analysisSections(stock: MockStock) {
         '증설 투자비가 2027년부터 비용으로 반영돼요. 고객사 재고가 다시 쌓이면 주문이 빠르게 줄고, 최근 1년 최대 낙폭은 ',
       ),
       metricSegment('-22.14%', -0.2214, 'ratio', 'risk_engine', 'down'),
-      textSegment('였어요.'),
+      textSegment('였어요 ^cit_2.'),
     ]),
     // 미보유면 null 이다. 에러가 아니다 (ia.md §4 표 · contracts C58).
     myImpact:
