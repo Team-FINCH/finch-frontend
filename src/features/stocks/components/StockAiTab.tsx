@@ -11,9 +11,9 @@ import {
   type AiAnalysisSection,
   type AiAnalysisSectionKey,
 } from '@/shared/types/ai/analysis';
+import { type AiCitation } from '@/shared/types/ai/envelope';
 import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
-import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { AiStatus } from '@/shared/ui/AiStatus';
@@ -63,6 +63,14 @@ import { useStockAnalysis } from '../api/useStockAnalysis';
  *
  * `thesisCheck` 가 `null` 일 때의 논지 입력 유도는 **만들었다** (`ThesisPromptBlock`).
  * 보유 여부가 있어야 세는 자리라 `owned` 를 받는다 — 아래 그 주석 참고.
+ *
+ * ## 근거는 목록이 아니라 캡션 한 줄이다
+ *
+ * design.md §9 "근거 표기" 가 "뱃지를 쓰지 않는다 … 종류를 나열만 하고 개별 출처로
+ * 링크하지 않는다 … `AIDetail` 에서도 같다" 로 못박았고 프로토타입도 캡션 한 줄이다.
+ * 그래서 이 화면은 `shared/ui/AiCitationList` 를 쓰지 않는다. `ia.md` §4 표의
+ * "`type` 을 **뱃지로 구분한다**" 는 이 판정으로 뒤집혀 같은 MR 에서 캡션으로 고쳤다.
+ * 포트폴리오 두 탭은 아직 뱃지 목록이라 `AiCitationList` 자체는 남겨 두었다.
  *
  * ## 실패 자리
  *
@@ -239,6 +247,36 @@ function ThesisPromptBlock({ stockCode }: { stockCode: string }) {
 }
 
 /**
+ * 근거 캡션에 나열할 종류 이름과 그 순서 (ia.md §4 `type` 7종 표).
+ *
+ * **뱃지 목록이 아니라 캡션 한 줄이다** — design.md §9 "근거 표기" 가 "뱃지를 쓰지
+ * 않는다. 응답 블록 최하단에 캡션 한 줄로 종류만 나열한다 … `AIDetail` 에서도
+ * 같다" 로 못박았고 프로토타입도 캡션이다(새 디코드 L1994). 그래서 이 화면은
+ * `AiCitationList` 를 쓰지 않는다. 개별 출처 제목·발행처·링크를 그리지 않으므로
+ * 남는 것은 종류 이름뿐이고, 순서는 응답의 `relevance` 가 아니라 이 배열이 정한다 —
+ * 종류 나열의 순서가 응답마다 달라지면 같은 줄이 매번 다르게 읽힌다.
+ *
+ * 라벨은 ia.md §4 표를 그대로 쓴다. 프로토타입 목이 박아 둔 `공시 · 뉴스 · 자체계산`
+ * 은 그 목 데이터의 종류 셋을 편 것이라 문자열을 박지 않고 응답에서 편다.
+ */
+const CITATION_TYPE_ORDER = [
+  ['filing', '공시'],
+  ['financial', '재무제표'],
+  ['news', '뉴스'],
+  ['price', '시세'],
+  ['macro', '거시지표'],
+  ['engine', '자체 계산'],
+  ['wiki', '내 논지'],
+] as const;
+
+function citationTypeLabels(citations: readonly AiCitation[]): string[] {
+  const present = new Set(citations.map((citation) => citation.type));
+  return CITATION_TYPE_ORDER.filter(([type]) => present.has(type)).map(
+    ([, label]) => label,
+  );
+}
+
+/**
  * 섹션별 고정 캡션. 프로토타입이 `확인해볼 위험` 아래에만 한 줄 두었다
  * (새 디코드 L1946). 제목과 달리 이 문장은 응답에 없는 **시안 문구**라 화면이 갖는다.
  */
@@ -338,6 +376,11 @@ export function StockAiTab({ stockCode, isActive, owned }: StockAiTabProps) {
    * 없음" 박스를 금지하는 것이고 이 자리는 다음 행동을 주는 유도다.
    */
   const needThesis = owned && (content.sections.thesisCheck ?? null) === null;
+  const sourceLabels = citationTypeLabels(citations);
+  const sourceLine = [
+    ...(asOfLabel === null ? [] : [`${formatKstMonthDayTime(asOfLabel)} 기준`]),
+    ...sourceLabels,
+  ].join(' · ');
 
   return (
     // 위 4px · 아래 24px 은 프로토타입 실측이다 (새 디코드 L1926·L1994).
@@ -380,24 +423,21 @@ export function StockAiTab({ stockCode, isActive, owned }: StockAiTabProps) {
 
       {needThesis && <ThesisPromptBlock stockCode={stockCode} />}
 
-      <AiCitationList
-        citations={citations}
-        title="근거"
-        showPublisher
-        className="mt-10"
-      />
-
       {/*
-        기준 시각은 검정 카드 캡션이 아니라 **하단 캡션 첫 항목**이다
-        (프로토타입 `{{ asOf }} 기준 · 공시 · 뉴스 · 자체계산`, 새 디코드 L1995).
-        형식은 프로토타입과 같은 `월.일 시:분` 이다 — `formatKstMonthDayTime`.
+        근거 표기는 **뱃지 목록이 아니라 캡션 한 줄**이다 (design.md §9 ·
+        프로토타입 `{{ asOf }} 기준 · 공시 · 뉴스 · 자체계산`, 새 디코드 L1994).
+        기준 시각이 그 줄의 첫 항목이고 형식은 프로토타입과 같은 `월.일 시:분` 이다.
+        아랫줄이 면책 문구다 — 프로토타입도 같은 `.cp` 안의 `<br>` 한 번이다.
 
         disclaimer 는 하드코딩하지 않고 응답 값을 그대로 쓴다 — 규제 문구가 바뀌면
         서버만 고치게 하기 위해서다 (envelope.ts 주석).
       */}
       <p className="mt-5 text-caption leading-5 text-text-muted">
-        {asOfLabel === null ? null : (
-          <>{formatKstMonthDayTime(asOfLabel)} 기준 · </>
+        {sourceLine === '' ? null : (
+          <>
+            {sourceLine}
+            <br />
+          </>
         )}
         {disclaimer}
       </p>
