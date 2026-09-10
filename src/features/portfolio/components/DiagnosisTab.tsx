@@ -11,17 +11,19 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import { usePortfolio } from '../api/usePortfolio';
 import { usePortfolioDiagnosis } from '../api/usePortfolioDiagnosis';
 
+import { PortfolioStateSection } from './PortfolioStateSection';
+import { StockConcentrationSection } from './StockConcentrationSection';
+
 const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as const;
 
 /**
  * "AI 진단" 탭 (프로토타입 `isPfDiag` 블록, AI 슬롯 5번).
  *
- * **프로토타입의 "포트폴리오 상태"(등급 막대)·"종목 집중도"(색색 스택 바)는
- * 그대로 옮기지 않는다.** 그 UI는 프로토타입 고유의 가상 등급 체계(우수/보통/주의)를
- * 전제로 하는데, 실제 `POST /ai/portfolio/diagnosis` 응답(`AiDiagnosisContent`)은
- * `findings[]`(문제 항목 배열)와 `indicators`(숫자 지표)만 준다 — 등급·막대색을
- * 프론트가 지어내면 "프론트는 AI 응답을 조립하지 않는다"(ia.md §4)를 어긴다.
- * 그래서 실제 스키마를 그대로 보여주는 목록형 레이아웃으로 다시 짰다.
+ * 섹션 순서는 프로토타입을 따른다 — AI 카드 → `포트폴리오 상태` → `종목 집중도`
+ * (proto L2231–L2275). 그 뒤의 `확인된 사항`·`위험 지표`·근거·면책은 프로토타입에
+ * 대응물이 없는 우리 쪽 추가분이라 뒤에 붙인다. `findings[]`·`indicators` 는 실제
+ * 응답이 주는 것 전부이고, 프로토타입의 지표 3개는 그중 셋을 골라 그린 것이라
+ * 두 묶음이 겹쳐도 지우지 않는다.
  *
  * **피드백을 붙이지 않는다.** 프로토타입 실제 UI에서 피드백이 붙는 자리는 셋뿐이고
  * 이 탭은 그중 하나가 아니다(ia.md §4 "피드백 슬롯 배치 규칙" 각주).
@@ -111,6 +113,16 @@ export function DiagnosisTab() {
         headline={summary?.text ?? '진단 결과를 준비하지 못했어요.'}
         caption={riskScore === null ? undefined : `위험 점수 ${riskScore}/100`}
       />
+
+      <PortfolioStateSection
+        indicators={indicators}
+        findings={findings}
+        holdingCount={portfolio.data?.holdings.length ?? null}
+      />
+
+      {portfolio.data !== undefined && (
+        <StockConcentrationSection holdings={portfolio.data.holdings} />
+      )}
 
       <div className="mt-8">
         <h2 className="mb-3.5 text-section-title text-text-primary">
