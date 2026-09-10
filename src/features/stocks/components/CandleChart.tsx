@@ -51,6 +51,9 @@ import { readCssToken } from '../lib/readCssToken';
  *
  * 툴팁이 담는 것은 날짜 · 시/고/저/종 2×2 격자 · 거래량 세 줄이다.
  * **등락을 넣지 않는다** — 프로토타입 격자가 두 줄이고 거기에 등락 칸이 없다.
+ *
+ * **첫 진입에만 Wipe 로 그린다** (`animateIn`, 프로토타입 `.pfirst`). 봉 종류를
+ * 바꿔 다시 그릴 때는 즉시 나타난다 — design.md §7.4 가 그렇게 갈랐다.
  */
 
 type CandleChartProps = {
@@ -59,6 +62,13 @@ type CandleChartProps = {
   interval: CandleInterval;
   /** 보유 중이면 평균 매수가에 점선을 긋는다. 없으면 긋지 않는다. */
   avgBuyPrice?: number | null;
+  /**
+   * 첫 진입이면 왼쪽에서 오른쪽으로 훑는 Wipe 로 그린다 (프로토타입 `.pfirst`,
+   * 새 디코드 L1019–L1020·L3726). **봉 종류를 바꿔 다시 그릴 때는 켜지 않는다** —
+   * design.md §7.4 "첫 진입 Wipe 효과는 짧고 절제되게, 기간 전환은 즉시".
+   * 판정은 호출부가 한다(`StockChartTab`).
+   */
+  animateIn?: boolean;
   className?: string;
 };
 
@@ -70,6 +80,28 @@ const FALLBACK_NEUTRAL = 'gray';
 
 /** 차트 높이. 프로토타입 SVG 가 150px 이다 (새 디코드 L1782). */
 const CHART_HEIGHT_CLASS = 'h-[150px]';
+
+/**
+ * 첫 진입 Wipe 실측 (프로토타입 `@keyframes wipeA` + `.pfirst>svg`, 새 디코드
+ * L1019–L1020). 끝값이 `0` 이 아니라 `-2%` 인 것도 그대로다 — 오른쪽 끝의 반올림
+ * 한 픽셀이 잘려 보이지 않게 살짝 넘겨 두는 값이라 다듬으면 마지막 봉이 깎인다.
+ * 이징도 `--ease-standard`(`cubic-bezier(.2,0,0,1)`)와 달라 따로 적는다.
+ *
+ * **`@keyframes` 가 아니라 Web Animations API 로 건다.** 이 레포의 다른 등장
+ * 애니메이션은 `styles/index.css` 에 키프레임을 두고 Tailwind `animate-[…]` 로
+ * 부르지만, 그 파일은 `FINCH-209` 소유라 이 티켓에서 건드리지 않는다.
+ * 한 자리에서만 쓰는 520ms 짜리라 전역 이름을 하나 더 만들 이유도 크지 않다.
+ * 209 가 키프레임을 받아 주면 이 상수와 아래 `useEffect` 를 지우고 클래스 한 줄로
+ * 바꾸면 된다.
+ */
+const WIPE_IN_KEYFRAMES: Keyframe[] = [
+  { clipPath: 'inset(0 100% 0 0)' },
+  { clipPath: 'inset(0 -2% 0 0)' },
+];
+const WIPE_IN_OPTIONS: KeyframeAnimationOptions = {
+  duration: 520,
+  easing: 'cubic-bezier(0.25, 0, 0.2, 1)',
+};
 
 /**
  * 첫 진입에 보일 봉 개수 (봉 종류별).
@@ -114,6 +146,7 @@ export function CandleChart({
   candles,
   interval,
   avgBuyPrice,
+  animateIn = false,
   className = '',
 }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -296,6 +329,30 @@ export function CandleChart({
       chartRef.current = null;
     };
   }, [candles, interval, avgBuyPrice]);
+
+  /**
+   * 첫 진입 Wipe. **마운트 한 번만 탄다** — 의존성이 비어 있어 봉 종류를 바꿔
+   * 차트를 다시 그려도 재생되지 않고, 그 판정 자체는 호출부가 `animateIn` 으로
+   * 미리 내린다.
+   *
+   * 움직임을 끈 사람에게는 그리지 않는다. 차트는 값을 읽는 자리라 등장 연출이
+   * 없어도 잃는 것이 없다.
+   *
+   * `animate` 는 `clip-path` 를 컨테이너에만 건다. 바깥 상자에 걸면 툴팁까지
+   * 함께 잘린다 — `clip-path` 는 자식을 통째로 자르는 속성이다.
+   */
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container === null || !animateIn) {
+      return;
+    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    container.animate(WIPE_IN_KEYFRAMES, WIPE_IN_OPTIONS);
+    // 마운트 한 번만. `animateIn` 은 이 컴포넌트가 사는 동안 바뀌지 않는다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className={`relative w-full ${className}`}>

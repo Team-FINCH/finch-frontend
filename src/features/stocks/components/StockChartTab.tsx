@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   formatAmount,
   formatKrw,
@@ -27,11 +29,12 @@ import { ChartPeriodSegment } from './ChartPeriodSegment';
  * `내 보유 상세`. 그리고 거래정지 종목은 **차트와 기간 탭을 아예 그리지 않는다**
  * (`d.tradableChart`, 새 디코드 L1749–L1761).
  *
- * **`오늘`(시가·고가·저가·거래량) 격자는 만들지 않았다** — `GET /stocks/{stockCode}`
+ * **`오늘`(시가·고가·저가·거래량) 격자는 아직 만들지 못한다** — `GET /stocks/{stockCode}`
  * 응답에 그 넷이 없다 (apiSpec §5.2 는 `currentPrice`·`previousClose`·
  * `changeAmount`·`changeRate` 만 준다). 캔들 마지막 봉에서 끌어다 쓸 수도 있지만
  * 그것은 "오늘"이 아니라 "마지막 거래일"이라 장중에 뜻이 달라진다. 없는 값을
- * 만들지 않는다.
+ * 만들지 않는다. **필드 추가는 GitLab #46 으로 백엔드에 요청해 둔 상태다** —
+ * 응답이 넷을 실어 오면 이 파일에 격자만 더하면 된다(프로토타입 L1810–L1818).
  *
  * 봉 종류는 URL 이 갖는다 (`?interval=` — `@/shared/types/candleInterval.ts` 참고).
  * 부모가 넘기고 여기서는 바꾸기만 한다.
@@ -76,6 +79,17 @@ export function StockChartTab({
    */
   const candles = useCandles(stockCode, interval, !suspended);
 
+  /*
+   * 첫 진입 Wipe 는 한 번만 탄다 (프로토타입 `.pfirst`, 새 디코드 L1020·L3726).
+   * 프로토타입은 세그먼트를 **누른 적이 있는가**(`prevPeriod`)로 가른다 — 그리기
+   * 횟수가 아니라 사용자의 조작이 기준이다. 그대로 옮겼다.
+   *
+   * 플래그가 이 탭에 있어야 한다. 봉 종류를 바꾸면 캔들 쿼리 키가 갈려
+   * `CandleChart` 가 스켈레톤을 거쳐 다시 마운트되므로, 차트 안에 두면 전환마다
+   * 다시 탄다. 전환을 사이에 두고 살아 있는 것은 이 탭이다.
+   */
+  const [intervalPressed, setIntervalPressed] = useState(false);
+
   return (
     <>
       {suspended ? (
@@ -109,7 +123,13 @@ export function StockChartTab({
         </section>
       ) : (
         <section className="mt-4.5">
-          <ChartPeriodSegment interval={interval} onChange={onIntervalChange} />
+          <ChartPeriodSegment
+            interval={interval}
+            onChange={(next) => {
+              setIntervalPressed(true);
+              onIntervalChange(next);
+            }}
+          />
 
           <div className="mt-5.5">
             {candles.isPending && (
@@ -147,6 +167,7 @@ export function StockChartTab({
                   candles={candles.data.candles}
                   interval={interval}
                   avgBuyPrice={avgBuyPrice}
+                  animateIn={!intervalPressed}
                 />
               ))}
           </div>
