@@ -352,8 +352,19 @@ export function StockAiTab({ stockCode, isActive, owned }: StockAiTabProps) {
    * 기준 시각. AI 명세 §2.2 가 "UI 에 반드시 노출한다" 로 적었다 —
    * 시세는 지연될 수 있어 생성 시각과 따로 관리한다. 다섯 원천 중 읽지 않은 것은
    * 키가 빠지는 것이 아니라 `null` 이라(contracts C54) 값이 있는 것만 고른다.
+   *
+   * **어느 원천이 잡혔는지를 함께 들고 다닌다.** 값 하나만 넘기면 호출부가 그것을
+   * 시:분까지 그릴지 날짜까지만 그릴지 정할 수 없다. `filings` 는 날짜 단위 값이라
+   * `2026-08-20T15:00:00Z` 로 오고 KST 로 옮기면 자정이다 — 시:분을 붙이면 화면에
+   * `00:00 기준` 이 떠서 값이 맞는데도 고장으로 읽힌다. `price` 는 장중에 갱신되는
+   * 값이라 시:분이 의미를 갖는다. 그래서 포맷을 원천별로 가른다.
    */
-  const asOfLabel = dataAsOf.filings ?? dataAsOf.price ?? null;
+  const asOf =
+    dataAsOf.filings !== null
+      ? { at: dataAsOf.filings, precision: 'day' as const }
+      : dataAsOf.price !== null
+        ? { at: dataAsOf.price, precision: 'minute' as const }
+        : null;
 
   /**
    * 온 섹션만 표시 순서대로 고른다. **일곱이 전부 없을 수 있다** — 그때는 아래
@@ -378,7 +389,15 @@ export function StockAiTab({ stockCode, isActive, owned }: StockAiTabProps) {
   const needThesis = owned && (content.sections.thesisCheck ?? null) === null;
   const sourceLabels = citationTypeLabels(citations);
   const sourceLine = [
-    ...(asOfLabel === null ? [] : [`${formatKstMonthDayTime(asOfLabel)} 기준`]),
+    ...(asOf === null
+      ? []
+      : [
+          `${
+            asOf.precision === 'day'
+              ? formatKstMonthDay(asOf.at)
+              : formatKstMonthDayTime(asOf.at)
+          } 기준`,
+        ]),
     ...sourceLabels,
   ].join(' · ');
 
