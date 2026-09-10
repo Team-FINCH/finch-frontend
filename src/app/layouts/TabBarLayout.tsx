@@ -5,6 +5,8 @@ import { TabBar } from '@/shared/ui/TabBar';
 
 import { RouteFallback } from '../RouteFallback';
 
+import { useTabBarScrollRestoration } from './useTabBarScrollRestoration';
+
 /**
  * 하단 탭 바를 항상 달고 있는 상시 화면의 레이아웃 (ia.md §3).
  * 들어가는 화면은 홈 · 탐색 · 포트폴리오 · 내 정보 넷이다.
@@ -26,9 +28,9 @@ import { RouteFallback } from '../RouteFallback';
  * 겹치지 않는다.
  *
  * **`ScrollRestoration` 은 이 안쪽 스크롤을 되돌리지 못한다.** react-router 의
- * 복원은 창(window) 스크롤만 본다. 목록에서 상세로 갔다 뒤로 왔을 때 보던 자리로
- * 돌아오는 동작이 탭 바 화면 넷에서는 동작하지 않는다 — 안쪽 스크롤 컨테이너의
- * 위치를 따로 기억하는 것은 이 티켓의 범위가 아니라 남긴다.
+ * 복원은 창(window) 스크롤만 본다. 그래서 안쪽 컨테이너의 위치는
+ * `useTabBarScrollRestoration` 이 따로 기억했다 되돌린다 — 고른 이유는 그 파일에 적었다.
+ * `RootLayout` 의 `<ScrollRestoration />` 은 그대로 둔다. 창이 굴러가는 화면이 아직 많다.
  *
  * **바텀시트가 열렸을 때 탭 바(와 AI 플로팅 버튼)를 렌더에서 빼는 연결은 아직
  * 하지 않는다.** 그 상태를 어디에 둘지(Zustand·Context·라우트 상태)는 감독관
@@ -39,8 +41,13 @@ import { RouteFallback } from '../RouteFallback';
  * 탭을 옮길 때 바깥 경계가 잡으면 탭 바까지 폴백으로 사라져 화면이 깜빡인다.
  */
 export function TabBarLayout() {
+  const containerRef = useTabBarScrollRestoration();
+
   return (
-    <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:132px]">
+    <div
+      ref={containerRef}
+      className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:132px]"
+    >
       <Suspense fallback={<RouteFallback />}>
         <Outlet />
       </Suspense>
