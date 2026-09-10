@@ -5,7 +5,7 @@
 확정·미확정 계약의 현재 상태는 [`contracts.md`](./contracts.md)에서 본다.
 
 - 적용 범위: `frontend/` 이하 전체
-- 작성일: 2026-08-19 / 최종 개정: 2026-09-05 (§5 멱등성 키의 적용 대상을 apiSpec v0.8 로 정정) / 2026-09-04 (§10 에 탭 전환·화면 이동 히스토리 규약 추가) / 2026-09-03 (§11 디자인 토큰 추가, §8 기준 뷰포트 390px로 정정)
+- 작성일: 2026-08-19 / 최종 개정: 2026-09-10 (§10 스크롤 복원 담당을 창·안쪽 둘로 가름) / 2026-09-05 (§5 멱등성 키의 적용 대상을 apiSpec v0.8 로 정정) / 2026-09-04 (§10 에 탭 전환·화면 이동 히스토리 규약 추가) / 2026-09-03 (§11 디자인 토큰 추가, §8 기준 뷰포트 390px로 정정)
 - 이 문서는 결론만 담는다. 검토 과정과 기각 이유의 상세는 작성자 개인 기록에 있다
 
 브랜치 이름·커밋 메시지·이슈와 MR 절차는 [`gitConvention.md`](../../docs/convention/gitConvention.md)를 따르고
@@ -559,10 +559,31 @@ react-router(`^7.18.2`, `package.json`)의 `useNavigate`가 돌려주는 `naviga
 
 ### 스크롤 복원과 뒤로가기
 
-`RootLayout`의 `<ScrollRestoration />` 하나가 앱 전체를 맡는다. react-router가 주는 것이라 라이브러리를 더하지 않는다.
+**굴러가는 주체가 둘이라 담당도 둘이다.** 화면이 어느 쪽인지로 갈린다.
+
+| 화면                       | 굴러가는 것     | 복원 담당                                   |
+| -------------------------- | --------------- | ------------------------------------------- |
+| `RootLayout` 바로 아래     | 문서(창)        | `RootLayout`의 `<ScrollRestoration />`      |
+| `TabBarLayout` 아래 탭 4개 | `PageMain` 안쪽 | `app/layouts/useTabBarScrollRestoration.ts` |
+
+`<ScrollRestoration />`은 react-router가 주는 것이라 라이브러리를 더하지 않는다.
 이동하면 맨 위로 올리고 뒤로가기에서는 직전 위치를 되돌린다. **여러 개 두면 서로 덮어쓰므로 화면에서 다시 렌더하지 않는다.**
 
-스크롤 위치를 직접 저장하는 코드를 쓰지 않는다. 필요해 보이면 먼저 `ScrollRestoration`의 `getKey`를 본다.
+**`ScrollRestoration`은 창 스크롤만 되돌린다.** `window.scrollY`를 저장하고 `window.scrollTo`로
+되돌리는 구현이다(`node_modules/react-router`). `getKey`는 저장에 쓰는 키 문자열만 갈아 끼울 뿐
+되돌리는 대상을 바꾸지 못하므로, 안쪽 컨테이너 문제는 `getKey`로 풀리지 않는다.
+
+`TabBarLayout`이 `h-dvh overflow-hidden`이 되면서(하단 탭 바를 스크롤 밖에 두려면 그래야 한다)
+탭 4개에서는 창이 아니라 `PageMain`이 굴러간다. 그래서 그 넷만 `useTabBarScrollRestoration`이 맡는다.
+**둘은 담당 구역이 겹치지 않는다** — 탭 화면에서는 창이 아예 스크롤하지 않아 `ScrollRestoration`은
+늘 0을 저장하고 0을 되돌린다.
+
+- **스크롤 위치를 직접 저장하는 코드를 화면·feature에 새로 만들지 않는다.** 위 둘로 안 되는 경우가
+  생기면 이 절을 먼저 고친다
+- 안쪽 스크롤을 새로 만드는 껍데기(`overflow-y-auto`를 가진 새 레이아웃)를 추가하면 그 껍데기도
+  복원 담당을 정해야 한다. 정하지 않으면 그 화면만 조용히 맨 위로 돌아온다
+- 키는 `location.key`다. 두 복원이 같은 값을 쓴다 — react-router의 기본 키도 이것이다.
+  `pathname`으로 잡으면 새로 들어온 방문이 지난번 위치를 물고 온다
 
 ### 경로 파라미터
 
