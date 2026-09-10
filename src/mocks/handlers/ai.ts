@@ -178,7 +178,7 @@ function analysisSections(stock: MockStock) {
   const direction = changeRate >= 0 ? ('up' as const) : ('down' as const);
 
   return {
-    current: analysisSection('현재 상태', [
+    current: analysisSection('현재 상황', [
       textSegment(
         `${stock.stockName}는 ${stock.sector} 업종이고 어제 종가보다 `,
       ),
@@ -210,7 +210,7 @@ function analysisSections(stock: MockStock) {
         ),
       ],
     ),
-    risks: analysisSection('확인된 위험 요인', [
+    risks: analysisSection('확인해볼 위험', [
       textSegment(
         '증설 투자비가 2027년부터 비용으로 반영돼요. 고객사 재고가 다시 쌓이면 주문이 빠르게 줄고, 최근 1년 최대 낙폭은 ',
       ),
@@ -221,7 +221,7 @@ function analysisSections(stock: MockStock) {
     myImpact:
       holding === undefined
         ? null
-        : analysisSection('내 계좌 영향', [
+        : analysisSection('내 계좌에서는', [
             textSegment('보유 '),
             metricSegment(
               `${holding.quantity}주`,
@@ -235,6 +235,8 @@ function analysisSections(stock: MockStock) {
             ),
           ]),
     // 기록된 활성 논지가 없으면 null 이다 (ia.md §4 표).
+    // 제목만 옛 문구로 남겨 둔다 — 서버는 `투자 논지 점검`, 프로토타입은
+    // `나의 투자 기준` 이라 아직 값이 안 정해졌다 (FINCH-219).
     thesisCheck:
       thesis === undefined
         ? null
@@ -256,7 +258,7 @@ function analysisSections(stock: MockStock) {
             challenging: [],
           },
     nextEvents: {
-      ...analysisSection('다가오는 일정', [
+      ...analysisSection('앞으로 확인할 일정', [
         textSegment('다음 실적 발표까지 '),
         metricSegment('20일', 20, 'days', 'filing', null),
         textSegment(
@@ -331,7 +333,7 @@ export const aiHandlers = [
               sections: {
                 ...sections,
                 risks: {
-                  title: '확인된 위험 요인',
+                  title: '확인해볼 위험',
                   cached: false,
                   cachedAt: null,
                 },
