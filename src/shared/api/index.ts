@@ -1,3 +1,4 @@
+export { AI_GC_TIME_MS } from './aiCacheTime';
 export { toAiResult, type AiResult } from './aiResponse';
 export { setAuthBridge, type AuthBridge } from './authBridge';
 export {

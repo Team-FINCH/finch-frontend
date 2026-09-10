@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { AI_GC_TIME_MS } from '@/shared/api';
 import { queryKeys } from '@/shared/config/queryKeys';
 
 import { postAiDiagnosis } from './postAiDiagnosis';
@@ -21,6 +22,7 @@ export function usePortfolioDiagnosis(enabled: boolean) {
     queryFn: ({ signal }) => postAiDiagnosis(signal),
     enabled,
     staleTime: 5 * 60_000,
+    gcTime: AI_GC_TIME_MS,
     retry: false,
   });
 }

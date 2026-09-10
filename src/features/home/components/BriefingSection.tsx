@@ -39,8 +39,12 @@ export function BriefingSection({
   const navigate = useNavigate();
   const briefing = useHomeBriefing();
 
-  // briefEmpty — 보유·관심 종목이 둘 다 없는 콜드 스타트. 브리핑 자체를 부르지
-  // 않아도 이 카드가 그 이유를 설명한다.
+  // briefEmpty — 보유·관심 종목이 둘 다 없는 콜드 스타트. 훅은 조건부로 부를 수
+  // 없으므로 여기 닿았을 때 요청은 이미 나간 뒤다. **게이트를 넣지 마라. 부르는
+  // 것이 맞다.** 계약이 콜드 스타트 응답을 따로 정해 뒀다 —
+  // `shared/types/ai/briefing.ts` 의 `status: 'empty'` 가 "보유 종목이 없거나
+  // 내보낼 항목이 없다. `items` 가 빈 배열이고 오류가 아니다" 이므로, 불러야 그
+  // 신호를 받는다. 이 카드는 응답을 기다리지 않고 먼저 그 이유를 설명할 뿐이다.
   if (hasNoStocks) {
     return (
       <Link

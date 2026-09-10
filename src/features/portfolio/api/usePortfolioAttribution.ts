@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { AI_GC_TIME_MS } from '@/shared/api';
 import { queryKeys } from '@/shared/config/queryKeys';
 
 import { postAiAttribution } from './postAiAttribution';
@@ -20,6 +21,7 @@ export function usePortfolioAttribution(enabled: boolean) {
     queryFn: ({ signal }) => postAiAttribution(signal),
     enabled,
     staleTime: 5 * 60_000,
+    gcTime: AI_GC_TIME_MS,
     retry: false,
   });
 }

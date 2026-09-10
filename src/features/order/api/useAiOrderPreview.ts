@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { AI_GC_TIME_MS } from '@/shared/api';
 import { queryKeys } from '@/shared/config/queryKeys';
 import { type OrderSide } from '@/shared/types/order';
 
@@ -70,6 +71,7 @@ export function useAiOrderPreview(
       ),
     enabled: settledQuantity > 0,
     staleTime: ORDER_PREVIEW_STALE_TIME_MS,
+    gcTime: AI_GC_TIME_MS,
     retry: false,
   });
 

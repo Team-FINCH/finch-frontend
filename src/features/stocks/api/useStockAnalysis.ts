@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { AI_GC_TIME_MS } from '@/shared/api';
 import { queryKeys } from '@/shared/config/queryKeys';
 
 import { postStockAnalysis } from './postStockAnalysis';
@@ -26,5 +27,6 @@ export function useStockAnalysis(stockCode: string, enabled: boolean) {
     queryFn: ({ signal }) => postStockAnalysis(stockCode, signal),
     enabled,
     staleTime: ANALYSIS_STALE_TIME_MS,
+    gcTime: AI_GC_TIME_MS,
   });
 }

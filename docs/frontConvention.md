@@ -329,7 +329,14 @@ AI 호출도 다른 쿼리·뮤테이션과 똑같이 다룬다. 별도 전송 �
   타입으로 정규화할 때 이 껍데기를 벗기는 것이 API 레이어(정규화 어댑터)의 일이다
 - 응답의 `dataAsOf`·`disclaimer`는 재포장 후에도 **반드시 보존된다**([`contracts.md`](./contracts.md) C7).
   Zod 스키마에서는 `.optional()`이 아니라 **`.nullable()`**로 짠다(C54) — 선언된 키는 값이 없어도 빠지지 않고 `null`로 온다
-- AI 요청은 느리다. `staleTime`을 길게 잡고 화면 진입마다 다시 부르지 않는다
+- AI 요청은 느리다. `staleTime`을 길게 잡고 화면 진입마다 다시 부르지 않는다.
+  **`gcTime`도 함께 잡는다.** `gcTime`은 `staleTime`보다 길어야 한다 — 두 값이 같으면
+  "낡았지만 일단 보여주고 뒤에서 갱신"하는 구간이 통째로 없어져서, 낡는 순간이 곧 캐시가
+  버려지는 순간이 되고 빈 화면부터 다시 그린다. 둘은 다른 시계다. `staleTime`은 값을 낡았다고
+  보는 시점이고, `gcTime`은 **그 쿼리를 보는 화면이 하나도 없어진 뒤부터** 센다.
+  **지금 값 — AI는 `staleTime` 5분, `gcTime` 30분**(`shared/api/aiCacheTime.ts`).
+  훅이 정하지 않으면 전역 기본값 `staleTime` 30초(`shared/api/queryClient.ts`)와 TanStack
+  기본값 `gcTime` 5분이 먹는다. 둘 다 AI에는 짧으므로 AI 훅은 두 값을 모두 명시한다
 - **프론트는 AI 응답을 조립하지 않는다.** 수치 치환·검증은 AI 서버가 끝낸 상태로 온다
 
 ### 시세 구독 계층
