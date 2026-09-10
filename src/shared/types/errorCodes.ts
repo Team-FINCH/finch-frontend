@@ -46,11 +46,21 @@ export type CommonErrorCode =
 
 /**
  * AI 중계 — 백엔드 발행분 (apiSpec §11 AI 중계 · §10.4 에러 통과 규칙 · contracts C11).
- * 백엔드가 AI 서버에 **도달하지 못한** 경우만 이 둘이 나온다.
  * 화면은 이 코드에서 AI 위젯만 접고 시세·주문은 살려 둔다.
+ *
+ * 앞의 둘은 백엔드가 AI 서버에 **도달하지 못한** 경우다(502·504). `UPSTREAM_RATE_LIMITED`
+ * 만 성질이 다르다 — AI 서버가 **응답은 했고**(429) 백엔드가 `code` 만 갈아 끼워 상태와
+ * `message`·`detail.reason` 을 그대로 넘긴 것이다. 그래서 이 코드에는 `requestId` 가 있다.
+ *
+ * **`503` 이 아니라 `429` 다** (apiSpec v0.8.6, MR !195). v0.8 은 이것을
+ * `503 AI_UPSTREAM_RATE_LIMITED` 로 재포장하고 사유를 버렸는데, 그 판을 되돌린 것이다.
+ * `detail.reason` 이 `request_rate_limit`(기다리면 풀린다) · `daily_token_budget`
+ * (자정 KST 까지 안 풀린다) 로 갈리고, 자동 재시도 여부를 그 값으로 가른다
+ * (`shared/api/queryClient.ts`).
  */
 export const AI_RELAY_ERROR_CODES = {
   UPSTREAM_UNAVAILABLE: 'AI_UPSTREAM_UNAVAILABLE',
+  UPSTREAM_RATE_LIMITED: 'AI_UPSTREAM_RATE_LIMITED',
   UPSTREAM_TIMEOUT: 'AI_UPSTREAM_TIMEOUT',
 } as const;
 export type AiRelayErrorCode =
