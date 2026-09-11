@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 
 import { BOTTOM_TAB_ROUTES, ROUTES } from '@/shared/config/routes';
+import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
 import { useIsAnySheetOpen } from '@/shared/hooks/useSheetOverlayStore';
 import type { AiChatScreen } from '@/shared/types/ai/chat';
 import type { StockCode } from '@/shared/types/primitives';
@@ -111,6 +112,11 @@ function TabBarShell({
   aiTicker?: StockCode;
 }) {
   const isAnySheetOpen = useIsAnySheetOpen();
+  // 토스트가 이 바 위 14px 에 앉도록 자기 자리를 알린다 (FINCH-232).
+  // 시트가 열려 이 바가 빠지면 ref 가 떨어지며 등록도 함께 풀린다 —
+  // 그때 토스트는 바가 없는 화면의 값(24px)으로 내려온다.
+  const bottomFixedRef = useRegisterBottomFixedSpace();
+
   if (isAnySheetOpen) {
     return null;
   }
@@ -119,6 +125,7 @@ function TabBarShell({
     // 가로 폭을 PageMain·ActionBar 와 같은 max-w-md 로 맞춘다. 이유는 ActionBar 주석에 있다 —
     // 넓은 화면에서 본문은 가운데 정렬인데 바만 화면 끝까지 가면 둘이 어긋나 보인다.
     <nav
+      ref={bottomFixedRef}
       className="fixed inset-x-0 bottom-[env(safe-area-inset-bottom)] z-30 mx-auto flex h-[98px] w-full max-w-md items-end gap-2.5 px-4 pb-4"
       aria-label="주요 화면 전환"
     >
