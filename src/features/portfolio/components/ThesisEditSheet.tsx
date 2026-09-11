@@ -28,6 +28,12 @@ import { useUpdateWikiThesis } from '../api/useUpdateWikiThesis';
  * 이유는 그 파일 머리 주석에 적었다(feature 간 import 금지,
  * `import-x/no-restricted-paths`).
  *
+ * **신규 기록에서는 매수 이유 선택지 넷을 함께 보인다**(FINCH-246). 알림함에서
+ * 열든 "아직 적지 않은 종목"에서 열든 저장되는 것은 같은 `POST /ai/wiki/theses` 의
+ * `text` 한 줄이라, 들어온 문이 다르다고 시트가 달라질 이유가 없다.
+ * **수정에서는 끈다** — 이미 적어 둔 글이 채워져 열리는데 선택지를 고르면 그 글이
+ * 지워진다(선택지와 직접 입력은 배타다). 고치러 온 자리에서 기대하는 동작이 아니다.
+ *
  * **본문 검증은 서버가 한다.** 길이·필수 검사를 여기서 다시 만들지 않고 AI 의
  * `400 INVALID_REQUEST` `message`를 그대로 띄운다(apiSpec §11.2). 빈 입력으로
  * 저장 버튼이 눌리지 않게 막는 것은 셸이 이미 하고 있고, 그건 검증이 아니라 버튼
@@ -107,13 +113,30 @@ export function ThesisEditSheet({
     );
   }
 
+  const isNew = thesis === null;
+
   return (
     <ThesisRecordSheet
       open={target !== null}
       onOpenChange={handleOpenChange}
-      title={thesis === null ? '왜 담으셨나요?' : '기록 수정하기'}
+      title={isNew ? '왜 담으셨나요?' : '기록 수정하기'}
       subtitle={thesis?.name ?? target?.stockName ?? null}
-      placeholder="이 종목을 담은 이유를 적어 두면 AI가 이 기록을 근거로 더 맞는 추천을 해줘요."
+      /*
+        신규는 알림함과 같은 문구를 쓴다 — 같은 시트이므로 안내도 같아야 한다.
+        수정은 프로토타입 `recordSub` 의 수정 문구다.
+      */
+      description={
+        isNew
+          ? '지금 남겨두면 다음 판단에서 다시 볼 수 있어요.'
+          : '지금 생각이 달라졌다면 고쳐두세요.'
+      }
+      placeholder={
+        isNew
+          ? '매수 이유를 직접 적어주세요'
+          : '이 종목을 담은 이유를 적어 두면 AI가 이 기록을 근거로 더 맞는 추천을 해줘요.'
+      }
+      showReasonOptions={isNew}
+      submitLabel={isNew ? '매수 이유 저장하기' : '수정 저장하기'}
       initialText={thesis?.text ?? ''}
       /*
         서버가 왜 거절했는지를 그대로 보여준다. 500자 초과·빈 본문이 여기로 온다
