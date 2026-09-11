@@ -11,7 +11,6 @@ import {
 import { hasIndexValues, type MarketIndex } from '@/shared/types/market';
 
 import { useMarketIndices } from '../api/useMarketIndices';
-import { marketIndexLabel } from '../lib/marketIndexLabel';
 
 /**
  * 홈 헤더의 시장 지수 세로 롤링 (apiSpec §5.7 · 티켓 FINCH-228 · GitLab #65).
@@ -82,9 +81,29 @@ type RollState = {
 
 const INITIAL_ROLL: RollState = { position: 0, snap: true };
 
+/**
+ * 화면에 보이는 지수 이름. **`indexCode` 를 그대로 쓴다 — 한글로 옮기지 않는다.**
+ *
+ * 프로토타입의 마퀴 데이터가 `KOSPI`·`KOSDAQ`·`USD/KRW`·`NASDAQ` 으로 영문이고
+ * 마크업의 최종 근거는 프로토타입이다. 한때 `코스피`·`코스닥` 으로 옮기는 표를
+ * `features/home/lib/` 아래 따로 두었는데, 그렇게 옮길 근거가 어디에도 없어 지웠다.
+ *
+ * **종목 상세·탐색의 시장 표기와는 별개다.** 그 둘은 프로토타입도 한글을 쓰므로
+ * `StockDetailHeader`·`StockSearchResultList` 의 `MARKET_LABEL` 은 그대로 둔다.
+ * 같은 문자열이라고 묶어 고치면 그 두 화면이 프로토타입과 어긋난다.
+ *
+ * 옮기는 표가 없으므로 **모르는 코드도 코드 문자열이 그대로 나온다** — 값은 있는데
+ * 이름만 없는 줄이 생기지 않는다. USD-KRW·NASDAQ 이 응답에 실리기 시작해도 이
+ * 파일을 고칠 일이 없다. 다만 프로토타입은 그 자리를 `USD/KRW`(빗금)로 적어
+ * 두었으므로, 서버가 `USD-KRW`(붙임표)로 내려주면 그때 옮기는 표가 다시 필요하다.
+ */
+function indexLabel(index: MarketIndex): string {
+  return index.indexCode;
+}
+
 /** 낭독용 한 줄. 자릿수가 아니라 값으로 읽히게 문장으로 만든다. */
 function toSpokenLine(index: MarketIndex): string {
-  const label = marketIndexLabel(index.indexCode);
+  const label = indexLabel(index);
   if (!hasIndexValues(index)) {
     return `${label} 지수를 불러오지 못했어요`;
   }
@@ -100,7 +119,7 @@ function toSpokenLine(index: MarketIndex): string {
  * 헤더 보조 정보 전용이라 토큰을 새로 만들지 않고 실측값을 그대로 쓴다.
  */
 function IndexRow({ index }: { index: MarketIndex }) {
-  const label = marketIndexLabel(index.indexCode);
+  const label = indexLabel(index);
 
   if (!hasIndexValues(index)) {
     /*

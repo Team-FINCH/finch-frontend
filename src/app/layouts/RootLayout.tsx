@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import { Outlet, ScrollRestoration } from 'react-router-dom';
 
+import { ToastViewport } from '@/shared/ui/Toast';
+
 import { RouteFallback } from '../RouteFallback';
 
 import { AiFloatingOverlay } from './AiFloatingOverlay';
@@ -18,6 +20,10 @@ import { AiFloatingOverlay } from './AiFloatingOverlay';
  *    하단 탭이 있는 화면과 없는 화면 양쪽에 떠야 해서 `TabBarLayout` 안이 아니라
  *    여기 둔다. 어느 화면에서 보일지는 `AiFloatingOverlay` 가 혼자 판정한다 —
  *    배치가 아직 미확정이므로(ia.md §7) 고칠 자리를 한 곳으로 모아 둔 것이다.
+ * 4. **토스트 레이어** (FINCH-232). **앱 전체에 하나만 둔다.**
+ *    화면마다 두면 문구가 겹쳐 뜨고, 화면을 옮기며 띄운 토스트(출금 완료처럼
+ *    `navigate` 와 함께 뜨는 것)가 전환 도중 사라진다. `Outlet` 바깥이라
+ *    라우트가 바뀌어도 이 요소는 언마운트되지 않는다.
  */
 export function RootLayout() {
   return (
@@ -27,6 +33,7 @@ export function RootLayout() {
         <Outlet />
       </Suspense>
       <AiFloatingOverlay />
+      <ToastViewport />
     </>
   );
 }

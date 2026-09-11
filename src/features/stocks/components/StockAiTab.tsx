@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { isHttpError } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
+import { showToast } from '@/shared/hooks/useToastStore';
 import {
   formatKstMonthDay,
   formatKstMonthDayTime,
@@ -341,7 +342,16 @@ export function StockAiTab({ stockCode, isActive, owned }: StockAiTabProps) {
         code={code ?? undefined}
         title="분석을 불러오지 못했어요"
         description={message}
-        onRetry={() => void analysis.refetch()}
+        onRetry={() => {
+          // 실패 화면이 분석 화면으로 통째로 갈리므로 "다시 불러왔다" 는 것은
+          // 보이지만, 다시 실패해도 같은 화면이 그대로라 눌린 것인지 알 수 없다.
+          // 그래서 성공했을 때만 알린다 (이슈 #54 회신).
+          void analysis.refetch().then((result) => {
+            if (result.isSuccess) {
+              showToast('분석을 다시 불러왔어요.');
+            }
+          });
+        }}
       />
     );
   }

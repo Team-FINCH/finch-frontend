@@ -1,3 +1,4 @@
+import { showToast } from '@/shared/hooks/useToastStore';
 import { type WikiThesis } from '@/shared/types/ai/wiki';
 import { ThesisRecordSheet } from '@/shared/ui/ThesisRecordSheet';
 
@@ -66,7 +67,14 @@ export function ThesisEditSheet({
             horizon: thesis.horizon ?? undefined,
             linkedTradeId: thesis.linkedTradeId ?? undefined,
           },
-          { onSuccess: () => handleOpenChange(false) },
+          {
+            onSuccess: () => {
+              handleOpenChange(false);
+              // 이 시트는 이미 있는 기록을 여는 자리라 항상 `수정했어요` 다.
+              // 새로 적는 쪽은 알림함의 `RecordSheet` 가 맡는다.
+              showToast('매수 이유를 수정했어요.');
+            },
+          },
         );
       }}
       isPending={updateThesis.isPending}

@@ -18,8 +18,9 @@ import {
  * 아니라 **소수 둘째 자리까지의 실수**이고(§1.1 금액 규칙의 명시적 예외),
  * `changeRate` 만 종목과 같은 백분율 계열(`Percent`)이다. `-0.47` 이 −0.47% 다.
  *
- * **표시용 이름은 내려오지 않는다.** `indexCode` 를 화면이 라벨로 바꾼다
- * (`features/home/lib/marketIndexLabel.ts`).
+ * **표시용 이름은 내려오지 않는다.** 화면이 `indexCode` 를 그대로 라벨로 쓴다
+ * (`features/home/components/MarketIndexRoller.tsx` 의 `indexLabel`).
+ * 프로토타입이 영문 코드를 그대로 보여주므로 한글로 옮기지 않는다.
  */
 
 /**

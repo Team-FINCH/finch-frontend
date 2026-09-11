@@ -16,7 +16,10 @@ import {
   STOCK_DETAIL_TAB_PARAM,
   type StockDetailTab,
 } from '@/features/stocks';
+import { isHttpError } from '@/shared/api';
 import { ROUTES, STOCK_CODE_PARAM } from '@/shared/config/routes';
+import { showToast } from '@/shared/hooks/useToastStore';
+import { STOCK_ERROR_CODES } from '@/shared/types/errorCodes';
 import { type CandleInterval } from '@/shared/types/stock';
 import { PageMain } from '@/shared/ui/PageMain';
 import { Skeleton } from '@/shared/ui/Skeleton';
@@ -181,7 +184,37 @@ export function StockDetailPage() {
           detail={data}
           quote={quote.snapshot}
           onToggleWatch={() => {
-            toggleWatch.mutate({ stockCode, watched: data.watched });
+            const { stockName, watched } = data;
+
+            toggleWatch.mutate(
+              { stockCode, watched },
+              {
+                // 종목명이 있는 자리가 여기뿐이라 훅이 아니라 호출부에 붙였다.
+                // `useToggleWatchlist` 의 variables 에는 종목코드만 있다.
+                onSuccess: () => {
+                  showToast(
+                    watched
+                      ? `${stockName}를 관심 종목에서 뺐어요.`
+                      : `${stockName}를 관심 종목에 담았어요.`,
+                  );
+                },
+                // **50건 초과 하나만 붙인다.** 다른 실패(이미 담김·네트워크)는
+                // 지금처럼 조용히 둔다 — 실패 문구의 위계는 디자인 파트가
+                // `design.md` 에 쓰는 중이고(이슈 #54 회신) 그 전에 우리가
+                // 자리마다 문구를 지어내면 나중에 두 판이 어긋난다.
+                // 이 한 줄만 예외인 이유는 디자인이 문구를 확정해 줬기 때문이다.
+                onError: (error) => {
+                  if (
+                    isHttpError(error) &&
+                    error.code === STOCK_ERROR_CODES.WATCHLIST_LIMIT_EXCEEDED
+                  ) {
+                    showToast(
+                      '관심 종목은 50개까지 담을 수 있어요. 홈의 관심 종목에서 하나 빼고 담아주세요.',
+                    );
+                  }
+                },
+              },
+            );
           }}
           isTogglePending={toggleWatch.isPending}
         />

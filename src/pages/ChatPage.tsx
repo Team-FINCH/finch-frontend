@@ -10,6 +10,8 @@ import {
   type ChatMessage,
 } from '@/features/chat/model/chatMessages';
 import { isHttpError } from '@/shared/api';
+import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
+import { showToast } from '@/shared/hooks/useToastStore';
 import { isRetryableAiErrorCode } from '@/shared/lib/aiErrorRetry';
 import { PageMain } from '@/shared/ui/PageMain';
 
@@ -32,6 +34,11 @@ export function ChatPage() {
   const [searchParams] = useSearchParams();
   const chatContext = parseChatContext(searchParams);
 
+  // 입력창 바가 토스트 자리를 정한다 — 이 화면은 `ActionBar` 를 쓰지 않고 같은
+  // 모양의 바를 직접 그려서, 등록도 여기서 한다 (FINCH-232).
+  // 입력창은 글이 길어지면 높이가 자라고 `ResizeObserver` 가 그때마다 다시 잰다.
+  const bottomFixedRef = useRegisterBottomFixedSpace();
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const chatMutation = useChatMutation();
@@ -39,6 +46,9 @@ export function ChatPage() {
   function resetConversation() {
     setMessages([]);
     setConversationId(null);
+    // 말풍선이 사라지는 것만으로는 초기화가 된 것인지 화면이 비어 버린 것인지
+    // 구분되지 않는다. 서버를 부르지 않는 로컬 초기화라 성공 콜백이 따로 없다.
+    showToast('대화를 초기화했어요.');
   }
 
   function handleSend(text: string) {
@@ -128,7 +138,10 @@ export function ChatPage() {
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-border bg-surface px-6.5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <div
+        ref={bottomFixedRef}
+        className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-border bg-surface px-6.5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+      >
         <ChatComposer disabled={chatMutation.isPending} onSend={handleSend} />
       </div>
     </PageMain>

@@ -1,5 +1,7 @@
 import { type ComponentProps } from 'react';
 
+import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
+
 /**
  * 화면 하단에 고정되는 액션 바.
  *
@@ -26,11 +28,18 @@ import { type ComponentProps } from 'react';
  *
  * **이 바를 쓰는 화면은 본문 아래에 바 높이만큼 여백을 둔다.** 고정 레이어라
  * 문서 흐름에서 자리를 차지하지 않아 마지막 내용이 바 밑에 가린다.
+ *
+ * 토스트가 이 바 위 14px 에 앉도록 자기 자리를 알린다 (FINCH-232).
+ * 바를 쓰는 화면이 값을 따로 적지 않는다 — 알리는 것은 바 자신의 몫이다.
+ * 근거는 `shared/hooks/useBottomFixedSpace.ts` 에 있다.
  */
 export function ActionBar({ className = '', ...props }: ComponentProps<'div'>) {
+  const bottomFixedRef = useRegisterBottomFixedSpace();
+
   return (
     <div
       {...props}
+      ref={bottomFixedRef}
       className={
         'fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-border bg-surface px-6.5 pt-3 ' +
         `pb-[calc(1.375rem+env(safe-area-inset-bottom))] ${className}`

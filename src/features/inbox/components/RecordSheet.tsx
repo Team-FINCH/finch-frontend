@@ -1,3 +1,4 @@
+import { showToast } from '@/shared/hooks/useToastStore';
 import { ThesisRecordSheet } from '@/shared/ui/ThesisRecordSheet';
 
 import { useSubmitInboxRecord } from '../api/useSubmitInboxRecord';
@@ -44,7 +45,14 @@ export function RecordSheet({ item, onOpenChange }: RecordSheetProps) {
         }
         submit.mutate(
           { itemId: item.itemId, body: { reason: text } },
-          { onSuccess: () => handleOpenChange(false) },
+          {
+            onSuccess: () => {
+              handleOpenChange(false);
+              // 새로 적는 자리라 `기록했어요` 다. 고치는 쪽은
+              // `features/portfolio/components/ThesisEditSheet.tsx` 가 맡는다.
+              showToast('매수 이유를 기록했어요.');
+            },
+          },
         );
       }}
       isPending={submit.isPending}

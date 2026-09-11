@@ -203,6 +203,26 @@
   --color-note-surface: #f4f6f8;
   --color-note-border: #e1e6eb;
 
+  /* ── 색: 토스트 ───────────────────────────────────────────────────── */
+  /* 토스트 면과 글자 (프로토타입 `.toast{background:#4E5560;color:#fff}`).
+     이슈 #54 회신(2026-09-11, 디자인 파트)으로 확정됐다.
+
+     **중립 계단에 끼워 맞추지 않는다.** 가까운 두 값을 둘 다 기각한 근거가 있다.
+     - --color-text-primary(#1F2328)를 쓰면 AI 검정 면(--color-ai-surface #24272C)과
+       거의 같은 색이 되어 **AI 가 말하는 것처럼 읽힌다.** 토스트는 시스템이 방금
+       처리한 결과를 알리는 자리라 AI 영역과 갈려 보여야 한다
+     - --color-text-secondary(#565C66)는 흰 글자 대비가 6.73 으로 AAA(7:1)에 못
+       미친다. #4E5560 은 7.52 다. 토스트는 2200ms 만에 사라져 **다시 읽을 기회가
+       없으므로** 본문보다 대비를 더 받는다
+
+     이름은 디자인 회신의 `--toast-bg`·`--toast-fg` 를 그대로 옮기되 이 파일의
+     --color-* 접두(맨 위 안내)를 지켰다. 값만 가져오고 접두는 유지한다.
+
+     다음 사람에게 — 이 둘을 --color-text-* 계단으로 끌어내리지 마라.
+     위 두 문단이 그것을 한 번 검토하고 기각한 기록이다. */
+  --color-toast-bg: #4e5560;
+  --color-toast-fg: #ffffff;
+
   /* ── 색: 등락 (design.md v2 §4 --up·--down·--neu, 신 프로토타입과 같음) ── */
   /* 국내 관례를 따라 상승이 적색, 하락이 청색이다. 미국식과 반대다.
      디자인이 정한 값이라 우리가 바꾸지 않는다.
@@ -390,8 +410,10 @@
      칩(11px)·태그(8px)를 만들 때 이 값으로 맞출지 프로토타입 값으로 갈지 정한다.
      10px 은 그 둘의 가운데다 — 프로토타입에서 읽은 값이 아니다. */
   --radius-sm: 10px;
-  /* 주요 버튼, Soft Box, 토스트, 썸네일 (.btn·.btn2·.soft·.toast·.th).
-     전 주석의 "입력·세그먼티드"를 뺐다. 프로토타입에 입력 클래스가 아예 없고,
+  /* 주요 버튼, Soft Box, 썸네일 (.btn·.btn2·.soft·.th).
+     전 주석이 여기 적었던 토스트(.toast)를 뺐다 — 실측해 보니 13px 이라
+     아래 --radius-toast 로 갈랐다.
+     전 주석의 "입력·세그먼티드"도 뺐다. 프로토타입에 입력 클래스가 아예 없고,
      세그먼티드(.seg)는 12px 이다. 세그먼티드·행(.row)·아이콘 버튼(.ico)이 다
      12px 인데 --radius-md 로 끌어오면 안 된다. 토큰이 생겼다 — --radius-12. */
   --radius-md: 14px;
@@ -414,6 +436,11 @@
      재내보내기된 프로토타입의 `.ai` 는 12px 이고 design.md 도 12px 라 확인이
      끝났다. --radius-card 와 값이 같지만 토큰은 둘로 둔다. 역할이 다르다. */
   --radius-ai: 12px;
+  /* 토스트 (.toast). 프로토타입 실측 13px 이다 — --radius-12(12px)와
+     --radius-md(14px) 사이라 계단에 자리가 없어 역할 이름으로 뒀다.
+     1px 차이지만 둘 중 하나로 반올림하면 실측값이 아니게 된다 —
+     --text-ai-status-title 을 title-3 으로 올리지 않은 것과 같은 이유다. */
+  --radius-toast: 13px;
   --radius-sheet: 24px; /* Bottom Sheet 상단 (.sheet) */
 
   /* ── 그림자 (프로토타입 .fab·.toast) ──────────────────────────────── */
@@ -451,6 +478,7 @@
   --motion-normal: 180ms; /* 탭, 세그먼티드, 아코디언 */
   --motion-tab-swap: 420ms; /* 탭바 교체 순차 등장 (프로토타입 `tin`) */
   --motion-sheet: 260ms; /* 바텀시트 */
+  --motion-toast: 220ms; /* 토스트 등장 (프로토타입 `pop`) */
 }
 
 /*
@@ -512,6 +540,24 @@
   from {
     opacity: 0;
     transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * 토스트 등장 (FINCH-232, `shared/ui/Toast.tsx`).
+ * 프로토타입 `@keyframes pop` 을 그대로 옮겼다 — 이름만 바꿨다.
+ * 사라질 때는 애니메이션이 없다. 프로토타입도 2200ms 뒤 그냥 지운다.
+ * `prefers-reduced-motion` 에서는 컴포넌트가 `motion-reduce:animate-none` 으로
+ * 이 애니메이션만 끈다 — 머무는 시간(2200ms)은 그대로다.
+ */
+@keyframes toast-pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
   }
   to {
     opacity: 1;

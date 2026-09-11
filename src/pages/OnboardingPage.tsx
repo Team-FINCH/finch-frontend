@@ -9,6 +9,7 @@ import { markOnboardingDone } from '@/features/onboarding/lib/onboardingDone';
 import { useOnboardingPicks } from '@/features/onboarding/model/useOnboardingPicks';
 import { STOCK_SEARCH_MIN_KEYWORD_LENGTH } from '@/shared/config/apiContract';
 import { HOME_LIST_TAB_PARAM, ROUTES } from '@/shared/config/routes';
+import { showToast } from '@/shared/hooks/useToastStore';
 import { Button } from '@/shared/ui/Button';
 
 /**
@@ -75,7 +76,19 @@ export function OnboardingPage() {
   };
 
   const handleDone = () => {
-    complete.mutate([...picks], { onSuccess: goHome });
+    complete.mutate([...picks], {
+      onSuccess: ({ requested, failed }) => {
+        goHome();
+        // 고른 수가 아니라 실제로 담긴 수를 말한다. 한 종목이 실패해도 나머지는
+        // 담기는 흐름이라(`useCompleteOnboarding`) 둘이 다를 수 있다.
+        // 하나도 못 담았으면 띄우지 않는다 — "0개를 담았어요" 는 성공 문구가 아니다.
+        // 그 경우는 화면의 `complete.isError` 줄이 맡는다.
+        const added = requested - failed;
+        if (added > 0) {
+          showToast(`관심 종목 ${added}개를 담았어요.`);
+        }
+      },
+    });
   };
 
   return (
