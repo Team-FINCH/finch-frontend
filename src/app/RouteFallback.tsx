@@ -8,7 +8,7 @@ import { Skeleton } from '@/shared/ui/Skeleton';
  */
 export function RouteFallback() {
   return (
-    <PageMain aria-busy="true" aria-label="화면을 불러오는 중">
+    <PageMain className="pt-6" aria-busy="true" aria-label="화면을 불러오는 중">
       <Skeleton className="h-6 w-32" />
       <Skeleton className="mt-4 h-24 w-full" />
       <Skeleton className="mt-3 h-24 w-full" />

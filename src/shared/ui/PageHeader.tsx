@@ -4,9 +4,19 @@ import { Link } from 'react-router-dom';
 import { ROUTES } from '@/shared/config/routes';
 
 /**
- * 홈·포트폴리오·내 정보 세 화면이 공유하는 상단 헤더 (ia.md §1 "알림함" —
- * "실제 진입점은 상단 네비게이션 바의 뱃지 버튼[…] 홈·포트폴리오·내 정보 세 화면의
- * 헤더에서만 반복된다"). 제목만 화면마다 다르고 마크업은 하나다.
+ * 하단 탭 네 화면(홈·탐색·포트폴리오·내 정보)이 공유하는 상단 헤더.
+ * 제목만 화면마다 다르고 마크업은 하나다.
+ *
+ * **알림함 뱃지는 그중 셋에만 있다** (ia.md §1 "알림함" — "실제 진입점은 상단
+ * 네비게이션 바의 뱃지 버튼[…] 홈·포트폴리오·내 정보 세 화면의 헤더에서만
+ * 반복된다"). 프로토타입 탐색의 `.nav` 는 제목뿐이다.
+ *
+ * 그래서 `unreadCount` 를 **선택 인자**로 두고, 넘기지 않으면 뱃지 버튼 자체를
+ * 그리지 않는다. 제목만 있는 얇은 컴포넌트를 따로 두는 쪽도 생각했지만 같은
+ * 높이(56px)·같은 좌우 여백(26px)·같은 제목 토큰을 두 곳에서 관리하게 된다 —
+ * 세 화면의 헤더가 서로 어긋났던 것을 여기로 합친 것이 이 파일의 출발점이라
+ * 다시 가르는 것은 같은 실수다. `unreadCount={0}` 은 뱃지 없는 버튼이고
+ * `undefined` 는 버튼 없음이라, 둘을 `undefined` 판정으로 가른다.
  *
  * **원래 세 번 따로 만들어졌던 것을 여기로 올렸다.** `features/home/components/
  * HomeHeader.tsx`(뱃지 카운트까지 연결된 판)와 `features/portfolio/components/
@@ -80,7 +90,11 @@ import { ROUTES } from '@/shared/config/routes';
  */
 type PageHeaderProps = {
   title: string;
-  unreadCount: number;
+  /**
+   * 알림함 뱃지에 표시할 미읽음 개수. **넘기지 않으면 뱃지 버튼을 그리지 않는다**
+   * — 탐색 화면이 그렇다(위 주석). `0` 은 "버튼은 있고 뱃지만 없다" 로 다르다.
+   */
+  unreadCount?: number;
   /**
    * 제목 오른쪽 같은 줄에 붙는 보조 정보. 지금 쓰는 곳은 홈의 시장 지수
    * 롤링(`features/home/components/MarketIndexRoller`) 하나다.
@@ -114,28 +128,30 @@ export function PageHeader({
         </h1>
         {titleSuffix}
       </div>
-      <Link
-        to={ROUTES.inbox}
-        aria-label={
-          unreadCount > 0 ? `알림함, 안 읽은 알림 ${unreadCount}건` : '알림함'
-        }
-        className="relative flex size-10 flex-none items-center justify-center"
-      >
-        <span
-          aria-hidden="true"
-          className="size-6.75 bg-text-primary"
-          style={{
-            mask: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M2.5 8.1 12 14.2l9.5-6.1V17a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 17z'/><path d='M21.2 6.2 12 12.1 2.8 6.2A2.5 2.5 0 0 1 5 4.5h14a2.5 2.5 0 0 1 2.2 1.7z'/></svg>\") center / 27px no-repeat",
-            WebkitMask:
-              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M2.5 8.1 12 14.2l9.5-6.1V17a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 17z'/><path d='M21.2 6.2 12 12.1 2.8 6.2A2.5 2.5 0 0 1 5 4.5h14a2.5 2.5 0 0 1 2.2 1.7z'/></svg>\") center / 27px no-repeat",
-          }}
-        />
-        {unreadCount > 0 ? (
-          <span className="border-1.5 absolute top-0.5 right-0 flex h-3.75 min-w-3.75 items-center justify-center rounded-full border-bg bg-notify px-1 text-[9.5px] font-bold text-surface">
-            {unreadCount}
-          </span>
-        ) : null}
-      </Link>
+      {unreadCount === undefined ? null : (
+        <Link
+          to={ROUTES.inbox}
+          aria-label={
+            unreadCount > 0 ? `알림함, 안 읽은 알림 ${unreadCount}건` : '알림함'
+          }
+          className="relative flex size-10 flex-none items-center justify-center"
+        >
+          <span
+            aria-hidden="true"
+            className="size-6.75 bg-text-primary"
+            style={{
+              mask: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M2.5 8.1 12 14.2l9.5-6.1V17a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 17z'/><path d='M21.2 6.2 12 12.1 2.8 6.2A2.5 2.5 0 0 1 5 4.5h14a2.5 2.5 0 0 1 2.2 1.7z'/></svg>\") center / 27px no-repeat",
+              WebkitMask:
+                "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M2.5 8.1 12 14.2l9.5-6.1V17a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 17z'/><path d='M21.2 6.2 12 12.1 2.8 6.2A2.5 2.5 0 0 1 5 4.5h14a2.5 2.5 0 0 1 2.2 1.7z'/></svg>\") center / 27px no-repeat",
+            }}
+          />
+          {unreadCount > 0 ? (
+            <span className="border-1.5 absolute top-0.5 right-0 flex h-3.75 min-w-3.75 items-center justify-center rounded-full border-bg bg-notify px-1 text-[9.5px] font-bold text-surface">
+              {unreadCount}
+            </span>
+          ) : null}
+        </Link>
+      )}
     </div>
   );
 }

@@ -162,7 +162,7 @@ export function OrderPage() {
 
   if (available.isConnecting) {
     return (
-      <PageMain>
+      <PageMain className="pt-6">
         <Skeleton className="h-11 w-1/2" />
         <Skeleton className="mt-8 h-11 w-full" />
         <Skeleton className="mt-8 h-24 w-full" />
@@ -172,7 +172,7 @@ export function OrderPage() {
 
   if (available.isDisconnected) {
     return (
-      <PageMain>
+      <PageMain className="pt-6">
         <div className="pt-10 text-center">
           <p className="text-title-3 text-text-primary">
             주문 정보를 불러오지 못했어요

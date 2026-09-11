@@ -18,6 +18,7 @@ import { STOCK_SEARCH_MIN_KEYWORD_LENGTH } from '@/shared/config/apiContract';
 import { ROUTES } from '@/shared/config/routes';
 import { showToast } from '@/shared/hooks/useToastStore';
 import { type StockSummary } from '@/shared/types/stock';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { PageMain } from '@/shared/ui/PageMain';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
@@ -98,25 +99,30 @@ export function SearchPage() {
   const viewedStocks = recentStocks.data?.items ?? [];
 
   return (
-    <PageMain>
-      {/* 프로토타입 isSearch 블록의 `<div class="nav"><span class="navt">탐색</span></div>`
-          와 그 아래 검색 입력 줄이다. 다른 상시 화면(홈·포트폴리오·내 정보)과 같은
-          자리·같은 크기의 제목이라 여기만 sr-only 로 두면 탭을 옮길 때 이 화면만
-          제목이 사라져 보인다. 알림함 뱃지는 넣지 않는다 — 프로토타입의 탐색 nav
-          에는 없다 (ia.md §1).
+    <>
+      {/* 제목 줄은 다른 탭 화면과 같은 `shared/ui/PageHeader` 다 — 프로토타입도
+          탐색의 머리를 같은 `.nav`(56px)로 그린다. 전에는 이 자리에 제목·검색창을
+          한 덩어리로 묶어 두어 높이가 56px 이 아니라 둘을 합친 값이었고, 탭을
+          옮길 때 이 화면만 머리가 내려앉아 보였다 (FINCH-241).
 
-          **둘 다 스크롤 밖에 남는다.** 프로토타입은 `.nav` 와 입력 줄을 `flex:none`
-          으로 `.sc` 앞에 두어 본문만 굴린다(proto L1566-1572). 우리는 `PageMain`
-          자신이 `.sc` 자리라 그 안에서 `sticky top-0` 로 같은 결과를 만든다 —
-          `PageHeader` 가 쓰는 방식과 같고, 좌우 26px·위 24px 여백을 음수 마진으로
-          끌어와 배경을 깔아야 본문이 글자 뒤로 지나간다.
-          아래 16px 은 입력 줄의 `padding-bottom` 이다 (proto L1567). */}
-      <div className="sticky top-0 z-10 -mx-6.5 -mt-6 bg-bg px-6.5 pt-6 pb-4">
-        <h1 className="mb-4 text-section-title text-text-primary">탐색</h1>
+          `unreadCount` 를 넘기지 않아 알림함 뱃지가 없다 — 프로토타입 탐색의
+          `.nav` 에는 뱃지 버튼이 없다 (ia.md §1). */}
+      <PageHeader title="탐색" />
+
+      {/* 검색 입력 줄. 프로토타입은 이것도 `.sc` 앞에 `flex:none` 으로 두어
+          본문만 굴린다 — `<div style="flex:none;padding:0 26px 16px">`.
+          그래서 `PageMain` 안이 아니라 형제로 둔다. 전에는 안에 넣고
+          `sticky top-0 -mx-6.5 -mt-6 bg-bg` 로 흉내 냈는데, 음수 마진과 `sticky`
+          를 같은 요소에 함께 쓰면 어긋난다(`PageHeader` 주석의 231 경위).
+
+          좌우 26px·최대 너비·가운데 정렬을 `PageHeader`·`PageMain` 과 같은 값으로
+          직접 갖는다. 넓은 화면에서 본문만 가운데로 모이면 이 줄만 왼쪽에 남는다.
+          아래 16px 은 프로토타입의 `padding-bottom` 이다. */}
+      <div className="mx-auto w-full max-w-md flex-none px-6.5 pb-4">
         <StockSearchField value={input} onChange={setInput} />
       </div>
 
-      <div>
+      <PageMain>
         {isTooShort && (
           <p className="pt-1 text-body-2 text-text-secondary">
             {STOCK_SEARCH_MIN_KEYWORD_LENGTH}글자 이상 입력해 주세요
@@ -203,8 +209,8 @@ export function SearchPage() {
             </section>
           </>
         )}
-      </div>
-    </PageMain>
+      </PageMain>
+    </>
   );
 }
 
