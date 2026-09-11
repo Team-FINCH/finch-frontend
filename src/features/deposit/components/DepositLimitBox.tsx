@@ -26,6 +26,14 @@ type DepositLimitBoxProps = {
   limit?: DepositLimitResponse;
   isPending: boolean;
   isError: boolean;
+  /**
+   * 실패한 뒤 `다시 시도` 로 다시 부르고 있는 중. **실패 화면이 아니라 스켈레톤을
+   * 그린다** — TanStack Query 는 재조회 중에도 `status` 를 `error` 로 두기 때문에,
+   * 이 값을 보지 않으면 버튼을 눌러도 화면이 그대로라 "눌러도 아무 일이 없다"가
+   * 된다. 성공한 값을 백그라운드에서 갱신하는 중(`isFetching`)에는 넘기지 않는다.
+   * 그 경우까지 스켈레톤으로 되돌리면 멀쩡한 숫자가 깜빡인다.
+   */
+  isRetrying: boolean;
   /** 실패 안내의 `다시 시도` 가 부른다 */
   onRetry: () => void;
 };
@@ -103,9 +111,10 @@ export function DepositLimitBox({
   limit,
   isPending,
   isError,
+  isRetrying,
   onRetry,
 }: DepositLimitBoxProps) {
-  if (isPending) {
+  if (isPending || isRetrying) {
     return (
       <SoftBox aria-busy="true" aria-label="입금 한도를 불러오고 있어요">
         <LimitSkeletonRow />

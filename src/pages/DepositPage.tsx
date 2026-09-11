@@ -220,6 +220,7 @@ export function DepositPage() {
           limit={limit}
           isPending={limitQuery.isPending}
           isError={limitQuery.isError}
+          isRetrying={limitQuery.isError && limitQuery.isFetching}
           onRetry={() => void limitQuery.refetch()}
         />
 
