@@ -20,7 +20,6 @@ export { StockChartTab } from './components/StockChartTab';
 export { StockDetailHeader } from './components/StockDetailHeader';
 export { StockDetailTabNav } from './components/StockDetailTabNav';
 export { StockHoldingBox } from './components/StockHoldingBox';
-export { StockInfoTab } from './components/StockInfoTab';
 export { StockSearchField } from './components/StockSearchField';
 export { StockSearchResultList } from './components/StockSearchResultList';
 
