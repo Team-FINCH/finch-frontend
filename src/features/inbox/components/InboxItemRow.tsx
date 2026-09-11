@@ -10,12 +10,15 @@ import type { InboxItem, InboxItemKind } from '../model/types';
  * - 유형 라벨은 Neutral, `확인 필요`(위키 확인 항목)만 약한 Attention 이다.
  *   색을 따로 주지 않고 글자 굵기로만 강조해 "강한 색을 주지 않는다" 규칙을 지킨다.
  * - Card 가 아니라 Flat List — 안쪽 여백만 있고 테두리·배경이 없다.
+ *
+ * **`title`·`summary` 는 서버가 완성해 준 문구를 그대로 그린다**(apiSpec §6.4).
+ * 종목명을 덧붙이거나 문장을 다시 조립하지 않는다.
  */
 
 const KIND_LABEL: Record<InboxItemKind, string> = {
   record: '기록',
   wiki: '확인',
-  briefing: '소식',
+  news: '소식',
 };
 
 /** `Intl.DateTimeFormat` 대신 날짜만 자른다. 알림함은 상대 시간 없이 날짜로 충분하다. */
