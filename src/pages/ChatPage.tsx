@@ -11,6 +11,7 @@ import {
 } from '@/features/chat/model/chatMessages';
 import { isHttpError } from '@/shared/api';
 import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
+import { showToast } from '@/shared/hooks/useToastStore';
 import { isRetryableAiErrorCode } from '@/shared/lib/aiErrorRetry';
 import { PageMain } from '@/shared/ui/PageMain';
 
@@ -45,6 +46,9 @@ export function ChatPage() {
   function resetConversation() {
     setMessages([]);
     setConversationId(null);
+    // 말풍선이 사라지는 것만으로는 초기화가 된 것인지 화면이 비어 버린 것인지
+    // 구분되지 않는다. 서버를 부르지 않는 로컬 초기화라 성공 콜백이 따로 없다.
+    showToast('대화를 초기화했어요.');
   }
 
   function handleSend(text: string) {
