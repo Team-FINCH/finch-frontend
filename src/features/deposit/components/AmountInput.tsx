@@ -1,3 +1,5 @@
+import { type ReactNode } from 'react';
+
 import { formatAmount } from '@/shared/lib/formatNumber';
 
 /**
@@ -30,6 +32,15 @@ type AmountInputProps = {
   presets?: readonly number[];
   label: string;
   errorMessage?: string;
+  /**
+   * 입력 바로 아래, **오류 문구보다 위**에 붙는 보조 줄. 출금이 여기에
+   * `출금 가능 금액 … + 전액` 한 줄을 넣는다(proto L2807-2810).
+   *
+   * 자리를 밖에서 그리지 않고 슬롯으로 받는 이유는 **차례 때문이다.** 프로토타입
+   * 출금 화면은 입력 → 가능 금액 → 오류 순인데, 오류를 이 컴포넌트가 그리므로
+   * 호출부가 `AmountInput` 다음에 그리면 가능 금액이 오류보다 아래로 간다.
+   */
+  hint?: ReactNode;
 };
 
 /**
@@ -62,6 +73,7 @@ export function AmountInput({
   presets,
   label,
   errorMessage,
+  hint,
 }: AmountInputProps) {
   function handleRawChange(raw: string) {
     const digitsOnly = raw.replace(/[^0-9]/g, '');
@@ -126,6 +138,10 @@ export function AmountInput({
           ))}
         </div>
       )}
+
+      {/* 윗 여백 14px 은 프리셋(`.seg`)과 같은 자리라 같은 값이다
+          (proto L2807 `margin-top:14px`). */}
+      {hint !== undefined && <div className="mt-3.5">{hint}</div>}
 
       {/* 프로토타입 `.info` — 18px 원 · 테두리 1.4px `--t3` · 글자 11px/700
           (proto L1145). 본문은 `.b2` 15px 에 행간만 21px 로 좁힌다 (proto L2636). */}
