@@ -14,7 +14,7 @@ import { useDeleteWikiFact } from '../api/useDeleteWikiFact';
 import { usePortfolio } from '../api/usePortfolio';
 import { useWiki } from '../api/useWiki';
 
-import { ThesisEditSheet } from './ThesisEditSheet';
+import { ThesisEditSheet, type ThesisSheetTarget } from './ThesisEditSheet';
 import { UnrecordedStockList } from './UnrecordedStockList';
 import { WikiGuessCarousel, WIKI_ACCENT_COLOR } from './WikiGuessCarousel';
 
@@ -61,7 +61,13 @@ export function WikiTab() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WikiFact | null>(null);
   const deleteFact = useDeleteWikiFact();
-  const [editTarget, setEditTarget] = useState<WikiThesis | null>(null);
+  /**
+   * 시트가 여는 대상. 기존 논지(수정)와 미기록 보유 종목(신규)이 같은 시트를 쓰고
+   * 저장 경로만 갈린다 — `ThesisEditSheet.tsx` 머리 주석을 본다.
+   */
+  const [sheetTarget, setSheetTarget] = useState<ThesisSheetTarget | null>(
+    null,
+  );
 
   if (isPending) {
     return (
@@ -250,10 +256,21 @@ export function WikiTab() {
             매수 이유를 남겨두면 다음 투자 판단에서 다시 볼 수 있어요.
           </p>
         ) : (
-          <ThesisList theses={theses} onEditThesis={setEditTarget} />
+          <ThesisList
+            theses={theses}
+            onEditThesis={(thesis) => setSheetTarget({ thesis })}
+          />
         )}
 
-        <UnrecordedStockList holdings={unrecordedHoldings} />
+        <UnrecordedStockList
+          holdings={unrecordedHoldings}
+          onRecord={(holding) =>
+            setSheetTarget({
+              stockCode: holding.stockCode,
+              stockName: holding.stockName,
+            })
+          }
+        />
       </section>
 
       <BottomSheet
@@ -300,15 +317,16 @@ export function WikiTab() {
       </BottomSheet>
 
       {/*
-        `key`로 논지가 바뀔 때마다 새로 마운트한다 — `ThesisRecordSheet`가
+        `key`로 대상이 바뀔 때마다 새로 마운트한다 — `ThesisRecordSheet`가
         `initialText`를 마운트 시점에만 읽는다(`ThesisEditSheet.tsx` 머리 주석).
+        신규 기록 쪽은 종목코드가 키다.
       */}
       <ThesisEditSheet
-        key={editTarget?.id ?? 'none'}
-        thesis={editTarget}
+        key={sheetTarget?.thesis?.id ?? sheetTarget?.stockCode ?? 'none'}
+        target={sheetTarget}
         onOpenChange={(open) => {
           if (!open) {
-            setEditTarget(null);
+            setSheetTarget(null);
           }
         }}
       />

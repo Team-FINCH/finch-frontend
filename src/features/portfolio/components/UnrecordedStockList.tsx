@@ -1,6 +1,3 @@
-import { Link } from 'react-router-dom';
-
-import { ROUTES } from '@/shared/config/routes';
 import { formatAmount, formatKrw } from '@/shared/lib/formatNumber';
 import { type Holding } from '@/shared/types/portfolio';
 
@@ -8,26 +5,30 @@ import { type Holding } from '@/shared/types/portfolio';
  * "아직 적지 않은 종목" — 매수 이유를 남기지 않은 보유 종목 (프로토타입
  * `unrecorded`, FINCH-154). 종목이 없으면 섹션 자체가 나오지 않는다.
  *
- * ## "이유 적기" 가 채팅으로 가는 이유
+ * ## "이유 적기" 는 시트를 연다
  *
- * **프론트에는 논지를 새로 만들 경로가 없다.** 가진 것은 수정(`PUT /wiki/theses/
- * {stockCode}`)뿐이고, 그것도 활성 논지가 없으면 서버가 `InvalidRequest` 를
- * 던진다(`ai/app/wiki/store.py` `update_active_thesis`). `POST /wiki/theses` 는
- * AI 가 대화 안에서 스스로 부르는 경로다(ia.md §1).
+ * 프로토타입과 같다. 행을 누르면 그 종목의 매수 이유 시트가 그 자리에서 열린다
+ * (`ThesisEditSheet`, 신규 기록 갈래).
  *
- * 그래서 여기서 시트를 열어 봐야 저장할 곳이 없다. 프로토타입은 시트를 열지만
- * 로컬 상태만 바꾸는 목이라 이 제약이 드러나지 않았다. **실제로 논지가 생기는
- * 유일한 길인 AI 채팅으로 보낸다** — 종목 맥락(`screen=stock_detail&ticker=`)을
- * 실어 보내 대화가 어느 종목 얘기인지 알고 시작하게 한다.
+ * **2026-09-11 까지는 AI 채팅으로 보냈다.** 프론트에 논지를 새로 만들 경로가 없어서
+ * 우회한 것이다 — 가진 것은 수정(`PUT /wiki/theses/{stockCode}`)뿐이었고 그것도
+ * 활성 논지가 없으면 서버가 거부하므로, 시트를 열어 봐야 저장할 곳이 없었다.
+ * 그래서 논지가 실제로 생기는 유일한 길인 AI 채팅으로 종목 맥락을 실어 보냈다.
+ * `POST /wiki/theses` 중계가 열리면서(이슈 #56 · apiSpec v0.8.8 · contracts C97)
+ * 그 이유가 사라졌고, 목록과 문구는 그때 것을 그대로 쓴다.
  *
- * 계약이 열리면(미확정 P34) 이 링크를 기록 시트로 바꾸면 된다. 목록과 문구는
- * 그대로 쓴다.
+ * 이 목록은 제출 결과를 모른다 — 저장 뒤 `GET /wiki` 를 다시 부르면 그 종목에
+ * 논지가 생겨 이 목록에서 저절로 빠진다(`WikiTab` 이 `theses` 로 거른다).
  */
 type UnrecordedStockListProps = {
   holdings: Holding[];
+  onRecord: (holding: Holding) => void;
 };
 
-export function UnrecordedStockList({ holdings }: UnrecordedStockListProps) {
+export function UnrecordedStockList({
+  holdings,
+  onRecord,
+}: UnrecordedStockListProps) {
   if (holdings.length === 0) {
     return null;
   }
@@ -52,10 +53,11 @@ export function UnrecordedStockList({ holdings }: UnrecordedStockListProps) {
 
       <div className="mt-3 flex flex-col gap-0.5">
         {holdings.map((holding) => (
-          <Link
+          <button
             key={holding.stockCode}
-            to={`${ROUTES.chat}?screen=stock_detail&ticker=${holding.stockCode}`}
-            className="flex items-center gap-3 py-2.75"
+            type="button"
+            onClick={() => onRecord(holding)}
+            className="flex w-full items-center gap-3 py-2.75 text-left"
           >
             <span className="flex size-8 flex-none items-center justify-center rounded-[11px] bg-primary-soft text-[13px] font-semibold text-text-secondary">
               {holding.stockName.slice(0, 1)}
@@ -75,7 +77,7 @@ export function UnrecordedStockList({ holdings }: UnrecordedStockListProps) {
                 ›
               </span>
             </span>
-          </Link>
+          </button>
         ))}
       </div>
     </section>
