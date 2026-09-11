@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { HOME_LIST_TAB_PARAM, ROUTES } from '@/shared/config/routes';
-import { formatKrw } from '@/shared/lib/formatNumber';
+import { formatKrw, formatSignedRate } from '@/shared/lib/formatNumber';
+import type { AiBriefingItem } from '@/shared/types/ai/briefing';
 import type { WatchlistSort } from '@/shared/types/stock';
 import { ListEmpty } from '@/shared/ui/ListEmpty';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { StockRow } from '@/shared/ui/StockRow';
 
+import { useHomeBriefing } from '../api/useHomeBriefing';
 import type { useHomeData } from '../model/useHomeData';
 
 /**
@@ -25,6 +27,80 @@ const WATCH_SORTS: readonly { value: WatchlistSort; label: string }[] = [
   { value: 'NAME', label: '이름순' },
   { value: 'CHANGE_RATE', label: '등락률순' },
 ];
+
+/**
+ * 관심 종목 행의 관련 소식 (프로토타입 `watchPreview` 의 `hint`).
+ *
+ * 브리핑 항목의 `relatedTickers` 를 종목별로 센다 — 브리핑 응답이 종목별 소식
+ * 개수를 따로 주지 않아서 프론트가 세는 수밖에 없다. 요약은 **먼저 나온 항목의
+ * `title`** 이다. 응답은 `rank` 순으로 오므로(AI 명세 §8) 먼저 나온 것이 가장
+ * 관련이 높다.
+ */
+type WatchRowNews = { count: number; summary: string };
+
+function toWatchNewsMap(
+  items: readonly AiBriefingItem[],
+): Map<string, WatchRowNews> {
+  const map = new Map<string, WatchRowNews>();
+  for (const item of items) {
+    for (const ticker of item.relatedTickers) {
+      const prev = map.get(ticker);
+      map.set(
+        ticker,
+        prev === undefined
+          ? { count: 1, summary: item.title }
+          : { count: prev.count + 1, summary: prev.summary },
+      );
+    }
+  }
+  return map;
+}
+
+/**
+ * 관심 종목 행의 보조 두 줄 (프로토타입 `watchPreview` — `sub` 와 `hint`).
+ *
+ * **첫 줄에 시장을 적지 않는다.** 프로토타입은 `{종목코드} · {시장}` 인데
+ * `GET /watchlist` 응답에 `market` 이 없다 (GitLab #67 로 요청해 뒀다).
+ * 자리를 비워 두면 `005930 · ` 처럼 구분점만 남으므로 조각째 뺐다 — 값이 오면
+ * 종목코드 뒤에 끼워 넣기만 하면 된다.
+ *
+ * **`보유 중` 은 남긴다.** 프로토타입에는 없지만 이미 보여 주던 사실이고,
+ * 관심 목록에서 이 종목을 이미 들고 있는지는 여기서만 알 수 있다. 빈 시장 자리를
+ * 메우려고 넣은 것이 아니라 뒤에 덧붙인 것이라, `market` 이 와도 자리가 겹치지
+ * 않는다.
+ *
+ * **거래정지 태그는 없다.** 응답에 `suspended` 가 없다 (같은 #67). 그래서
+ * 프로토타입이 거래정지일 때 힌트를 지우는 분기도 만들지 못한다.
+ *
+ * 두 줄 모두 `StockRow` 가 감싸는 `--color-text-secondary` 를 그대로 쓴다.
+ * 프로토타입은 첫 줄을 `--t3` 로 한 단계 낮추지만, 그 색은 흰 배경 대비 3.90 이라
+ * 이 레포가 읽어야 하는 정보에는 쓰지 않기로 했다 (`StockRow` 의 `rank` 주석).
+ */
+function WatchRowSub({
+  stockCode,
+  held,
+  news,
+  changeRate,
+}: {
+  stockCode: string;
+  held: boolean;
+  news: WatchRowNews | undefined;
+  changeRate: number;
+}) {
+  const hint =
+    news === undefined
+      ? `오늘 ${formatSignedRate(changeRate)} 움직인 이유 보기`
+      : `관련 소식 ${news.count}건 · ${news.summary}`;
+
+  return (
+    <span className="flex min-w-0 flex-col gap-0.75">
+      <span className="truncate">
+        {held ? `${stockCode} · 보유 중` : stockCode}
+      </span>
+      <span className="truncate">{hint}</span>
+    </span>
+  );
+}
 
 type Tab = 'holdings' | 'watchlist';
 
@@ -263,6 +339,17 @@ function WatchlistPanel({
   sort,
   onSortChange,
 }: WatchlistPanelProps) {
+  /**
+   * 브리핑을 새로 부르지 않는다. 같은 홈 화면의 `BriefingSection` 이 이미 같은
+   * 쿼리 키(`queryKeys.ai.briefing()`)로 받아 뒀고, TanStack Query 가 그 캐시를
+   * 그대로 준다 — 요청은 한 번만 나간다.
+   *
+   * 실패하거나 아직 안 왔으면 소식이 없는 것으로 본다. 관심 목록이 브리핑을
+   * 기다리지 않는다 — 힌트는 보조 정보이고, 없으면 등락률 폴백이 대신한다.
+   */
+  const briefing = useHomeBriefing();
+  const news = toWatchNewsMap(briefing.data?.content.items ?? []);
+
   if (isPending) {
     return <PreviewSkeleton />;
   }
@@ -317,7 +404,14 @@ function WatchlistPanel({
           stockCode={item.stockCode}
           stockName={item.stockName}
           to={ROUTES.stockDetail(item.stockCode)}
-          sub={item.held ? '보유 중' : undefined}
+          sub={
+            <WatchRowSub
+              stockCode={item.stockCode}
+              held={item.held}
+              news={news.get(item.stockCode)}
+              changeRate={item.changeRate}
+            />
+          }
           figures={{
             kind: 'quote',
             currentPrice: item.currentPrice,
