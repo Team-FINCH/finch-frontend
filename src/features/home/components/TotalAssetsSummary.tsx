@@ -122,7 +122,10 @@ export function TotalAssetsSummary({
       ) : (
         <>
           <p
-            className={`mt-2.5 text-body-2 font-medium whitespace-nowrap tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
+            /* 행간 21px 은 프로토타입 값이다 (15px/21px/500, `margin-top:10px`).
+               `text-body-2` 의 22px 보다 1px 좁아 토큰을 그대로 쓸 수 없다 —
+               토큰을 고치면 같은 크기를 쓰는 다른 화면이 함께 움직인다. */
+            className={`mt-2.5 text-body-2 leading-[21px] font-medium whitespace-nowrap tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
           >
             평가손익 {formatSignedAmount(evaluationTotals.profit)}원 ·{' '}
             {formatSignedRate(evaluationTotals.rate)}
