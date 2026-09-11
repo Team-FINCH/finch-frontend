@@ -234,10 +234,23 @@ function SearchResults({
         <p className="mt-1.5 text-body-2 text-text-secondary">
           잠시 후 다시 시도해 주세요.
         </p>
+        {/* 재시도만 버튼으로 올린다 (디자인 회신 2026-09-11, 이슈 #54).
+            밑줄 텍스트는 누를 수 있다는 것이 보이지 않았다. 치수는 `.aist` 버튼
+            스펙을 그대로 쓰고 정렬만 왼쪽으로 둔다 — 38px · min-width 104px ·
+            radius 10(--radius-sm) · 1px --border2 · 14px/500(--text-label) ·
+            --t1 · margin-top 14px.
+
+            `shared/ui/AiStatus` 의 버튼과 같은 모양이지만 공용으로 올리지 않는다.
+            그쪽은 가운데 정렬 상태 셸 안에 붙박여 있어 이 자리에 그대로 쓸 수 없고,
+            지금 같은 모양을 쓰는 자리가 둘뿐이라 셸을 나눌 근거가 약하다.
+
+            `before:` 로 눌리는 영역만 위아래 3px 씩 넓혀 44px 을 만든다
+            (design.md §12 최소 터치 영역). AiStatus 와 같은 방식이다 — 보이는
+            높이를 44px 로 올리면 실측값에서 벗어난다. */}
         <button
           type="button"
           onClick={onRetry}
-          className="mt-2.5 text-label font-medium text-text-secondary underline underline-offset-[3px]"
+          className="relative mt-3.5 h-9.5 min-w-26 rounded-sm border border-border-strong bg-surface px-4.5 text-label text-text-primary before:absolute before:inset-x-0 before:-inset-y-0.75 before:content-['']"
         >
           다시 시도
         </button>
