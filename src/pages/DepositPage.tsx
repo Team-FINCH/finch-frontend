@@ -6,6 +6,7 @@ import { useDepositLimit } from '@/features/deposit/api/useDepositLimit';
 import { useDepositReady } from '@/features/deposit/api/useDepositReady';
 import { AmountInput } from '@/features/deposit/components/AmountInput';
 import { DepositLimitBox } from '@/features/deposit/components/DepositLimitBox';
+import { DepositSummaryRow } from '@/features/deposit/components/DepositSummaryRow';
 import { PaymentMethodPicker } from '@/features/deposit/components/PaymentMethodPicker';
 import { depositLimitExceededMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { toSameOriginPath } from '@/features/deposit/lib/queryParams';
@@ -17,7 +18,6 @@ import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { PageMain } from '@/shared/ui/PageMain';
-import { SoftBoxRow } from '@/shared/ui/SoftBox';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
@@ -244,18 +244,24 @@ export function DepositPage() {
          */}
         <section>
           <h2 className={SECTION_TITLE_CLASS}>확인</h2>
+          {/*
+           * **`입금 후 예수금` 만 크다** (프로토타입 L2704 — 19px/700/-.01em ·
+           * baseline 정렬 · 위 12px 구분선). 앞 두 줄은 `.b1`/500 이고 구분선이
+           * 없다. 전에는 셋을 `SoftBoxRow` 로 똑같이 그려서 이 화면에서 제일
+           * 중요한 숫자가 나머지에 묻혔다. 줄 컴포넌트를 가른 이유는
+           * `DepositSummaryRow` 머리 주석에 적었다.
+           */}
           <Card>
-            <SoftBoxRow label="결제 수단" value={methodLabel} />
-            <SoftBoxRow
+            <DepositSummaryRow label="결제 수단" value={methodLabel} />
+            <DepositSummaryRow
               label="입금 금액"
               value={amount === null ? NO_VALUE : formatKrw(amount)}
-              divided
             />
             {accountQuery.data !== undefined && (
-              <SoftBoxRow
+              <DepositSummaryRow
                 label="입금 후 예수금"
                 value={formatKrw(accountQuery.data.cashBalance + (amount ?? 0))}
-                divided
+                total
               />
             )}
             {/*
