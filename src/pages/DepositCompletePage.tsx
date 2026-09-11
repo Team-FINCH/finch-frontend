@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useDepositConfirm } from '@/features/deposit/api/useDepositConfirm';
 import { DepositResultScreen } from '@/features/deposit/components/DepositResultScreen';
+import { isRetryableDepositConfirmError } from '@/features/deposit/lib/depositConfirmRetry';
 import { depositConfirmErrorMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { parsePositiveIntParam } from '@/features/deposit/lib/queryParams';
 import { ROUTES } from '@/shared/config/routes';
@@ -89,22 +90,43 @@ export function DepositCompletePage() {
 
   if (confirmMutation.isError) {
     /*
-     * 확정 실패는 코드를 가리지 않고 한 화면이다(위 "만료 처리"). 주 동작은
-     * 어느 코드든 입금 화면으로 되돌리는 것이다 — 확정에서 막힌 건은 `FAILED`
-     * 로 굳어 같은 건을 다시 확정할 수 없으므로 처음부터 다시 하는 경로만
-     * 준다(`ia.md:85` · contracts C85).
+     * 확정 실패는 코드를 가리지 않고 **한 화면이다**(위 "만료 처리"). 화면은
+     * 그대로 두고 **버튼만 두 갈래로 갈린다** — 이슈 #54 회신(2026-09-11) 「다」.
+     *
+     * 전에는 어느 코드든 입금 화면으로만 되돌렸다. "확정에서 막힌 건은 `FAILED`
+     * 로 굳는다"고 보고 그렇게 정했는데(`ia.md:85` · contracts C85), 백엔드를
+     * 읽어 보니 그렇지 않은 갈래가 있었다 — `READY` 에서 나는
+     * `DEPOSIT_NOT_APPROVED` 는 승인 반영이 늦어 생기는 것이라 다시 부르면
+     * 성공하고, `confirm` 자체가 멱등이라 재호출이 입금을 두 번 만들지도 않는다.
+     * 판정은 `isRetryableDepositConfirmError` 가 하고 근거도 그쪽에 적었다.
      */
+    const retryable = isRetryableDepositConfirmError(confirmMutation.error);
     return (
       <PageMain>
         <SubPageHeader title="결제 결과" showBack={false} />
-        <DepositResultScreen
-          variant="error"
-          errorMessage={depositConfirmErrorMessage(confirmMutation.error)}
-          primaryLabel="다시 입금하기"
-          onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
-          secondaryLabel="나중에 하기"
-          onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
-        />
+        {retryable ? (
+          <DepositResultScreen
+            variant="error"
+            errorMessage={depositConfirmErrorMessage(confirmMutation.error)}
+            primaryLabel="다시 시도"
+            onPrimaryAction={() =>
+              confirmMutation.mutate({ paymentId, paymentKey, amount })
+            }
+            secondaryLabel="홈으로"
+            onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
+          />
+        ) : (
+          /*
+           * 한도 초과·금액 불일치는 서버가 건을 닫아 재시도가 절대 성공하지
+           * 않는다. 다시 하려면 금액부터 새로 잡아야 하므로 입금 화면 하나만 둔다.
+           */
+          <DepositResultScreen
+            variant="error"
+            errorMessage={depositConfirmErrorMessage(confirmMutation.error)}
+            primaryLabel="입금 화면으로"
+            onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
+          />
+        )}
       </PageMain>
     );
   }
