@@ -5,7 +5,6 @@ import { AiCard, AiGlyph } from '@/shared/ui/AiCard';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useHomeBriefing } from '../api/useHomeBriefing';
-import { briefingCategoryLabel } from '../lib/briefingCategoryLabel';
 
 /**
  * 홈의 AI 브리핑 블록 (AI 슬롯 1번, ia.md §4 "1 | 데일리 브리핑 | 홈 | 자산 요약
@@ -114,10 +113,6 @@ export function BriefingSection({
   }
 
   // briefHas — 정상. 카드 전체가 브리핑 전체 화면으로 이동한다(프로토타입 `goBriefing`).
-  const categories = Array.from(new Set(items.map((item) => item.category)))
-    .slice(0, 2)
-    .map(briefingCategoryLabel)
-    .join(' · ');
 
   return (
     <AiCard
@@ -128,7 +123,17 @@ export function BriefingSection({
           ? `오늘 확인할 소식이 ${items.length}건 있어요.`
           : `관심 종목에서 오늘 확인할 소식이 ${items.length}건 있어요.`
       }
-      caption={categories}
+      /*
+        보조 줄은 `오늘 {N}건` 이다 (프로토타입 `briefMetaLine`). 전에는
+        `items[].category` 를 이어 붙여 `보유 종목 동향 · 실적` 처럼 그렸는데
+        프로토타입에 없는 모양이었다.
+
+        **`확인 필요 {K}건` 은 넣지 않는다.** 프로토타입은 `확인 필요 1건` 을
+        상수로 박아 뒀고, 실제 값은 알림함의 종류별 미읽음 개수라 브리핑 응답에
+        출처가 없다 — GitLab #57 회신 뒤에 붙인다. 자리만 비워 두면 `·` 만
+        덩그러니 남으므로 조각 자체를 넣지 않는다.
+      */
+      caption={`오늘 ${items.length}건`}
       onClick={() => navigate(ROUTES.briefing)}
     />
   );
