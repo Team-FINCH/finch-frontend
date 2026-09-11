@@ -5,6 +5,36 @@
 @import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 
 /*
+ * 로그인 히어로 헤드라인 전용 서체 (FINCH-230, `features/auth/components/LoginHero`).
+ * 프로토타입 `isLanding` 의 헤드라인이 'Gmarket Sans' 를 쓴다. 본문 서체는 그대로
+ * Pretendard 이고, 이 서체는 그 한 화면의 큰 글자 두 줄에만 쓴다.
+ *
+ * **서브셋이다.** 원본 TTF 는 2.5 MB 라 첫 화면에 통째로 내려보낼 수 없어서
+ * 헤드라인이 실제로 쓰는 글자 스물두 자만 남겨 4.8 kB 로 잘랐다.
+ *
+ * **그래서 헤드라인 문구를 고치면 이 파일을 다시 만들어야 한다.** 서브셋에 없는
+ * 글자는 오류가 아니라 조용히 Pretendard 로 떨어져서, 한 줄 안에 서체가 둘 섞인
+ * 채로 보인다. 눈에 띄지 않으므로 문구를 바꾸는 사람이 이 주석을 봐야 한다.
+ *
+ *   pyftsubset GmarketSansBold.ttf --text="펀드세금주식에는매니저세무사FINCH가있다."
+ *     --flavor=woff2 --output-file=gmarket-sans-bold-hero.woff2
+ *
+ * `font-display: swap` 은 필수다. 로그인은 사용자가 처음 만나는 화면이라 서체가
+ * 렌더를 막으면 안 된다. Pretendard 로 먼저 그리고 교체되는 쪽이 맞다.
+ *
+ * 파일이 번들러를 타지 않고 `public/fonts/` 에 있는 이유 — 히어로가 같은 URL 로
+ * `<link rel="preload">` 를 건다. 번들러가 해시 이름을 붙이면 손으로 적은 preload
+ * 주소와 달라져 같은 서체를 두 번 받는다.
+ */
+@font-face {
+  font-family: 'Gmarket Sans';
+  src: url('/fonts/gmarket-sans-bold-hero.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
  * 디자인 토큰. 단일 출처는 이 파일이다.
  *
  * 값의 1차 근거는 Finch Design Guide `frontend/docs/design.md` (v2, 2026-09-03)다.

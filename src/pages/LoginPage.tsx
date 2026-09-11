@@ -2,14 +2,25 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 
 import {
   KakaoLoginButton,
+  LoginHero,
   toSafeRedirectPath,
   useAuthSession,
 } from '@/features/auth';
-import { PageMain } from '@/shared/ui/PageMain';
 
 /**
- * 로그인 화면 (`/login`). 자체 회원가입 폼은 없다 — 인증 수단은 카카오 OAuth 하나이고
- * 최초 로그인이면 서버가 계정과 함께 가상 계좌·예수금을 만든다 (apiSpec §2.1).
+ * 로그인 화면 (`/login`, 프로토타입 `isLanding`). 자체 회원가입 폼은 없다 —
+ * 인증 수단은 카카오 OAuth 하나이고 최초 로그인이면 서버가 계정과 함께 가상
+ * 계좌·예수금을 만든다 (apiSpec §2.1).
+ *
+ * ## 골격
+ *
+ * `PageMain` 을 쓰지 않는다. 그쪽은 헤더 아래에서 굴러가는 본문을 위한 것이고,
+ * 이 화면은 프로토타입대로 본문이 세로 가운데에 놓이고 버튼이 바닥에 붙는
+ * 한 장짜리다. `OnboardingPage` 가 같은 이유로 같은 골격을 쓴다.
+ *
+ * 높이는 `h-dvh` 가 아니라 `min-h-dvh` 다. 화면이 짧은 기기에서 히어로가
+ * 뷰포트보다 길어지는데, 높이를 못 박으면 약관 문구가 잘린 채 스크롤도 되지
+ * 않는다.
  */
 export function LoginPage() {
   const [searchParams] = useSearchParams();
@@ -24,16 +35,30 @@ export function LoginPage() {
   }
 
   return (
-    <PageMain className="flex flex-col justify-center">
-      <h1 className="text-2xl font-semibold text-text-primary">
-        모의투자를 시작합니다
-      </h1>
-      <p className="mt-2 text-sm text-text-secondary">
-        카카오 계정으로 로그인하면 가상 계좌와 예수금이 준비됩니다
-      </p>
-      <div className="mt-8">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-bg">
+      <LoginHero />
+
+      <div className="flex-none px-6.5 pb-[calc(1.625rem+env(safe-area-inset-bottom))]">
         <KakaoLoginButton redirectTo={redirectTo} />
+
+        {/*
+          약관 페이지는 이번 범위에 없다. 그래서 밑줄 표기는 프로토타입대로
+          두되 누를 수 없는 글자로 둔다 — 갈 곳 없는 링크를 눌러 보고 아무 일도
+          일어나지 않는 쪽이, 눌리지 않는 글자보다 나쁘다.
+          약관 화면이 생기면 이 두 `span` 을 `Link` 로 바꾼다.
+        */}
+        <p className="mt-3.5 text-center text-caption leading-[19px] text-text-muted">
+          시작하면{' '}
+          <span className="text-text-secondary underline underline-offset-2">
+            이용약관
+          </span>
+          과{' '}
+          <span className="text-text-secondary underline underline-offset-2">
+            개인정보 처리방침
+          </span>
+          에 동의하게 됩니다.
+        </p>
       </div>
-    </PageMain>
+    </div>
   );
 }
