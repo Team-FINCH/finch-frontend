@@ -25,9 +25,22 @@ type ChatBubbleProps = {
   message: ChatMessage;
   /** `assistant-error` 이고 `retryable` 일 때만 쓰인다. */
   onRetry?: (text: string) => void;
+  /**
+   * 답변을 기다리는 중인가 (`chatMutation.isPending`). **`다시 시도` 를 잠그는
+   * 값이다** — 입력창(`ChatComposer` 의 `disabled`)과 같은 기준을 쓴다.
+   *
+   * 실제로 요청을 막는 것은 이 prop 이 아니라 `ChatPage` 의 `handleSend` 재진입
+   * 가드다. 여기서는 **왜 눌러도 아무 일이 없는지를 보여 준다** — 막기만 하고
+   * 모양이 그대로면 버튼이 고장 난 것으로 읽힌다.
+   */
+  retryDisabled?: boolean;
 };
 
-export function ChatBubble({ message, onRetry }: ChatBubbleProps) {
+export function ChatBubble({
+  message,
+  onRetry,
+  retryDisabled = false,
+}: ChatBubbleProps) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
@@ -48,7 +61,8 @@ export function ChatBubble({ message, onRetry }: ChatBubbleProps) {
           <button
             type="button"
             onClick={() => onRetry(message.retryText)}
-            className="h-9 min-w-18 rounded-sm border border-border-strong px-3.5 text-caption text-text-primary"
+            disabled={retryDisabled}
+            className="h-9 min-w-18 rounded-sm border border-border-strong px-3.5 text-caption text-text-primary disabled:border-transparent disabled:bg-disabled-surface disabled:text-disabled-text"
           >
             다시 시도
           </button>

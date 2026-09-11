@@ -88,7 +88,28 @@ export function ChatPage() {
     showToast('대화를 초기화했어요.');
   }
 
+  /**
+   * **보내는 자리는 셋인데 가드는 여기 하나다** (FINCH-248). 입력창
+   * (`ChatComposer`) · 빈 상태의 추천 질문(`ChatEmptyState`) · 실패 말풍선의
+   * `다시 시도`(`ChatBubble`) 가 전부 이 함수를 부른다.
+   *
+   * 전에는 입력창만 막혀 있었다(`disabled={chatMutation.isPending}`). `다시 시도`
+   * 는 눌러도 말풍선이 그대로 남아 있어서 연타하면 그만큼 요청이 나갔고, 그만큼
+   * AI 크레딧을 썼다.
+   *
+   * **버튼마다 막지 않고 여기서 막는 이유** — 호출부가 늘 때마다 같은 판정을 다시
+   * 적어야 하고, 하나 빠뜨리면 그 경로에서만 조용히 다시 샌다. 추천 질문이 지금
+   * 새지 않는 것도 설계가 아니라 우연이다(빈 상태는 첫 메시지를 넣는 순간
+   * 사라진다). 우연에 기대는 자리를 규칙으로 바꾼다.
+   *
+   * 기준은 입력창과 같은 `chatMutation.isPending` 이다. `다시 시도` 버튼도 이 값을
+   * 받아 함께 잠긴다 — 막기만 하고 모양이 그대로면 버튼이 고장 난 것으로 읽힌다.
+   */
   function handleSend(text: string) {
+    if (chatMutation.isPending) {
+      return;
+    }
+
     setMessages((prev) => [
       ...prev,
       { id: createMessageId(), role: 'user', text },
@@ -175,6 +196,7 @@ export function ChatPage() {
               key={message.id}
               message={message}
               onRetry={handleSend}
+              retryDisabled={chatMutation.isPending}
             />
           ))}
         </div>
