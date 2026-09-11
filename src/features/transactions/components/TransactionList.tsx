@@ -1,7 +1,13 @@
 import { Fragment } from 'react';
 
 import { formatKstMonthDay, formatKstTime } from '@/shared/lib/formatDate';
-import { formatKrw, formatSignedAmount } from '@/shared/lib/formatNumber';
+import {
+  formatKrw,
+  formatSignedAmount,
+  formatSignedRate,
+  getPriceDirection,
+  type PriceDirection,
+} from '@/shared/lib/formatNumber';
 import { type PaymentMethod } from '@/shared/types/deposit';
 import { type Transaction } from '@/shared/types/portfolio';
 import { EmptyState } from '@/shared/ui/EmptyState';
@@ -59,6 +65,13 @@ const KIND_TAG_CLASS: Record<Transaction['type'], string> = {
   INITIAL_GRANT: 'bg-surface-soft text-text-secondary',
 };
 
+/** 실현손익 색. 이익 적색 · 손실 청색으로 같은 화면의 등락 표기와 토큰을 맞춘다. */
+const DIRECTION_TEXT_CLASS: Record<PriceDirection, string> = {
+  rise: 'text-stock-up',
+  fall: 'text-stock-down',
+  flat: 'text-stock-neutral',
+};
+
 /**
  * 원장 유형별 잔고 증감 방향. `amount` 는 항상 양수 절대값으로 오고 방향은
  * `type` 으로만 표시한다(contracts C87) — 서버가 부호를 주지 않는다.
@@ -84,6 +97,34 @@ function transactionDetail(transaction: Transaction): string | null {
   return null;
 }
 
+/**
+ * 실현손익 보조 줄 문구. 값이 없으면 `null` 을 돌려 줄 자체를 만들지 않는다.
+ *
+ * **계약상 매도에만 값이 있다** — `TransactionSchema` 의 `realizedProfit` ·
+ * `realizedProfitRate` 가 둘 다 `nullable` 이고 매수·입금·출금·최초 지급은 `null`
+ * 이다. 두 필드가 서로 독립으로 `nullable` 이라 금액만 오는 경우도 막지 않는다 —
+ * 금액이 있으면 줄을 그리고 비율은 있을 때만 뒤에 붙인다.
+ *
+ * `realizedProfitRate` 는 `Percent` 계열(이미 백분율)이라 `formatSignedRate` 다
+ * (contracts C18). `formatSignedPercent` 를 쓰면 100 배로 나온다.
+ */
+function realizedProfitLine(
+  transaction: Transaction,
+): { text: string; direction: PriceDirection } | null {
+  const { realizedProfit, realizedProfitRate } = transaction;
+  if (realizedProfit === null) {
+    return null;
+  }
+  const amount = `${formatSignedAmount(realizedProfit)}원`;
+  return {
+    text:
+      realizedProfitRate === null
+        ? `실현손익 ${amount}`
+        : `실현손익 ${amount} · ${formatSignedRate(realizedProfitRate)}`,
+    direction: getPriceDirection(realizedProfit),
+  };
+}
+
 type TransactionListProps = {
   type: (typeof TRANSACTION_FILTERS)[number]['value'];
   pages: { items: Transaction[] }[];
@@ -98,6 +139,20 @@ type TransactionListProps = {
 /**
  * 매매 내역 목록 — 날짜별로 묶어 그린다(프로토타입 `txDays` 그룹).
  * 목록은 최신순 고정이라 순서대로 훑으며 날짜가 바뀔 때만 새 그룹 헤더를 만든다.
+ *
+ * **실현손익 줄의 자리는 우리가 정했다.** 프로토타입 `tx` fixture 에는
+ * `realized`·`realizedPct` 값이 들어 있는데 마크업이 그 값을 쓰지 않는다 —
+ * 데이터만 만들어 두고 그리지 않은 자리라 대조할 원본이 없다. 왼쪽 칸의
+ * `detail`(`10주 · 68,900원`) 아래 셋째 줄로 둔 이유가 둘이다.
+ *
+ * - 오른쪽 칸은 거래금액과 시각이 오른쪽 정렬로 선 숫자 기둥이다. 여기에
+ *   `실현손익 -6,320원 · -0.90%` 처럼 긴 줄을 끼우면 320px 에서 왼쪽 칸이
+ *   눌려 종목명이 잘린다(종목명 span 이 `truncate` 다).
+ * - 왼쪽 칸은 "무슨 거래였나"를 적는 칸이고 실현손익은 그 매도를 설명하는
+ *   값이다. 라벨이 붙은 문구라 왼쪽 정렬이 읽기도 낫다.
+ *
+ * 값이 `null` 이면 줄을 아예 만들지 않는다 — 빈 자리를 남기지 않는다. 그래서
+ * **매도 행만 한 줄 높다.** 행 높이가 종류마다 다른 것은 의도한 것이다.
  */
 export function TransactionList({
   type,
@@ -167,6 +222,7 @@ export function TransactionList({
     <div className="pt-2">
       {rows.map(({ transaction, date, showDateHeader }) => {
         const detail = transactionDetail(transaction);
+        const realized = realizedProfitLine(transaction);
         const isOutflow = OUTFLOW_TYPES.has(transaction.type);
         const name = transaction.stockName ?? KIND_LABEL[transaction.type];
 
@@ -195,6 +251,13 @@ export function TransactionList({
                 {detail !== null && (
                   <span className="text-caption text-text-secondary">
                     {detail}
+                  </span>
+                )}
+                {realized !== null && (
+                  <span
+                    className={`text-caption font-medium tabular-nums ${DIRECTION_TEXT_CLASS[realized.direction]}`}
+                  >
+                    {realized.text}
                   </span>
                 )}
               </span>
