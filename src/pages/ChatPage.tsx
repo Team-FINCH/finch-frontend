@@ -4,6 +4,9 @@ import { useSearchParams } from 'react-router-dom';
 import { useChatMutation } from '@/features/chat/api/useChatMutation';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
+import { ChatEmptyState } from '@/features/chat/components/ChatEmptyState';
+import { useCachedStockName } from '@/features/chat/hooks/useCachedStockName';
+import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
 import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
   createMessageId,
@@ -42,6 +45,13 @@ export function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const chatMutation = useChatMutation();
+
+  // 종목 맥락으로 들어왔으면 빈 상태 문구에 종목명이 들어간다. 캐시에 없으면
+  // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다 — 쿼리에 이름이 없어서다.
+  const contextStockName = useCachedStockName(chatContext.ticker);
+  const emptyCopy = chatEmptyCopy(
+    chatContext.ticker === null ? null : (contextStockName ?? '이 종목'),
+  );
 
   function resetConversation() {
     setMessages([]);
@@ -102,11 +112,6 @@ export function ChatPage() {
     );
   }
 
-  const emptyCopy =
-    chatContext.screen === 'stock_detail' && chatContext.ticker !== null
-      ? '이 종목을 보다가 들어오셨네요. 궁금한 것부터 물어보세요.'
-      : '내 투자 맥락을 아는 Finch AI와 이야기해보세요.';
-
   return (
     <PageMain className="flex min-h-[calc(100dvh-3rem)] flex-col pt-6 pb-24">
       <div className="flex items-center justify-between">
@@ -122,21 +127,23 @@ export function ChatPage() {
         )}
       </div>
 
-      <div className="mt-4 flex flex-1 flex-col gap-4">
-        {messages.length === 0 ? (
-          <p className="mt-10 text-center text-body-2 text-pretty text-text-secondary">
-            {emptyCopy}
-          </p>
-        ) : (
-          messages.map((message) => (
+      {messages.length === 0 ? (
+        <ChatEmptyState
+          subCopy={emptyCopy.subCopy}
+          suggestions={emptyCopy.suggestions}
+          onAsk={handleSend}
+        />
+      ) : (
+        <div className="mt-4 flex flex-col gap-4">
+          {messages.map((message) => (
             <ChatBubble
               key={message.id}
               message={message}
               onRetry={handleSend}
             />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div
         ref={bottomFixedRef}
