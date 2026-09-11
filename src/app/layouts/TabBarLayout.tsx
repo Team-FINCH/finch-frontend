@@ -21,6 +21,11 @@ import { useTabBarScrollRestoration } from './useTabBarScrollRestoration';
  * `flex-1 overflow-y-auto` 로 혼자 굴러가고 탭 바가 스크롤 밖에 남는다 —
  * 프로토타입이 `.nav`·`.tabbar` 를 `flex:none` 으로 두고 `.sc` 만 굴리는 구조다.
  *
+ * **위쪽 `.nav` 도 같은 방식으로 스크롤 밖에 있다.** 화면들이 `Outlet` 자리에
+ * `PageHeader` 와 `PageMain` 을 형제로 내놓고, 그 둘이 이 세로 flex 의 자식이
+ * 된다 — 헤더가 `flex-none`, 본문이 `flex-1` 이다(FINCH-231). 그래서 이
+ * 컨테이너의 자식이 언제나 하나라고 가정하지 않는다.
+ *
  * `--page-bottom-space` 는 본문 아래 여백이다. 프로토타입 `.hastab .sc` 의
  * 132px 을 그대로 내려 준다 — 탭 바(98px)보다 34px 넉넉한 값이라 마지막 행이
  * 유리 면 뒤로 반쯤 잠기지 않는다. `TabBar` 자신은 safe-area 만큼 위로 떠 있고

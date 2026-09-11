@@ -17,35 +17,55 @@ import { ROUTES } from '@/shared/config/routes';
  * 기준으로 삼았다 — `PortfolioHeader` 는 그 시점에 알림함 API 계약이 없어 카운트를
  * 못 붙였을 뿐, 지금은 `useInboxItems` 가 이미 있다.
  *
- * 아래 여백은 컴포넌트가 갖지 않는다. 화면마다 다음 요소와의 간격이 달라서(홈·
- * 마이페이지는 14px, 포트폴리오는 4px) 호출부가 `className` 으로 정한다.
- * **호출부는 그 간격을 `margin` 으로 준다. `padding` 으로 주면 안 된다** — 아래
- * "높이" 절에 적은 대로 이 요소의 높이가 곧 다른 화면의 sticky 기준점이라,
- * padding 은 그 기준점을 화면마다 다르게 밀어 버린다.
+ * ## 스크롤 밖에 선다 — `PageMain` 의 형제다
  *
- * **위·좌우 여백과 배경은 컴포넌트가 갖는다.** 프로토타입은 `.nav` 를 `.sc` 밖에
- * `flex:none` 으로 두어 본문만 굴러가게 한다(`TabBarLayout` 주석). 우리는 헤더가
- * `PageMain` 안에 있어서 같은 결과를 `sticky top-0` 로 만든다 — `PageMain` 의
- * 좌우 26px·위 24px 여백을 음수 마진으로 끌어와 헤더 자신이 갖고, 배경을 깔아
- * 본문이 그 아래로 지나가게 한다. 배경이 없으면 글자가 겹쳐 읽힌다.
+ * **이 헤더는 `PageMain` 안에 넣지 않는다. 바로 앞 형제로 둔다.**
+ * 프로토타입이 `.nav` 를 `.sc` 밖에 `flex:none` 으로 두고 본문 `.sc` 만 굴리는
+ * 구조 그대로다(`template.html` L1038·L1043 · `TabBarLayout` 주석).
+ *
+ * ```
+ * TabBarLayout   h-dvh flex flex-col overflow-hidden
+ *   PageHeader   flex-none  h-56px          <- 굴러가지 않는다
+ *   PageMain     flex-1 overflow-y-auto     <- 본문만 굴러간다
+ * ```
+ *
+ * 그래서 좌우 26px·최대 너비·가운데 정렬을 `PageMain` 과 같은 값으로 직접 갖는다
+ * (`mx-auto w-full max-w-md px-6.5`). 넓은 화면에서 본문만 가운데로 모이면
+ * 헤더가 혼자 왼쪽에 남는다.
+ *
+ * **배경(`bg-bg`)이 필요 없다.** 본문이 헤더 아래로 지나가지 않고 스크롤
+ * 컨테이너의 위 경계에서 잘린다. `z-index` 도 필요 없다 — 겹치는 면이 없다.
+ *
+ * 전에는 헤더가 `PageMain` 안에 있고 `sticky top-0 -mx-6.5 -mt-6 bg-bg` 로 같은
+ * 결과를 흉내 냈다. **그 조합이 어긋나서 이 구조로 되돌렸다**(FINCH-231) —
+ * `sticky` 의 `top` 은 마진 박스 기준이라 `-mt-6`(−24px)이 있으면 테두리 박스가
+ * −24px 에 서고, 헤더 위 24px 이 화면 밖으로 나간 채 그 아래 sticky 줄(포트폴리오
+ * 4탭)은 `top:56px` 에 그대로 서서 둘 사이 24px 이 벌어졌다. 그 틈으로 본문이
+ * 지나갔다. `sticky` 와 음수 마진을 같은 요소에 함께 쓰지 않는다.
+ *
+ * 아래 여백은 컴포넌트가 갖지 않는다. 화면마다 다음 요소와의 간격이 달라서
+ * 호출부가 정하는데, **그 간격은 `PageMain` 의 `pt-*` 로 준다.** 헤더의
+ * `margin-bottom` 이 아니다 — 프로토타입도 그 14px 을 `.sc` 안의 첫 요소로 두어
+ * (`template.html` L1365 `<div style="height:14px">`) 본문과 함께 굴러가게 한다.
+ * 헤더 밖에 두면 그 띠만 늘 비어 있다. 홈·마이페이지는 `pt-3.5`(14px), 포트폴리오는
+ * 4탭 줄이 헤더에 바로 붙어야 해서 `pt-0` 이다.
  *
  * ## 높이
  *
  * 높이는 `--page-header-height`(56px, 프로토타입 `.nav` 실측)로 고정한다.
  * 전에는 `pt-6` + 40px 아이콘으로 우연히 정해졌고, 거기에 호출부가 준
  * `pb-3.5` 가 더해져 홈·마이페이지 78px, 포트폴리오 64px 로 화면마다 달랐다.
- * 그래서 헤더 아래에 sticky 로 붙어야 하는 줄(포트폴리오 4탭)이 `top` 에 적을
- * 값을 갖지 못했다. 이제 세 화면 모두 56px 이고 아래처럼 쓸 수 있다.
- *
- * ```
- * top: var(--page-header-height)
- * ```
+ * 세 화면의 헤더가 서로 다른 높이인 것 자체가 프로토타입과 어긋난다.
  *
  * 값을 고정하면서 `pt-6` 을 뺐다 — 56px 안에 24px 짜리 위 여백을 넣으면 40px
  * 아이콘이 들어가지 않는다. 프로토타입도 `.nav` 는 56px 안에 44px 아이콘을
- * 세로 가운데 두고 위아래 6px 만 남기는 구조다. `-mt-6` 는 그대로 둔다 —
- * `PageMain` 의 위 여백 24px 을 헤더가 삼켜 스크롤 컨테이너 맨 위(0)부터
- * 56px 까지를 헤더가 차지하게 하는 것이 `top` 계산의 전제다.
+ * 세로 가운데 두고 위아래 6px 만 남기는 구조다.
+ *
+ * **토큰으로 두는 이유는 `SubPageHeader` 가 같은 높이를 쓰기 때문이다.** 한때는
+ * 헤더 밖에서 읽을 값이기도 했다 — 헤더가 스크롤 안에 있던 시절 포트폴리오 4탭
+ * 줄이 `top: var(--page-header-height)` 로 그 아래에 섰다. 지금은 그 줄이
+ * `top-0` 이라 밖에서 높이를 읽는 곳이 없다. **그래도 아래 여백을 `padding` 으로
+ * 주면 안 된다** — 그만큼 헤더 높이가 늘어 세 화면이 다시 어긋난다.
  *
  * 미읽음 개수는 이 컴포넌트가 직접 조회하지 않는다 — `features/mypage` 가
  * `features/inbox` 를 부르는 것은 페이지 계층에서 하고, 여기는 숫자만 받는다
@@ -71,6 +91,10 @@ type PageHeaderProps = {
    * 이름을 "홈 코스피 2,600.54 …" 로 읽는다. 제목과 형제로 둔다.
    */
   titleSuffix?: ReactNode;
+  /**
+   * 남겨 둔 여유 구멍이다. 아래 여백은 여기 주지 않는다 — 위 "스크롤 밖에 선다"
+   * 절에 적은 대로 `PageMain` 의 `pt-*` 가 그 자리다.
+   */
   className?: string;
 };
 
@@ -82,7 +106,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div
-      className={`sticky top-0 z-10 -mx-6.5 -mt-6 flex h-(--page-header-height) items-center justify-between gap-3 bg-bg px-6.5 ${className}`}
+      className={`mx-auto flex h-(--page-header-height) w-full max-w-md flex-none items-center justify-between gap-3 px-6.5 ${className}`}
     >
       <div className="flex min-w-0 flex-1 items-baseline gap-2.5">
         <h1 className="flex-none text-section-title text-text-primary">

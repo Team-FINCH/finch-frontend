@@ -66,33 +66,41 @@ export function HomePage() {
     watchItems.length === 0;
 
   return (
-    <PageMain>
+    <>
+      {/*
+        헤더는 `PageMain` 밖에 있다 — 프로토타입이 `.nav` 를 `.sc` 밖에 `flex:none`
+        으로 두고 본문만 굴리는 구조다(FINCH-231, `PageHeader` 주석).
+        헤더와 첫 요소 사이 14px 은 `PageMain` 의 `pt-3.5` 다. 프로토타입도 그
+        14px 을 `.sc` 안의 첫 요소로 두어(`template.html` L1365) 본문과 함께
+        굴러가게 한다 — 헤더 쪽에 `mb` 로 주면 그 띠만 늘 비어 있다.
+      */}
       <PageHeader
         title="홈"
         unreadCount={inbox.data?.unreadCount ?? 0}
         titleSuffix={<MarketIndexRoller />}
-        className="mb-3.5"
       />
-      <BriefingSection
-        hasNoStocks={hasNoStocks}
-        hasHoldings={holdings.length > 0}
-      />
-      <TotalAssetsSummary
-        account={account}
-        evaluationTotals={evaluationTotals}
-      />
-      <HoldingsWatchlistPreview
-        holdings={holdings}
-        holdingsPending={holdingsPending}
-        holdingsError={holdingsError}
-        holdingsRefetch={holdingsRefetch}
-        watchItems={watchItems}
-        watchPending={watchPending}
-        watchError={watchError}
-        watchRefetch={watchRefetch}
-        watchSort={watchSort}
-        onWatchSortChange={setWatchSort}
-      />
-    </PageMain>
+      <PageMain className="pt-3.5">
+        <BriefingSection
+          hasNoStocks={hasNoStocks}
+          hasHoldings={holdings.length > 0}
+        />
+        <TotalAssetsSummary
+          account={account}
+          evaluationTotals={evaluationTotals}
+        />
+        <HoldingsWatchlistPreview
+          holdings={holdings}
+          holdingsPending={holdingsPending}
+          holdingsError={holdingsError}
+          holdingsRefetch={holdingsRefetch}
+          watchItems={watchItems}
+          watchPending={watchPending}
+          watchError={watchError}
+          watchRefetch={watchRefetch}
+          watchSort={watchSort}
+          onWatchSortChange={setWatchSort}
+        />
+      </PageMain>
+    </>
   );
 }
