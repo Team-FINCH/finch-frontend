@@ -119,14 +119,24 @@ export function WithdrawPage() {
           </SoftBox>
         )}
 
-        {/*
-         * TODO(계약): 출금해도 충전 누적 한도(depositedAmount)는 돌아오지 않는다는
-         * 안내가 필요하다고 명세는 요구하지만(apiSpec §4.5) 문안을 정해 주지 않았다
-         * (ia.md §1 "출금 화면"). 아래는 임시 문안이고, 확정 문안이 오면 교체한다.
-         */}
-        <p className="text-caption text-text-muted">
-          출금해도 입금할 수 있는 한도는 늘어나지 않아요.
-        </p>
+        {/* 확정 문안은 `design.md` "입금 한도는 돌아오지 않는다" 절이 정했다.
+            형식도 같은 절이 정한다 — `i` + 캡션 두 줄이고 카드로 감싸지 않는다.
+            안내가 금액 입력보다 먼저 보이면 안 된다.
+            구조는 `AmountInput` 의 `!` 초과 안내와 같다 (프로토타입 `.info` + 본문).
+            프로토타입은 윗 여백이 28px 인데 이 컬럼의 `gap-6` 이 24px 라 4px 만 더한다. */}
+        <div className="mt-1 flex items-start gap-2">
+          <span
+            aria-hidden="true"
+            className="mt-0.5 flex size-4.5 flex-none items-center justify-center rounded-full border-[1.4px] border-text-muted text-[11px] font-bold text-text-muted"
+          >
+            i
+          </span>
+          <p className="flex-1 text-caption leading-[19px] text-text-muted">
+            출금해도 입금 한도가 다시 늘어나진 않아요.
+            <br />
+            이전에 입금한 금액도 한도에 포함돼요.
+          </p>
+        </div>
 
         {isHttpError(withdrawal.error) && (
           <p className="text-caption text-danger">{withdrawal.error.message}</p>
