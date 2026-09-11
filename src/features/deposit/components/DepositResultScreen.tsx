@@ -1,6 +1,8 @@
 import { formatKrw } from '@/shared/lib/formatNumber';
 import { Button } from '@/shared/ui/Button';
-import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
+import { SoftBox } from '@/shared/ui/SoftBox';
+
+import { DepositSummaryRow } from './DepositSummaryRow';
 
 /**
  * 충전 확정(`confirm`)의 결과 화면. 결제 복귀 성공(`DepositCompletePage`)과
@@ -89,14 +91,21 @@ export function DepositResultScreen({
         {content.description}
       </p>
 
+      {/*
+       * **결과 화면도 `입금 후 예수금` 만 키운다.** 입금 확인 화면과 같은 값이다 —
+       * 프로토타입 `payOk` 카드(L2772)가 확인 카드(L2704)와 같은 줄 구성에 같은
+       * 19px/700/-.01em 을 쓴다. 둘 중 한쪽만 키우면 같은 라벨이 화면마다 다르게
+       * 보인다. 값이 담기는 통은 서로 다르다(`payOk` 는 `.card.d`, 이쪽은
+       * `SoftBox`) — 그 선택은 이 티켓에서 건드리지 않았다.
+       */}
       {variant === 'success' && amount !== undefined && (
         <SoftBox className="mt-6 w-full text-left">
-          <SoftBoxRow label="입금 금액" value={formatKrw(amount)} />
+          <DepositSummaryRow label="입금 금액" value={formatKrw(amount)} />
           {cashBalanceAfter !== undefined && (
-            <SoftBoxRow
+            <DepositSummaryRow
               label="입금 후 예수금"
               value={formatKrw(cashBalanceAfter)}
-              divided
+              total
             />
           )}
         </SoftBox>

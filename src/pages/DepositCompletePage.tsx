@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useDepositConfirm } from '@/features/deposit/api/useDepositConfirm';
@@ -7,6 +7,7 @@ import { isRetryableDepositConfirmError } from '@/features/deposit/lib/depositCo
 import { depositConfirmErrorMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { parsePositiveIntParam } from '@/features/deposit/lib/queryParams';
 import { ROUTES } from '@/shared/config/routes';
+import { type DepositConfirmResponse } from '@/shared/types/deposit';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
@@ -35,18 +36,68 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  * `redirect` 쿼리를 실어 보낼 수 있는지가 복귀 URL 형태에 달렸는데 그 값을 아직
  * 받지 못했다(`ia.md` §3, 미확정 P23). 이 화면은 그 경로를 가정하지 않고 항상 홈으로
  * 돌려보낸다 — 회신이 오면 그때 복귀 경로를 설계한다(ia.md 자체가 "불확실"로 적어 둔 자리다).
+ *
+ * **확정 결과를 뮤테이션 상태가 아니라 이 화면의 상태로 들고 있는다.** 전에는
+ * `confirmMutation.mutate()` 를 부르고 `isPending`·`isError`·`data` 로 갈랐는데,
+ * 카카오 경로가 `확인하고 있어요` 에서 영영 멈췄다. 원인은 **마운트 이펙트에서
+ * 시작한 뮤테이션이 `StrictMode` 에서 관측자를 잃는 것**이다.
+ *
+ *   1. 마운트 이펙트가 `mutate()` 를 부른다. `MutationObserver` 가 뮤테이션에 붙는다
+ *   2. `StrictMode` 가 마운트를 한 번 되감는다 → `useSyncExternalStore` 구독 해제 →
+ *      `MutationObserver.onUnsubscribe()` 가 `mutation.removeObserver(this)` 를 부른다
+ *   3. 다시 마운트되며 재구독하지만 **`MutationObserver` 에는 `onSubscribe` 가 없어
+ *      뮤테이션에 다시 붙지 않는다**(`@tanstack/query-core@5.101.4` `mutationObserver.js`)
+ *   4. 응답이 와도 `Mutation.#dispatch` 가 도는 관측자 목록에 우리가 없다. 요청은
+ *      성공하는데 화면 상태만 `pending` 에 굳는다
+ *
+ * 이벤트 핸들러에서 부르는 뮤테이션은 이 순환이 이미 끝난 뒤라 멀쩡하다. 마운트
+ * 이펙트에서 시작하는 이 화면만 걸렸다. 그래서 **결과를 `mutateAsync` 가 돌려주는
+ * 프로미스에서 읽는다** — 그 프로미스는 관측자와 무관하게 `Mutation.execute()` 가
+ * 그대로 돌려주는 값이라 구독이 끊겨도 정상적으로 풀린다. 모의 이체 화면
+ * (`DepositTransferPage`)이 원래 이 모양이었고, 그 화면이 멀쩡했던 이유이기도 하다.
  */
+type ConfirmPhase = 'pending' | 'success' | 'error';
+
 export function DepositCompletePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const confirmMutation = useDepositConfirm();
   const hasRequested = useRef(false);
 
+  const [phase, setPhase] = useState<ConfirmPhase>('pending');
+  const [result, setResult] = useState<DepositConfirmResponse>();
+  /* 문구가 아니라 **에러 자체**를 들고 있는다. 실패 화면의 버튼 갈래가 `code` 로
+     갈리기 때문이다(아래 `phase === 'error'`). 문구는 그릴 때 만든다. */
+  const [error, setError] = useState<unknown>();
+
   // `paymentId`·`amount` 는 서버 계약이 숫자다(apiSpec §4.4). 쿼리는 언제나 문자열로
   // 오므로 여기서 한 번 바꾸고, 바꿀 수 없는 값은 아래 "결제 정보를 확인할 수 없어요" 로 떨군다.
   const paymentId = parsePositiveIntParam(searchParams.get('paymentId'));
   const paymentKey = searchParams.get('paymentKey');
   const amount = parsePositiveIntParam(searchParams.get('amount'));
+
+  /**
+   * 확정을 한 번 보내고 결과를 이 화면의 상태에 옮긴다.
+   *
+   * **`async`/`await` 가 아니라 프로미스 콜백으로 쓴다.** 이 함수를 마운트
+   * 이펙트가 부르는데, `await` 뒤의 `setState` 는 `react-hooks/set-state-in-effect`
+   * 가 이펙트 본문의 동기 `setState` 와 같이 본다. 콜백 안의 `setState` 는 그
+   * 규칙이 명시적으로 허용하는 모양이다("외부 상태가 바뀔 때 콜백에서 부른다").
+   */
+  function runConfirm(
+    request: Parameters<typeof confirmMutation.mutateAsync>[0],
+  ): void {
+    void confirmMutation
+      .mutateAsync(request)
+      .then((confirmed) => {
+        setResult(confirmed);
+        setPhase('success');
+      })
+      .catch((caught: unknown) => {
+        setError(caught);
+        setPhase('error');
+      });
+  }
 
   useEffect(() => {
     if (hasRequested.current) {
@@ -55,9 +106,11 @@ export function DepositCompletePage() {
     if (paymentId === null || paymentKey === null || amount === null) {
       return;
     }
+    // `StrictMode` 의 두 번째 마운트에서 확정이 또 나가지 않게 막는다. ref 는 그
+    // 되감기를 넘어 살아남는다 — 위 머리 주석이 막지 못한 쪽(관측자)과 다른 문제다.
     hasRequested.current = true;
-    confirmMutation.mutate({ paymentId, paymentKey, amount });
-    // confirmMutation 은 매 렌더 새 참조라 의존성에서 뺀다 — paymentId 등 쿼리값만 본다.
+    runConfirm({ paymentId, paymentKey, amount });
+    // runConfirm 은 매 렌더 새 참조라 의존성에서 뺀다 — paymentId 등 쿼리값만 본다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentId, paymentKey, amount]);
 
@@ -75,7 +128,7 @@ export function DepositCompletePage() {
     );
   }
 
-  if (confirmMutation.isPending || confirmMutation.isIdle) {
+  if (phase === 'pending') {
     return (
       <PageMain>
         <SubPageHeader title="결제 결과" showBack={false} />
@@ -88,7 +141,7 @@ export function DepositCompletePage() {
     );
   }
 
-  if (confirmMutation.isError) {
+  if (phase === 'error') {
     /*
      * 확정 실패는 코드를 가리지 않고 **한 화면이다**(위 "만료 처리"). 화면은
      * 그대로 두고 **버튼만 두 갈래로 갈린다** — 이슈 #54 회신(2026-09-11) 「다」.
@@ -100,18 +153,21 @@ export function DepositCompletePage() {
      * 성공하고, `confirm` 자체가 멱등이라 재호출이 입금을 두 번 만들지도 않는다.
      * 판정은 `isRetryableDepositConfirmError` 가 하고 근거도 그쪽에 적었다.
      */
-    const retryable = isRetryableDepositConfirmError(confirmMutation.error);
+    const retryable = isRetryableDepositConfirmError(error);
     return (
       <PageMain>
         <SubPageHeader title="결제 결과" showBack={false} />
         {retryable ? (
           <DepositResultScreen
             variant="error"
-            errorMessage={depositConfirmErrorMessage(confirmMutation.error)}
+            errorMessage={depositConfirmErrorMessage(error)}
             primaryLabel="다시 시도"
-            onPrimaryAction={() =>
-              confirmMutation.mutate({ paymentId, paymentKey, amount })
-            }
+            /* 확정 중 화면으로 되돌린 뒤 같은 요청을 다시 보낸다. `confirm` 은
+               `paymentKey` 기준 멱등이라 재호출이 입금을 두 번 만들지 않는다(C85). */
+            onPrimaryAction={() => {
+              setPhase('pending');
+              runConfirm({ paymentId, paymentKey, amount });
+            }}
             secondaryLabel="홈으로"
             onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
           />
@@ -122,7 +178,7 @@ export function DepositCompletePage() {
            */
           <DepositResultScreen
             variant="error"
-            errorMessage={depositConfirmErrorMessage(confirmMutation.error)}
+            errorMessage={depositConfirmErrorMessage(error)}
             primaryLabel="입금 화면으로"
             onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
           />
@@ -131,19 +187,30 @@ export function DepositCompletePage() {
     );
   }
 
+  // `phase` 가 셋뿐이라 여기까지 오면 성공이다. `result` 를 좁히려고만 두는 줄이다.
+  if (result === undefined) {
+    return null;
+  }
+
   /*
    * 주 동작 `매매 시작하기`, 보조 `홈으로` 둘이다(`design.md:964`). 주 동작이
    * 가는 곳은 프로토타입이 홈의 **탐색 탭**(`app-logic.js` `payPrimary` —
    * `tab:"explore"`)이라고 적었고, 우리 IA 에서 그 탭은 `/search` 다
    * (`ia.md` §3 하단 탭바 · `BOTTOM_TAB_ROUTES`).
+   *
+   * 프로토타입도 성공일 때 주 `매매 시작하기` · 보조 `홈으로` 둘을 둔다
+   * (`payPrimaryLabel`·`paySecondaryLabel` 의 `payResult==="ok"` 갈래).
    */
+  if (phase !== 'success' || result === undefined) {
+    return null;
+  }
   return (
     <PageMain>
       <SubPageHeader title="결제 결과" showBack={false} />
       <DepositResultScreen
         variant="success"
-        amount={confirmMutation.data.amount}
-        cashBalanceAfter={confirmMutation.data.cashBalanceAfter}
+        amount={result.amount}
+        cashBalanceAfter={result.cashBalanceAfter}
         primaryLabel="매매 시작하기"
         onPrimaryAction={() => navigate(ROUTES.search, { replace: true })}
         secondaryLabel="홈으로"

@@ -43,7 +43,7 @@ import { nowKstIso } from '../lib/time';
  * | `ready` `amount > 1,000만` | `409 DEPOSIT_PER_REQUEST_LIMIT_EXCEEDED` |
  * | `ready` 계정 누적 1억 초과 | `409 DEPOSIT_LIMIT_EXCEEDED` |
  * | `ready` `paymentMethod: 'KAKAOPAY'` | `checkoutUrl` 이 **결제 복귀 성공 화면**으로 바로 간다. 이 목은 실제 카카오 결제창을 흉내 내지 않는다 — 승인 성공을 즉시 흉내 낸다 |
- * | `ready` `paymentMethod: 'TRANSFER'` | `checkoutUrl` 이 모의 이체 화면(`/deposit/transfer`)으로 간다 |
+ * | `ready` `paymentMethod: 'TRANSFER'` | `checkoutUrl` 이 모의 이체 화면(`/deposit/transfer?paymentId&amount`)으로 간다 |
  * | `mock-approve` 모르는 `paymentId` | `404 DEPOSIT_NOT_FOUND` |
  * | `mock-approve` 이미 확정된 결제 | `409 DEPOSIT_INVALID_STATE` |
  * | `mock-approve` `scenario` 로 실패를 예약 | 이 응답 자체는 `200` 이다. 실패는 다음 `confirm` 에서 난다(아래) |
@@ -178,10 +178,21 @@ export const depositHandlers = [
       confirmedResponse: null,
     });
 
+    /*
+     * **`TRANSFER` 쪽에도 `amount` 를 싣는다.** 모의 이체 화면이 맨 위에 입금
+     * 금액 카드를 그리는데(프로토타입 `isMock` L2727), 그 값을 얻을 길이
+     * `checkoutUrl` 의 쿼리밖에 없다 — `GET /deposits/{paymentId}` 가 계약에 없고
+     * `mock-approve` 응답의 `amount` 는 승인을 누른 **뒤에야** 온다.
+     * 카카오 복귀 URL 이 이미 같은 이름으로 금액을 싣고 있어 그 모양을 따랐다.
+     *
+     * **실제 백엔드가 이 값을 실어 주는지는 아직 모른다**(미확정 P38). 계약이
+     * 정한 것은 경로 `/deposit/transfer` 뿐이다(C90). 그래서 화면 쪽은 `amount`
+     * 가 없어도 깨지지 않게 그 줄만 접는다.
+     */
     const checkoutUrl =
       method === 'KAKAOPAY'
         ? `${ROUTES.depositComplete}?paymentId=${paymentId}&paymentKey=${paymentKey}&amount=${amount}`
-        : `${ROUTES.depositTransfer}?paymentId=${paymentId}`;
+        : `${ROUTES.depositTransfer}?paymentId=${paymentId}&amount=${amount}`;
 
     return HttpResponse.json({ paymentId, checkoutUrl }, { status: 201 });
   }),

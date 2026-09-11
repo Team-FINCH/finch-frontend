@@ -13,7 +13,6 @@ import { type IdempotencyKey } from '@/shared/types/primitives';
 import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
 import { PageMain } from '@/shared/ui/PageMain';
-import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
@@ -53,9 +52,15 @@ export function WithdrawPage() {
   const withdrawal = useWithdrawal();
   const cashBalance = accountQuery.data?.cashBalance;
 
+  /*
+   * 초과 문구는 프로토타입 `wdErr` 원문이다. 전에는 `출금 가능 금액을
+   * 초과했습니다. (출금 가능: …)` 로 합니다체에 괄호를 달았는데, `design.md` §13
+   * Tone 이 해요체를 요구하고 프로토타입도 해요체다. 입금 화면의 한도 초과 문구를
+   * 프로토타입 쪽으로 되돌린 것과 같은 판단이다(`DepositPage` 의 `amountError` 주석).
+   */
   const amountError =
     amount !== null && cashBalance !== undefined && amount > cashBalance
-      ? `출금 가능 금액을 초과했습니다. (출금 가능: ${formatKrw(cashBalance)})`
+      ? `출금할 수 있는 금액을 넘었어요. 지금은 ${formatKrw(cashBalance)}까지 출금할 수 있어요.`
       : undefined;
 
   const canSubmit =
@@ -95,39 +100,58 @@ export function WithdrawPage() {
       <SubPageHeader title="출금" fallbackTo={ROUTES.my} />
 
       <div className="mt-6 flex flex-col gap-6">
+        {/*
+         * 라벨은 프로토타입 `.cp`(L2801) 문구 그대로 `출금 금액` 이다. `출금할
+         * 금액` 으로 늘여 적던 것을 되돌렸다 — 입금 화면이 `입금 금액` 이라 두
+         * 화면이 같은 자리에서 다른 말을 쓰고 있었다.
+         *
+         * **입력 치수는 입금 쪽으로 통일한 것을 그대로 둔다** — 밑줄 2px · 입력
+         * 36px/700/-.02em · `원` 20px/500. 프로토타입 출금 블록은 1.5px · 38px ·
+         * 22px/600 이지만 이슈 #54 회신(2026-09-11) 「라」가 그것을 뒤집었고
+         * FINCH-233 이 이미 반영했다. 이 티켓은 배치·간격·구조만 맞춘다.
+         */}
         <AmountInput
-          label="출금할 금액"
+          label="출금 금액"
           value={amount}
           onChange={setAmount}
           errorMessage={amountError}
+          hint={
+            cashBalance === undefined ? undefined : (
+              /*
+               * **가능 금액과 `전액` 이 한 줄이다** (proto L2807-2810 — 입력 바로
+               * 아래 · 위 여백 14px · 사이 10px). 전에는 `전액` 칩 한 줄과
+               * `출금 가능 금액` SoftBox 한 줄로 갈라 놓아 같은 숫자를 두 번
+               * 말하면서 세로만 길어졌다. 금액만 굵게 해 문장 안에서 숫자가
+               * 먼저 읽히게 한다(proto `font-weight:600;color:var(--t1)`).
+               */
+              <div className="flex items-center gap-2.5">
+                <span className="min-w-0 flex-1 text-body-2 text-text-secondary">
+                  출금 가능 금액{' '}
+                  <b className="font-semibold text-text-primary tabular-nums">
+                    {formatKrw(cashBalance)}
+                  </b>
+                </span>
+                {/* 프로토타입이 이 칩만 작게 쓴다 — 높이 30px · 좌우 12px ·
+                    13px(proto L2809). 목록 필터 칩(34px)과 다른 값이다. 폭을
+                    늘리지 않는다. 하나뿐인 버튼을 가로로 채우면 CTA 처럼 읽힌다. */}
+                <button
+                  type="button"
+                  onClick={() => setAmount(cashBalance)}
+                  className="inline-flex h-7.5 flex-none items-center rounded-sm bg-surface-soft px-3 text-caption font-medium text-text-secondary transition-colors duration-(--motion-fast) ease-standard"
+                >
+                  전액
+                </button>
+              </div>
+            )
+          }
         />
-
-        {/* 프로토타입 `.chip` 실측 — 높이 34px · 반경 10px(토큰 계단에 맞춘 값,
-            `TransactionFilterChips` 주석) · 좌우 14px · 14px/500. 폭을 늘리지
-            않는다. 하나뿐인 버튼을 가로로 채우면 CTA 처럼 읽힌다. */}
-        {cashBalance !== undefined && (
-          <div className="flex">
-            <button
-              type="button"
-              onClick={() => setAmount(cashBalance)}
-              className="inline-flex h-8.5 flex-none items-center rounded-sm bg-surface-soft px-3.5 text-label text-text-secondary transition-colors duration-(--motion-fast) ease-standard"
-            >
-              전액
-            </button>
-          </div>
-        )}
-
-        {cashBalance !== undefined && (
-          <SoftBox>
-            <SoftBoxRow label="출금 가능 금액" value={formatKrw(cashBalance)} />
-          </SoftBox>
-        )}
 
         {/* 확정 문안은 `design.md` "입금 한도는 돌아오지 않는다" 절이 정했다.
             형식도 같은 절이 정한다 — `i` + 캡션 두 줄이고 카드로 감싸지 않는다.
             안내가 금액 입력보다 먼저 보이면 안 된다.
             구조는 `AmountInput` 의 `!` 초과 안내와 같다 (프로토타입 `.info` + 본문).
-            프로토타입은 윗 여백이 28px 인데 이 컬럼의 `gap-6` 이 24px 라 4px 만 더한다. */}
+            프로토타입은 윗 여백이 28px 인데 이 컬럼의 `gap-6` 이 24px 라 4px 만 더한다
+            (proto L2820 `margin-top:28px`). */}
         <div className="mt-1 flex items-start gap-2">
           <span
             aria-hidden="true"
