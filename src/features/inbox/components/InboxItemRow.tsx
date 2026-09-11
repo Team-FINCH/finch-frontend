@@ -3,10 +3,10 @@ import type { InboxItem, InboxItemKind } from '../model/types';
 /**
  * 알림함 한 줄 (design.md §7.11 알림함).
  *
- * - 미확인은 작은 Dot. **`--notify`(design.md §"Notify" 색상표, `#D94A4A`)가 정확히
- *   이 자리를 가리키지만 아직 `styles/index.css` 에 토큰으로 없다** — 다른 워커가
- *   지금 토큰 값을 고치고 있어 새 토큰을 여기서 임의로 추가하지 않는다.
- *   TODO(계약): `--color-notify` 토큰이 생기면 `bg-danger` 를 그것으로 바꾼다.
+ * - 미확인은 작은 Dot. 색은 `--color-notify`(design.md §4 "Notify" 색상표 `#D94A4A` ·
+ *   §7.11 "미확인은 작은 --notify Dot")다. 토큰이 없던 시절 `bg-danger` 로 대신하고
+ *   TODO 를 남겨 뒀었는데 토큰이 생겼다 — 헤더의 미확인 뱃지
+ *   (`shared/ui/PageHeader`)가 같은 토큰을 쓰므로 점과 뱃지가 함께 움직인다.
  * - 유형 라벨은 Neutral, `확인 필요`(위키 확인 항목)만 약한 Attention 이다.
  *   색을 따로 주지 않고 글자 굵기로만 강조해 "강한 색을 주지 않는다" 규칙을 지킨다.
  * - Card 가 아니라 Flat List — 안쪽 여백만 있고 테두리·배경이 없다.
@@ -43,7 +43,7 @@ export function InboxItemRow({ item, onClick }: InboxItemRowProps) {
         aria-hidden="true"
       >
         {item.unread ? (
-          <span className="size-2 rounded-full bg-danger" />
+          <span className="size-2 rounded-full bg-notify" />
         ) : null}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1.25">
