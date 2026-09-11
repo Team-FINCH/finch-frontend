@@ -42,7 +42,18 @@ import {
  * 자리라(위 `deeplink`) 오타 하나로 404 를 내면 안 된다.
  */
 
-export const STOCK_DETAIL_TABS = ['chart', 'info', 'ai'] as const;
+/**
+ * **`info`(기업 탭)는 2026-09-11 에 뺐다.** 기업 정보 API 를 만들지 않기로
+ * 확정했다 (GitLab 이슈 #40) — `GET /stocks/{stockCode}` 응답(apiSpec §5.2)에
+ * PER·PBR·시가총액·상장주식수가 없고 만들 계획도 없다. ia.md §2 표에도 같은
+ * 근거로 적어 두었다.
+ *
+ * **`?tab=info` 로 들어온 옛 링크는 아래 `parseStockDetailTab` 이 기본 탭으로
+ * 떨어뜨린다.** 알림함·AI 응답·북마크에 그 링크가 남아 있을 수 있어서 값을
+ * 지우기만 하고 별도 처리를 두지 않는다 — 모르는 값은 원래 기본값으로 가는
+ * 규약이다.
+ */
+export const STOCK_DETAIL_TABS = ['chart', 'ai'] as const;
 export type StockDetailTab = (typeof STOCK_DETAIL_TABS)[number];
 
 /** 쿼리 파라미터 이름. 문자열을 화면에 흩어 적지 않는다. */

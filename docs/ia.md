@@ -120,13 +120,13 @@ AI 중계 경로를 그렇게 남겨 뒀다가 apiSpec §10.1에 답이 와서 �
 
 ### 탐색·거래
 
-| 화면         | 라우트                     | 목적                       | 필요한 API                                                                                                                                                               | AI    | 티켓                                                                                                              | 의존              |
-| ------------ | -------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------- | ----------------- |
-| 종목 검색    | `/search`                  | 종목명·코드로 찾기         | `GET /api/v1/stocks/search?keyword=&size=`                                                                                                                               |       | [1-8](FINCH-38)                                                           | —                 |
-| 최근 검색어  | `/search` (초기 상태)      | 최근 10건 재검색·삭제      | `GET /api/v1/stocks/search/recent` · `DELETE /api/v1/stocks/search/recent/{keywordId}` · `DELETE /api/v1/stocks/search/recent`                                           |       | [1-8](FINCH-38)                                                           | 로그인            |
-| 최근 본 종목 | `/recent`                  | 최근 조회 30건 열람·삭제   | `GET /api/v1/stocks/recent` · `DELETE /api/v1/stocks/recent/{stockCode}` · `DELETE /api/v1/stocks/recent`                                                                |       | [1-8](FINCH-38)                                                           | 로그인            |
-| 종목 상세    | `/stocks/:stockCode`       | 시세·차트·기업정보·AI 분석 | `GET /api/v1/stocks/{stockCode}` · `GET /api/v1/stocks/{stockCode}/candles?period=&interval=` · `GET /api/v1/stocks/{stockCode}/price` · `POST/DELETE /api/v1/watchlist` | ● 1종 | [1-8](FINCH-38) · [2-9](FINCH-50) | —                 |
-| 주문         | `/stocks/:stockCode/order` | 시장가 매수·매도 실행      | `GET /api/v1/orders/available?stockCode=&side=` · `POST /api/v1/orders` (`Idempotency-Key` 필수)                                                                         | ● 1종 | [2-8](FINCH-49)                                                           | 로그인, 종목 상세 |
+| 화면         | 라우트                     | 목적                     | 필요한 API                                                                                                                                                               | AI    | 티켓                                                                                                              | 의존              |
+| ------------ | -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------- | ----------------- |
+| 종목 검색    | `/search`                  | 종목명·코드로 찾기       | `GET /api/v1/stocks/search?keyword=&size=`                                                                                                                               |       | [1-8](FINCH-38)                                                           | —                 |
+| 최근 검색어  | `/search` (초기 상태)      | 최근 10건 재검색·삭제    | `GET /api/v1/stocks/search/recent` · `DELETE /api/v1/stocks/search/recent/{keywordId}` · `DELETE /api/v1/stocks/search/recent`                                           |       | [1-8](FINCH-38)                                                           | 로그인            |
+| 최근 본 종목 | `/recent`                  | 최근 조회 30건 열람·삭제 | `GET /api/v1/stocks/recent` · `DELETE /api/v1/stocks/recent/{stockCode}` · `DELETE /api/v1/stocks/recent`                                                                |       | [1-8](FINCH-38)                                                           | 로그인            |
+| 종목 상세    | `/stocks/:stockCode`       | 시세·차트·AI 분석        | `GET /api/v1/stocks/{stockCode}` · `GET /api/v1/stocks/{stockCode}/candles?period=&interval=` · `GET /api/v1/stocks/{stockCode}/price` · `POST/DELETE /api/v1/watchlist` | ● 1종 | [1-8](FINCH-38) · [2-9](FINCH-50) | —                 |
+| 주문         | `/stocks/:stockCode/order` | 시장가 매수·매도 실행    | `GET /api/v1/orders/available?stockCode=&side=` · `POST /api/v1/orders` (`Idempotency-Key` 필수)                                                                         | ● 1종 | [2-8](FINCH-49)                                                           | 로그인, 종목 상세 |
 
 - **최근 검색어는 자기 라우트를 갖지 않는다.** 검색어가 비어 있을 때의 `/search` 초기 상태다. 라우트를 따로 두면 뒤로가기가 검색어 입력 사이에 끼어든다.
 - **최근 본 종목은 등록 API가 없다.** `GET /stocks/{stockCode}` 호출 자체가 서버에 기록을 남긴다 (apiSpec §5.2). 프론트가 별도로 기록 요청을 보내지 않는다.
@@ -267,7 +267,7 @@ AI 서버에 `/wiki/**` 4종이 구현돼 있고(AI 명세 §9) 그중 셋이 �
 | --------- | -------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `terms`   | `sheetTerms`   | 이용약관 요약                                                                   | 로그인 화면 하단 밑줄 버튼                                                       |
 | `privacy` | `sheetTerms`   | 개인정보 처리방침 요약 (`terms`와 시트 하나 공유)                               | 로그인 화면 하단 밑줄 버튼                                                       |
-| `term`    | `sheetTerm`    | 금융 용어 설명(PER·PBR 등). `이용약관`의 `terms`와 이름만 비슷할 뿐 다른 시트다 | 종목 상세의 지표 라벨(`openPer`·`openPbr`)                                       |
+| `term`    | `sheetTerm`    | 금융 용어 설명(PER·PBR 등). `이용약관`의 `terms`와 이름만 비슷할 뿐 다른 시트다 | **여는 자리가 없다** — 기업 탭을 뺐다(§2 · 이슈 #40)                             |
 | `record`  | `sheetRecord`  | 매수 이유 기록 입력 — "왜 담으셨나요?"                                          | 매수 체결 직후(`justBought` 카드), 알림함의 "적어야 할 것" 항목(`type:"record"`) |
 | `delfact` | `sheetDelFact` | 위키 사실 삭제 확인                                                             | 위키(포트폴리오 탭)의 사실 삭제 버튼                                             |
 | `insight` | `sheetInsight` | AI 종목 분석 상세(현재 상황 등, `d.current` 등)                                 | 종목 상세의 AI 분석 미리보기 카드(`openInsight`)                                 |
@@ -316,7 +316,7 @@ AI 서버에 `/wiki/**` 4종이 구현돼 있고(AI 명세 §9) 그중 셋이 �
 
 | 경로                       | 파라미터   | 값                                                    |
 | -------------------------- | ---------- | ----------------------------------------------------- |
-| `/stocks/:stockCode`       | `tab`      | `chart` \| `info` \| `ai`                             |
+| `/stocks/:stockCode`       | `tab`      | `chart` \| `ai`                                       |
 | `/stocks/:stockCode`       | `period`   | `1M` \| `3M` \| `1Y` \| `3Y`                          |
 | `/stocks/:stockCode`       | `interval` | `DAY` \| `WEEK` \| `MONTH`                            |
 | `/stocks/:stockCode/order` | `side`     | `buy` \| `sell`                                       |
@@ -331,6 +331,8 @@ AI 서버에 `/wiki/**` 4종이 구현돼 있고(AI 명세 §9) 그중 셋이 �
 보이는 기간은 봉 개수가 정한다 — 일봉 60봉(약 3개월) · 주봉 52봉(1년) · 월봉 36봉(3년). 그래서 기간 탭이 없어도 3개월·1년·3년에 해당하는 화면이 그대로 나온다. 확대·축소는 이미 받은 응답 안에서만 움직인다.
 
 `period`는 URL 파라미터로 살아 있고 값 문자열은 `GET /stocks/{stockCode}/candles`의 `period`와 같지만, **지금 화면의 어떤 탭도 이 값을 바꾸지 않는다.**
+
+**종목 상세의 `tab` 에서 `info`(기업 탭)를 뺐다 — 2026-09-11.** 기업 정보 API 를 만들지 않기로 확정했다(**GitLab 이슈 #40**). `GET /stocks/{stockCode}` 응답(apiSpec §5.2)에 PER·PBR·시가총액·상장주식수가 없고 만들 계획도 없어서, 값을 못 받는 탭을 자리표시자로 남기는 대신 뺐다(기능 동결 2026-09-23). **탭 값을 지우기만 하고 `?tab=info` 를 따로 막지는 않는다** — 모르는 값은 기본 탭(차트)으로 떨어지는 규약이 이미 있고, 알림함·AI 응답·사용자 북마크에 그 링크가 남아 있을 수 있다. **프로토타입에는 기업 탭(`isDtInfo`)이 남아 있는데 어긋남이 아니라 결정된 범위 축소다** — 재내보내기는 GitLab #54 로 넘겼다.
 
 `/portfolio`의 `tab=wiki`는 §1 "AI가 이해한 나 — 위키 화면" 절의 포트폴리오 4번째 탭과 같은 곳이다. **위키의 유일한 라우트다** — 독립 화면(구 `/my/wiki`)은 2026-09-04에 없앴다.
 

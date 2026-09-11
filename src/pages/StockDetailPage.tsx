@@ -7,7 +7,6 @@ import {
   StockDetailHeader,
   StockDetailTabNav,
   StockHoldingBox,
-  StockInfoTab,
   parseCandleInterval,
   parseStockDetailTab,
   useStockDetail,
@@ -24,7 +23,11 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import { TradeTabBar } from '@/shared/ui/TabBar';
 
 /**
- * 종목 상세 — 시세·차트·기업정보·AI 분석. `?tab=chart|info|ai` · `?interval=DAY|WEEK|MONTH`.
+ * 종목 상세 — 시세·차트·AI 분석. `?tab=chart|ai` · `?interval=DAY|WEEK|MONTH`.
+ *
+ * **기업 탭(`?tab=info`)은 2026-09-11 에 뺐다** — 기업 정보 API 를 만들지 않기로
+ * 확정했다(GitLab 이슈 #40). 옛 링크로 들어와도 `parseStockDetailTab` 이 기본
+ * 탭(차트)으로 떨어뜨린다.
  *
  * **`/stocks/:stockCode` 와 `?tab=ai` 는 프론트 혼자 정하는 값이 아니다** — 브리핑
  * 응답의 `deeplink` 를 AI 서버가 이 경로 문자열로 만들어 내려보낸다 (`ia.md` §2).
@@ -209,7 +212,6 @@ export function StockDetailPage() {
             holding={data.holding}
           />
         )}
-        {activeTab === 'info' && <StockInfoTab />}
         {activeTab === 'ai' && (
           <StockAiTab
             stockCode={stockCode}
