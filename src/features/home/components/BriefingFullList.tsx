@@ -62,22 +62,39 @@ const ROW_STYLE = {
   top: {
     // padding 2px 0 4px 18px · border-left 2px --border2 · border-radius 1px
     shell: 'rounded-[1px] border-l-2 border-border-strong pt-0.5 pb-1 pl-4.5',
-    head: 'mb-3.25 gap-2.5',
+    head: 'mb-3.25',
+    headGap: 'gap-2.5',
     rate: 'text-[14px]',
     summary: 'text-[19px] leading-[28px] tracking-[-.02em]',
     why: 'mt-3.25 text-[14px] leading-[21px]',
+    meta: 'mt-3.25',
   },
   rest: {
     // padding 22px 0 24px. 프로토타입은 항목 사이에 구분선을 두지 않는다
     shell: 'pt-5.5 pb-6',
-    head: 'mb-2.75 gap-2.25',
+    head: 'mb-2.75',
+    headGap: 'gap-2.25',
     rate: 'text-[13px]',
     summary: 'text-[16px] leading-[23px]',
     why: 'mt-2.25 text-[13px] leading-[19px]',
+    meta: 'mt-2.25',
   },
 } as const;
 
 type RowVariant = keyof typeof ROW_STYLE;
+
+/**
+ * 제목 아래 보조 한 줄 `정책 n · 공시 n · 실적 n` (프로토타입 `briefMix`).
+ *
+ * TODO(계약): **출처가 없어 항상 `undefined` 다.** `items[].category` 는 뉴스 분류가
+ * 아니라 브리핑 항목 분류(`holding_move`·`earnings`·`filing`·`macro_event`·
+ * `portfolio_shift`)라 `정책`·`공시`·`실적` 로 셀 수 없다.
+ *
+ * **빈 줄을 그리지 않는다.** 자리만 남기면 제목 아래 14px 이 이유 없이 벌어진다 —
+ * 줄을 통째로 빼면 제목과 `핵심 소식` 사이 간격만 남고 화면이 어색하지 않다.
+ * 값이 생기면 이 상수를 `items` 를 세는 함수로 바꾸기만 하면 된다.
+ */
+const BRIEF_MIX: string | undefined = undefined;
 
 export function BriefingFullList() {
   const briefing = useHomeBriefing();
@@ -139,6 +156,9 @@ export function BriefingFullList() {
       <p className="text-title-2 tracking-[-.02em] text-text-primary">
         오늘 확인할 소식 {items.length}건
       </p>
+      {BRIEF_MIX === undefined ? null : (
+        <p className="mt-3.5 text-[13px] text-text-muted">{BRIEF_MIX}</p>
+      )}
 
       {top === undefined ? null : (
         <div className="mt-9.5">
@@ -232,10 +252,20 @@ function BriefingRow({
   return (
     <Link to={item.deeplink} className={`block ${style.shell}`}>
       {facts === undefined ? null : (
-        <span className={`flex items-center ${style.head}`}>
+        <span className={`flex items-center ${style.head} ${style.headGap}`}>
           <InitialBadge stockName={facts.stockName} />
-          <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-text-secondary">
-            {facts.stockName}
+          {/* 이름과 `확인 필요` 를 한 덩이로 묶어 왼쪽에 붙인다. 이름에 `flex-1` 을
+              주면 `확인 필요` 가 등락률 옆까지 밀려나고, 안 주면 긴 이름이 줄을
+              넘친다. 프로토타입은 이름이 짧은 목업이라 그 갈림을 보여주지 않는다. */}
+          <span className={`flex min-w-0 flex-1 items-center ${style.headGap}`}>
+            <span className="truncate text-[14px] font-medium text-text-secondary">
+              {facts.stockName}
+            </span>
+            {!facts.needCheck ? null : (
+              <span className="flex-none text-[11px] font-semibold text-text-muted">
+                확인 필요
+              </span>
+            )}
           </span>
           {facts.changeRate === undefined ? null : (
             <ChangeRate
@@ -253,6 +283,15 @@ function BriefingRow({
       <span className={`block text-pretty text-text-secondary ${style.why}`}>
         <AiSegmentText segments={item.segments} />
       </span>
+      {/* 메타 줄은 값이 있을 때만 만든다. 빼도 아래 여백은 다음 요소의 margin-top 이
+          맡으므로 줄이 사라져도 행 사이가 좁아지지 않는다. */}
+      {facts?.meta === undefined ? null : (
+        <span
+          className={`block text-[12px] leading-[17px] text-text-muted ${style.meta}`}
+        >
+          {facts.meta}
+        </span>
+      )}
     </Link>
   );
 }

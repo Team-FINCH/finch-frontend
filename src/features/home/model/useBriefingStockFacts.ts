@@ -45,6 +45,24 @@ export type BriefingStockFacts = {
    * 모르는 동안은 자리를 아예 그리지 않는다.
    */
   changeRate: number | null | undefined;
+  /**
+   * `확인 필요` 뱃지 (프로토타입 `briefTop.needCheck`).
+   *
+   * TODO(계약): **출처가 없어 항상 `false` 다.** 프로토타입은 이 값을 상수로 박아
+   * 뒀고, 실제 값은 알림함의 미읽음으로 보이는데 브리핑 항목과 알림을 이어 붙일
+   * 열쇠가 어느 응답에도 없다 (GitLab #57 회신 대기). `false` 인 동안 화면은 그
+   * `span` 을 아예 만들지 않는다 — 빈 문자열을 그리면 종목명과 등락률 사이가 벌어진다.
+   */
+  needCheck: boolean;
+  /**
+   * 본문 아래 보조 한 줄 `{종류} · {출처}` (프로토타입 `briefTop.meta`).
+   *
+   * TODO(계약): **출처가 없어 항상 `undefined` 다.** `category` 는 뉴스 종류가
+   * 아니라 브리핑 항목 분류(`holding_move`·`portfolio_shift` 등)이고, `출처` 에
+   * 해당하는 필드가 응답에 없다 — `citations` 는 현재 구현에서 항상 빈 배열이다
+   * (contracts C56).
+   */
+  meta: string | undefined;
 };
 
 /**
@@ -107,6 +125,8 @@ export function useBriefingStockFacts(
           : quote !== undefined && hasQuoteValues(quote)
             ? quote.changeRate
             : null,
+        needCheck: false,
+        meta: undefined,
       };
     },
     [nameMap, quoteMap, quotePending],
