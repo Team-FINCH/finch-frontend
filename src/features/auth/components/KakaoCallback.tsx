@@ -47,11 +47,35 @@ type KakaoCallbackProps = {
  * 카카오가 되돌려보낸 인가 코드를 세션으로 바꾼다 (`/oauth/kakao`).
  * 대부분 즉시 지나가지만 라우트를 갖는 이유는 카카오에 등록한 redirect URI 가
  * 실제로 열리는 주소여야 하기 때문이다.
+ *
+ * **교환 결과를 뮤테이션 콜백이 아니라 `mutateAsync` 가 돌려주는 프로미스에서
+ * 읽는다.** 전에는 `mutate(…, { onSuccess: navigate })` 였는데 화면이
+ * `로그인 중입니다` 에서 영영 멈췄다. 원인은 **마운트 이펙트에서 시작한 뮤테이션이
+ * `StrictMode` 에서 관측자를 잃는 것**이다.
+ *
+ *   1. 마운트 이펙트가 `mutate()` 를 부른다. `MutationObserver` 가 뮤테이션에 붙는다
+ *   2. `StrictMode` 가 마운트를 한 번 되감는다 → `useSyncExternalStore` 구독 해제 →
+ *      `MutationObserver.onUnsubscribe()` 가 `mutation.removeObserver(this)` 를 부른다
+ *   3. 다시 마운트되며 재구독하지만 **`MutationObserver` 에는 `onSubscribe` 가 없어
+ *      뮤테이션에 다시 붙지 않는다**(`@tanstack/query-core@5.101.4` `mutationObserver.js`)
+ *   4. 응답이 와도 `Mutation.#dispatch` 가 도는 관측자 목록에 우리가 없다. 요청은
+ *      `200` 으로 성공하는데 `onSuccess`·`onError` 가 불리지 않아 이동이 일어나지 않는다
+ *
+ * **로그인 자체는 되어 있었다.** 세션은 `useKakaoLogin` 의 뮤테이션 옵션 `onSuccess`
+ * 가 세우는데, 그쪽은 관측자가 아니라 `Mutation.execute()` 가 직접 부르기 때문이다.
+ * 끊긴 것은 이 화면이 넘긴 호출별 콜백뿐이라 이동만 빠졌다.
+ *
+ * 이벤트 핸들러에서 부르는 뮤테이션은 되감기가 끝난 뒤라 멀쩡하다. 마운트 이펙트에서
+ * 시작하는 자리만 걸린다. 그래서 결과를 `mutateAsync` 의 프로미스에서 읽는다 — 그
+ * 프로미스는 관측자와 무관하게 `Mutation.execute()` 가 그대로 돌려주는 값이라 구독이
+ * 끊겨도 정상적으로 풀린다. 결제 복귀 화면(`DepositCompletePage`, 티켓 243)이 같은
+ * 함정을 같은 방법으로 고쳤고, 모의 이체 화면(`DepositTransferPage`)은 원래 이
+ * 모양이라 처음부터 멀쩡했다.
  */
 export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { mutate } = useKakaoLogin();
+  const { mutateAsync } = useKakaoLogin();
 
   // 초기화 함수로 한 번만 계산한다. 매 렌더 다시 읽으면 교환이 시작되면서 지워진
   // state 때문에 진행 중인 화면이 확인 실패로 뒤집힌다.
@@ -62,6 +86,43 @@ export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
   // 인가 코드는 한 번만 쓸 수 있다. StrictMode 의 두 번째 실행이 반드시 실패해
   // 성공한 로그인을 에러 화면으로 덮으므로 의존성 배열로는 막을 수 없다.
   const hasStartedRef = useRef(false);
+
+  /**
+   * 교환을 한 번 보내고 결과를 이 화면에서 처리한다.
+   *
+   * **`async`/`await` 가 아니라 프로미스 콜백으로 쓴다.** 이 함수를 마운트 이펙트가
+   * 부르는데, `await` 뒤의 `setState` 는 `react-hooks/set-state-in-effect` 가 이펙트
+   * 본문의 동기 `setState` 와 같이 본다. 콜백 안의 `setState` 는 그 규칙이 명시적으로
+   * 허용하는 모양이다.
+   *
+   * 성공 갈래에서 세션이 이미 서 있는 것에 기대도 된다 — `useKakaoLogin` 의 뮤테이션
+   * 옵션 `onSuccess` 를 `Mutation.execute()` 가 **프로미스를 풀기 전에** 부르기
+   * 때문이다. 이동하는 곳이 `RequireAuth` 뒤라도 로그인 화면으로 튕기지 않는다.
+   */
+  function runExchange(authorizationCode: string, redirectTo: string): void {
+    void mutateAsync({
+      authorizationCode,
+      // 인가 때 쓴 값과 같아야 카카오가 토큰으로 바꿔 준다 (apiSpec §2.1).
+      redirectUri: KAKAO_REDIRECT_URI,
+    })
+      .then((data) => {
+        // replace 로 이동한다. 기록에 남기면 뒤로가기로 이미 소진된 코드가 붙은
+        // URL 로 되돌아와 실패 화면을 본다.
+        navigate(
+          resolveDestination?.({ isNewUser: data.isNewUser, redirectTo }) ??
+            redirectTo,
+          { replace: true },
+        );
+      })
+      .catch((caught: unknown) => {
+        setExchangeFailure({
+          kind: 'exchangeFailed',
+          message: isHttpError(caught)
+            ? caught.message
+            : '로그인을 완료하지 못했습니다',
+        });
+      });
+  }
 
   useEffect(() => {
     if (hasStartedRef.current) {
@@ -76,33 +137,10 @@ export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
       return;
     }
 
-    mutate(
-      {
-        authorizationCode: preflight.authorizationCode,
-        // 인가 때 쓴 값과 같아야 카카오가 토큰으로 바꿔 준다 (apiSpec §2.1).
-        redirectUri: KAKAO_REDIRECT_URI,
-      },
-      {
-        // replace 로 이동한다. 기록에 남기면 뒤로가기로 이미 소진된 코드가 붙은
-        // URL 로 되돌아와 실패 화면을 본다.
-        onSuccess: (data) =>
-          navigate(
-            resolveDestination?.({
-              isNewUser: data.isNewUser,
-              redirectTo: preflight.redirectTo,
-            }) ?? preflight.redirectTo,
-            { replace: true },
-          ),
-        onError: (error) =>
-          setExchangeFailure({
-            kind: 'exchangeFailed',
-            message: isHttpError(error)
-              ? error.message
-              : '로그인을 완료하지 못했습니다',
-          }),
-      },
-    );
-  }, [mutate, navigate, preflight, resolveDestination]);
+    runExchange(preflight.authorizationCode, preflight.redirectTo);
+    // runExchange 는 매 렌더 새 참조라 의존성에서 뺀다 — preflight 만 본다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preflight]);
 
   const failure =
     preflight.kind === 'failed' ? preflight.failure : exchangeFailure;
