@@ -248,6 +248,7 @@ export function StockDetailPage() {
         {activeTab === 'ai' && (
           <StockAiTab
             stockCode={stockCode}
+            stockName={data.stockName}
             isActive={activeTab === 'ai'}
             owned={data.holding !== null}
           />
@@ -261,11 +262,17 @@ export function StockDetailPage() {
         명세로 올려 만들었다(FINCH-166). 바가 사라지면 하단 여백만 남아
         화면이 잘린 것처럼 보이고, 왜 살 수 없는지도 바 자리에서 말해 주는 편이 낫다.
       */}
-      {/* 종목 맥락을 AI 진입 버튼에 넘긴다 — `/chat?screen=stock_detail&ticker=…`
+      {/* 종목 맥락을 AI 진입 버튼에 넘긴다 —
+          `/chat?screen=stock_detail&ticker=…&stockName=…`
           (프로토타입 `openChatCtx`, 새 디코드 L3555). 경로 파라미터는 검증만 거친
-          평범한 문자열이라 브랜드 타입이 붙은 응답 값을 쓴다. */}
+          평범한 문자열이라 브랜드 타입이 붙은 응답 값을 쓴다.
+          **종목명도 함께 넘긴다** (FINCH-248) — 채팅 빈 상태 문구가 쓰는 것은
+          코드가 아니라 이름인데, 채팅 화면은 이름 하나를 얻으려고 상세를 다시 부를 수
+          없다. 그 호출 자체가 최근 본 종목 기록이다(contracts C51). 이 화면은 이미
+          받아 둔 값을 갖고 있으므로 여기서 얹는다. */}
       <TradeTabBar
         stockCode={data.stockCode}
+        stockName={data.stockName}
         suspended={data.suspended}
         onBuy={() => {
           void navigate(`${ROUTES.stockOrder(stockCode)}?side=buy`);

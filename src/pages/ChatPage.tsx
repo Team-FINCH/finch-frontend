@@ -5,7 +5,6 @@ import { useChatMutation } from '@/features/chat/api/useChatMutation';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
 import { ChatEmptyState } from '@/features/chat/components/ChatEmptyState';
-import { useCachedStockName } from '@/features/chat/hooks/useCachedStockName';
 import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
 import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
@@ -44,7 +43,23 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  *
  * 제목이 `Finch AI` 가 아니라 `FINCH AI` 인 이유 — 프로토타입 `.navt` 와 빈 상태
  * 헤드라인이 둘 다 대문자고, 로그인 히어로(`features/auth`)도 대문자를 쓴다.
- * design.md §7.15 의 초기 카피만 `Finch AI` 라 적혀 있다.
+ * design.md §7.15 의 초기 카피만 `Finch AI` 였는데 2026-09-11 에 대문자로 맞췄다
+ * (사용자 확인, FINCH-248).
+ *
+ * ## 종목 맥락의 종목명 (FINCH-248)
+ *
+ * 빈 상태의 맥락 문구와 추천 질문은 **종목명**을 쓰는데 쿼리의 `ticker` 는 6자리
+ * 코드다. 이름은 **진입하는 쪽이 `stockName` 으로 함께 싣는다** — 이 화면에서
+ * `GET /stocks/{stockCode}` 를 불러 구할 수 없어서다. 그 호출 자체가 최근 본 종목
+ * 기록이라(contracts C51) 사용자가 보지도 않은 조회가 기록에 남고 최근 본 종목
+ * 목록까지 무효화된다.
+ *
+ * 전에는 `useCachedStockName` 이 이미 받아 둔 상세 캐시에서 이름만 꺼냈다. **그 훅은
+ * 지웠다.** 이제 모든 진입이 이름을 싣고, 남는 경우는 `/chat?screen=stock_detail&
+ * ticker=…` 를 주소로 바로 여는 것 하나뿐인데 그때는 새로 뜬 앱이라 캐시가 비어 있어
+ * 훅이 어차피 `null` 을 돌려준다. 성공할 수 없는 캐시 조회를 남겨 두면, 나중에
+ * 이름 없이 보내는 진입이 생겼을 때 **캐시가 더울 때만 이름이 나오고 식으면 안 나오는**
+ * 화면이 된다 — 그때는 늘 `이 종목` 으로 떨어지는 편이 고장을 빨리 드러낸다.
  */
 export function ChatPage() {
   const [searchParams] = useSearchParams();
@@ -59,11 +74,10 @@ export function ChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const chatMutation = useChatMutation();
 
-  // 종목 맥락으로 들어왔으면 빈 상태 문구에 종목명이 들어간다. 캐시에 없으면
-  // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다 — 쿼리에 이름이 없어서다.
-  const contextStockName = useCachedStockName(chatContext.ticker);
+  // 종목 맥락으로 들어왔으면 빈 상태 문구에 종목명이 들어간다. 쿼리에 이름이 없으면
+  // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다 — 위 머리 주석 참고.
   const emptyCopy = chatEmptyCopy(
-    chatContext.ticker === null ? null : (contextStockName ?? '이 종목'),
+    chatContext.ticker === null ? null : (chatContext.stockName ?? '이 종목'),
   );
 
   function resetConversation() {

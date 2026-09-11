@@ -103,6 +103,7 @@ function TabBarShell({
   aiExpandedLabel,
   aiScreen,
   aiTicker,
+  aiStockName,
 }: {
   children: ReactNode;
   aiExpandedLabel?: string;
@@ -110,6 +111,8 @@ function TabBarShell({
   aiScreen?: AiChatScreen;
   /** `aiScreen="stock_detail"` 과 함께 넘기는 종목코드 */
   aiTicker?: StockCode;
+  /** `aiTicker` 와 함께 넘기는 종목명. 빈 상태 문구가 쓴다 (`AiEntryButton`) */
+  aiStockName?: string;
 }) {
   const isAnySheetOpen = useIsAnySheetOpen();
   // 토스트가 이 바 위 14px 에 앉도록 자기 자리를 알린다 (FINCH-232).
@@ -138,6 +141,7 @@ function TabBarShell({
         expandedLabel={aiExpandedLabel}
         screen={aiScreen}
         ticker={aiTicker}
+        stockName={aiStockName}
       />
     </nav>
   );
@@ -238,6 +242,13 @@ type TradeTabBarProps = {
    * 붙이고 나면 이 자리에서 맥락이 유실되지 않는다.
    */
   stockCode?: StockCode;
+  /**
+   * 같은 버튼이 함께 넘길 종목명. `stockCode` 와 짝이다 — 채팅 빈 상태 문구와
+   * 추천 질문이 코드가 아니라 이름을 쓰는데, 채팅 화면은 이름을 구하려고 상세를
+   * 다시 부를 수 없다(contracts C51, `AiEntryButton` 머리 주석). 안 넘기면 그
+   * 화면이 `이 종목` 으로 떨어진다.
+   */
+  stockName?: string;
   /** 거래정지면 매수·매도 대신 비활성 캡슐 한 줄을 그린다 (contracts C46). */
   suspended?: boolean;
   onBuy: () => void;
@@ -281,12 +292,14 @@ export function TradeTabBar({
   onSell,
   suspended,
   stockCode,
+  stockName,
 }: TradeTabBarProps) {
   return (
     <TabBarShell
       aiExpandedLabel="이 종목 물어보기"
       aiScreen={stockCode === undefined ? undefined : 'stock_detail'}
       aiTicker={stockCode}
+      aiStockName={stockName}
     >
       <div className={`${PILL_BASE_CLASS} gap-1.5`}>
         {suspended === true ? (

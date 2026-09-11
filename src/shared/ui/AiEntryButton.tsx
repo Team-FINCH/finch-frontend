@@ -24,11 +24,17 @@ import type { StockCode } from '@/shared/types/primitives';
  * 열거값에 `briefing`이 들어갔다. 그래서 `screen` prop을 받아 값이 있을 때만
  * `?screen=`을 붙인다.
  *
- * **종목 상세는 종목까지 함께 넘긴다** — `screen="stock_detail"` 과 `ticker` 를
- * 받아 `/chat?screen=stock_detail&ticker=005930` 으로 보낸다. 채팅 화면이
- * `parseChatContext` 로 그 둘을 읽어 빈 상태 문구와 추천 질문을 그 종목으로 바꾼다
- * (프로토타입 `openChatCtx`, design.md "종목 상세에서 진입 시 해당 종목 맥락을
- * 이어받는다"). 맥락을 넘기지 않으면 "이거" 가 무엇인지 AI 가 되묻게 된다.
+ * **종목 상세는 종목까지 함께 넘긴다** — `screen="stock_detail"` 과 `ticker`·
+ * `stockName` 을 받아 `/chat?screen=stock_detail&ticker=005930&stockName=삼성전자`
+ * 로 보낸다. 채팅 화면이 `parseChatContext` 로 그 셋을 읽어 빈 상태 문구와 추천
+ * 질문을 그 종목으로 바꾼다 (프로토타입 `openChatCtx`, design.md "종목 상세에서
+ * 진입 시 해당 종목 맥락을 이어받는다"). 맥락을 넘기지 않으면 "이거" 가 무엇인지
+ * AI 가 되묻게 된다.
+ *
+ * **종목명까지 싣는 이유** (FINCH-248) — 빈 상태 문구가 쓰는 것은 코드가 아니라
+ * 이름인데, 채팅 화면은 이름을 구하려고 `GET /stocks/{stockCode}` 를 부를 수 없다.
+ * 그 호출 자체가 최근 본 종목 기록이라(contracts C51) 보지도 않은 조회가 기록에 남고
+ * 최근 본 종목 목록까지 무효화된다. 여기로 들어오는 화면은 이름을 이미 갖고 있다.
  *
  * 홈·탐색·포트폴리오·마이페이지의 `.tabai` 는 여전히 prop 없이 쿼리 없는 `/chat`
  * 으로 간다 — 마이페이지에 대응하는 열거값이 없어 그 화면에서 무엇을 넘길지 따로
@@ -86,19 +92,39 @@ type AiEntryButtonProps = {
    * 쓰이지 않고, 주소에만 남아 무엇이 맥락인지 헷갈리게 한다.
    */
   ticker?: StockCode;
+  /**
+   * 빈 상태 문구에 쓸 종목명. **`ticker` 와 함께 넘긴다** — 하나만 넘기면 채팅
+   * 화면이 `이 종목` 으로 떨어진다 (`pages/ChatPage.tsx`).
+   *
+   * 타입으로 둘을 묶지 않고 선택 값 둘로 두었다. 묶으려면 props 를 판별 합집합으로
+   * 갈라야 하는데, 이 컴포넌트는 `screen` 없는 호출(탭 바 줄)까지 받는 자리라
+   * 갈래가 셋이 되고 호출부 넷이 전부 그 형태를 알아야 한다. 빠뜨렸을 때의 결과가
+   * 화면이 깨지는 것이 아니라 라벨이 `이 종목` 으로 내려앉는 것이라 그 값을 치를
+   * 만큼은 아니다.
+   */
+  stockName?: string;
 };
 
 /**
  * 쿼리는 값이 있을 때만 붙인다. 빈 `?screen=` 은 `parseChatContext` 가 `chat` 으로
  * 떨어뜨리므로 동작은 같지만, 주소만 보고는 맥락이 있는지 없는지 알 수 없어진다.
  */
-function buildChatTo(screen?: AiChatScreen, ticker?: StockCode): string {
+function buildChatTo(
+  screen?: AiChatScreen,
+  ticker?: StockCode,
+  stockName?: string,
+): string {
   if (screen === undefined) {
     return ROUTES.chat;
   }
   const query = new URLSearchParams({ screen });
   if (screen === 'stock_detail' && ticker !== undefined) {
     query.set('ticker', ticker);
+    // 이름은 종목이 정해졌을 때만 의미가 있다 — `ticker` 없이 이름만 실으면
+    // `parseChatContext` 가 맥락을 통째로 버리므로 주소에만 남는다.
+    if (stockName !== undefined) {
+      query.set('stockName', stockName);
+    }
   }
   return `${ROUTES.chat}?${query.toString()}`;
 }
@@ -108,6 +134,7 @@ export function AiEntryButton({
   expandedLabel,
   screen,
   ticker,
+  stockName,
 }: AiEntryButtonProps) {
   const navigate = useNavigate();
   const [peek, setPeek] = useState(false);
@@ -126,7 +153,7 @@ export function AiEntryButton({
   }, [expandedLabel]);
 
   const label = expandedLabel ?? DEFAULT_LABEL;
-  const chatTo = buildChatTo(screen, ticker);
+  const chatTo = buildChatTo(screen, ticker, stockName);
 
   return (
     <button
