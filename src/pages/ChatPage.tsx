@@ -4,6 +4,9 @@ import { useSearchParams } from 'react-router-dom';
 import { useChatMutation } from '@/features/chat/api/useChatMutation';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
+import { ChatEmptyState } from '@/features/chat/components/ChatEmptyState';
+import { useCachedStockName } from '@/features/chat/hooks/useCachedStockName';
+import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
 import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
   createMessageId,
@@ -14,6 +17,7 @@ import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace'
 import { showToast } from '@/shared/hooks/useToastStore';
 import { isRetryableAiErrorCode } from '@/shared/lib/aiErrorRetry';
 import { PageMain } from '@/shared/ui/PageMain';
+import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
  * AI 채팅 — 내 포트폴리오에 대해 묻고 답 받기. 화면 맥락(`screen`·`ticker`)을 실어
@@ -29,6 +33,18 @@ import { PageMain } from '@/shared/ui/PageMain';
  * (design.md §7.15·§9, 이슈 #26 5번). `context.screen` 은 첫 메시지에만 실어
  * 보낸다 — 대화가 시작된 뒤(`conversationId` 발급 후)에는 서버가 맥락을 이어가므로
  * 매 메시지마다 다시 보내지 않는다.
+ *
+ * ## 상단 (FINCH-245)
+ *
+ * 프로토타입 `isChat` 의 `.nav` 는 뒤로가기 + 제목 `FINCH AI` 고, 메시지가 있으면
+ * 오른쪽에 `초기화` 가 붙는다. 전에는 제목을 `AI 채팅` `h1` 으로 두고 뒤로가기가
+ * 없어서, 탭 바에 없는 화면인데 나갈 길이 없었다. `shared/ui/SubPageHeader` 로
+ * 바꿨고 뒤로가기 동작은 그 컴포넌트 기본값(히스토리 하나 되돌리기, 스택이 비면
+ * 홈)이다 — 프로토타입 `closeChat` 이 스택을 하나 pop 하는 것과 같다.
+ *
+ * 제목이 `Finch AI` 가 아니라 `FINCH AI` 인 이유 — 프로토타입 `.navt` 와 빈 상태
+ * 헤드라인이 둘 다 대문자고, 로그인 히어로(`features/auth`)도 대문자를 쓴다.
+ * design.md §7.15 의 초기 카피만 `Finch AI` 라 적혀 있다.
  */
 export function ChatPage() {
   const [searchParams] = useSearchParams();
@@ -42,6 +58,13 @@ export function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const chatMutation = useChatMutation();
+
+  // 종목 맥락으로 들어왔으면 빈 상태 문구에 종목명이 들어간다. 캐시에 없으면
+  // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다 — 쿼리에 이름이 없어서다.
+  const contextStockName = useCachedStockName(chatContext.ticker);
+  const emptyCopy = chatEmptyCopy(
+    chatContext.ticker === null ? null : (contextStockName ?? '이 종목'),
+  );
 
   function resetConversation() {
     setMessages([]);
@@ -102,41 +125,46 @@ export function ChatPage() {
     );
   }
 
-  const emptyCopy =
-    chatContext.screen === 'stock_detail' && chatContext.ticker !== null
-      ? '이 종목을 보다가 들어오셨네요. 궁금한 것부터 물어보세요.'
-      : '내 투자 맥락을 아는 Finch AI와 이야기해보세요.';
-
   return (
-    <PageMain className="flex min-h-[calc(100dvh-3rem)] flex-col pt-6 pb-24">
-      <div className="flex items-center justify-between">
-        <h1 className="text-title-3 text-text-primary">AI 채팅</h1>
+    <PageMain className="flex min-h-[calc(100dvh-3rem)] flex-col pb-24">
+      {/*
+        `초기화` 를 `SubPageHeader` 안에 넣지 않고 겹쳐 놓는다. 그 컴포넌트는
+        `shared/ui` 라 이 티켓에서 고칠 수 없고(오른쪽 슬롯이 없다), 지금 화면
+        하나만 오른쪽 동작을 갖는다. 감싼 `div` 는 본문 여백(26px) 안쪽이고
+        `SubPageHeader` 는 `-mx-2.75` 로 15px 까지 나가 있으므로 버튼도
+        `-right-2.75` 로 같은 15px 선에 맞춘다.
+        오른쪽 동작이 둘째 화면에 생기면 그때 `SubPageHeader` 에 슬롯을 낸다.
+      */}
+      <div className="relative flex-none">
+        <SubPageHeader title="FINCH AI" />
         {messages.length > 0 && (
           <button
             type="button"
             onClick={resetConversation}
-            className="text-caption text-text-secondary underline"
+            className="absolute top-0 -right-2.75 flex h-(--page-header-height) items-center rounded-12 px-2.5 text-body-2 font-medium text-text-muted transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
           >
-            새 대화 시작
+            초기화
           </button>
         )}
       </div>
 
-      <div className="mt-4 flex flex-1 flex-col gap-4">
-        {messages.length === 0 ? (
-          <p className="mt-10 text-center text-body-2 text-pretty text-text-secondary">
-            {emptyCopy}
-          </p>
-        ) : (
-          messages.map((message) => (
+      {messages.length === 0 ? (
+        <ChatEmptyState
+          subCopy={emptyCopy.subCopy}
+          suggestions={emptyCopy.suggestions}
+          onAsk={handleSend}
+        />
+      ) : (
+        <div className="mt-4 flex flex-col gap-4">
+          {messages.map((message) => (
             <ChatBubble
               key={message.id}
               message={message}
               onRetry={handleSend}
             />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div
         ref={bottomFixedRef}
