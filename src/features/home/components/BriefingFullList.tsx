@@ -7,6 +7,7 @@ import {
   type PriceDirection,
 } from '@/shared/lib/formatNumber';
 import type { AiBriefingItem } from '@/shared/types/ai/briefing';
+import { AiGlyph } from '@/shared/ui/AiCard';
 import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { EmptyState } from '@/shared/ui/EmptyState';
@@ -26,6 +27,14 @@ import {
  *
  * **피드백을 붙이지 않는다.** `BriefingSection.tsx` 머리 주석과 같은 이유 —
  * 프로토타입의 실제 피드백 UI 셋에 브리핑이 없다.
+ *
+ * ## 글자 크기를 토큰이 아니라 실측값으로 적은 이유
+ *
+ * 프로토타입 `isBriefing` 은 이 화면에만 쓰는 계단을 갖는다 — 12·11·14·19·16·13px.
+ * 우리 타이포 토큰(`styles/index.css`)에는 12px·11px·19px 이 없고, 있는 값들도
+ * 행간이 다르다(`text-caption` 13/18 vs 여기 13/19). 화면 하나 때문에 공용 토큰을
+ * 늘리면 그 토큰을 쓰는 다른 화면이 함께 움직이므로, 여기서 실측값을 적는다.
+ * 색과 등락색만은 토큰으로 참조한다(컨벤션 §6).
  */
 
 /**
@@ -40,6 +49,35 @@ const DIRECTION_TEXT_CLASS: Record<PriceDirection, string> = {
   fall: 'text-stock-down',
   flat: 'text-stock-neutral',
 };
+
+/** 섹션 라벨 (`핵심 소식` · `오늘의 다른 소식 N건`). 프로토타입 실측 12px/500/`--t3`. */
+const SECTION_LABEL_CLASS =
+  'text-[12px] font-medium tracking-[.01em] text-text-muted';
+
+/**
+ * 소식 한 건의 치수. 프로토타입은 1위(`briefTop`)와 나머지(`briefsRest`)를
+ * 다른 계단으로 그린다 — 1위만 왼쪽에 2px 세로선을 두고 글자가 한 단계씩 크다.
+ */
+const ROW_STYLE = {
+  top: {
+    // padding 2px 0 4px 18px · border-left 2px --border2 · border-radius 1px
+    shell: 'rounded-[1px] border-l-2 border-border-strong pt-0.5 pb-1 pl-4.5',
+    head: 'mb-3.25 gap-2.5',
+    rate: 'text-[14px]',
+    summary: 'text-[19px] leading-[28px] tracking-[-.02em]',
+    why: 'mt-3.25 text-[14px] leading-[21px]',
+  },
+  rest: {
+    // padding 22px 0 24px. 프로토타입은 항목 사이에 구분선을 두지 않는다
+    shell: 'pt-5.5 pb-6',
+    head: 'mb-2.75 gap-2.25',
+    rate: 'text-[13px]',
+    summary: 'text-[16px] leading-[23px]',
+    why: 'mt-2.25 text-[13px] leading-[19px]',
+  },
+} as const;
+
+type RowVariant = keyof typeof ROW_STYLE;
 
 export function BriefingFullList() {
   const briefing = useHomeBriefing();
@@ -88,27 +126,30 @@ export function BriefingFullList() {
 
   return (
     <div className="pt-2">
-      <div className="flex items-center gap-2 pb-3.5">
-        <span className="text-caption font-bold tracking-[.06em] text-text-secondary">
+      {/* 머리. 글리프는 `shared/ui/AiCard` 의 공용 정의를 그대로 쓴다 —
+          design.md §3 "화면마다 다른 AI 아이콘을 임의로 혼용하지 않는다",
+          §8.4 "AI Glyph 위치/크기 통일". 프로토타입은 이 자리에 22px 이미지
+          자산을 쓰지만, 그러면 홈 카드(17px 마스크 글리프)와 다른 아이콘이 된다. */}
+      <div className="mb-3.5 flex items-center gap-2 text-text-secondary">
+        <AiGlyph />
+        <span className="text-[12px] font-bold tracking-[.06em]">
           AI 데일리 브리핑
         </span>
       </div>
-      <p className="text-title-2 text-text-primary">
+      <p className="text-title-2 tracking-[-.02em] text-text-primary">
         오늘 확인할 소식 {items.length}건
       </p>
 
       {top === undefined ? null : (
         <div className="mt-9.5">
-          <p className="mb-3.5 text-caption font-medium text-text-muted">
-            핵심 소식
-          </p>
-          <BriefingRow item={top} factsOf={factsOf} emphasized />
+          <p className={`mb-3.5 ${SECTION_LABEL_CLASS}`}>핵심 소식</p>
+          <BriefingRow item={top} factsOf={factsOf} variant="top" />
         </div>
       )}
 
       {rest.length === 0 ? null : (
-        <div className="mt-10 divide-y divide-border">
-          <p className="mb-1 text-caption font-medium text-text-muted">
+        <div className="mt-10">
+          <p className={`mb-1 ${SECTION_LABEL_CLASS}`}>
             오늘의 다른 소식 {rest.length}건
           </p>
           {rest.map((item) => (
@@ -177,47 +218,39 @@ function ChangeRate({
 function BriefingRow({
   item,
   factsOf,
-  emphasized = false,
+  variant = 'rest',
 }: {
   item: AiBriefingItem;
   factsOf: (stockCode: string) => BriefingStockFacts;
-  emphasized?: boolean;
+  variant?: RowVariant;
 }) {
+  const style = ROW_STYLE[variant];
   const stockCode = item.relatedTickers[0];
   const facts: BriefingStockFacts | undefined =
     stockCode === undefined ? undefined : factsOf(stockCode);
 
   return (
-    <Link
-      to={item.deeplink}
-      className={`block ${
-        emphasized ? 'border-l-2 border-border-strong pl-4.5' : 'py-5.5'
-      }`}
-    >
+    <Link to={item.deeplink} className={`block ${style.shell}`}>
       {facts === undefined ? null : (
-        <span className="mb-3 flex items-center gap-2.5">
+        <span className={`flex items-center ${style.head}`}>
           <InitialBadge stockName={facts.stockName} />
-          <span className="min-w-0 flex-1 truncate text-caption font-medium text-text-secondary">
+          <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-text-secondary">
             {facts.stockName}
           </span>
           {facts.changeRate === undefined ? null : (
             <ChangeRate
               changeRate={facts.changeRate}
-              className="flex-none text-caption font-semibold"
+              className={`flex-none font-semibold ${style.rate}`}
             />
           )}
         </span>
       )}
       <span
-        className={`block ${
-          emphasized
-            ? 'text-title-3 text-pretty text-text-primary'
-            : 'text-body-1 font-semibold text-pretty text-text-primary'
-        }`}
+        className={`block font-semibold text-pretty text-text-primary ${style.summary}`}
       >
         {item.title}
       </span>
-      <span className="mt-3 block text-body-2 text-pretty text-text-secondary">
+      <span className={`block text-pretty text-text-secondary ${style.why}`}>
         <AiSegmentText segments={item.segments} />
       </span>
     </Link>
