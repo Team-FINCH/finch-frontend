@@ -12,11 +12,16 @@ import { formatAmount } from '@/shared/lib/formatNumber';
  * (`design.md` L950 "원형 `!` + 문구다. 빨간 박스를 쓰지 않는다" · proto L2635–L2636).
  * 자리는 프리셋 **다음**이다 (proto L2633–L2638).
  *
- * **TODO(시안): 출금 화면은 다른 실측값을 요구한다.** proto L2761–L2763 의 출금
- * 입력은 밑줄 1.5px · 입력 38px(자간 -.025em) · `원` 22px/600 이고, 밑줄 색이 상태로
- * 갈린다 (`design.md` L978 "미입력 `--border2`, 입력 `--t1`, 초과 `--t3`").
- * 이 컴포넌트에는 입금 실측값(밑줄 2px · 입력 36px · `원` 20px/500 · 밑줄 항상 `--t1`)
- * 만 담았다. 두 화면 값을 한 컴포넌트로 합칠지 나눌지는 시안 회신 뒤에 정한다.
+ * **두 화면 치수는 입금 쪽으로 통일했다** (이슈 #54 회신 2026-09-11 「라」).
+ * 프로토타입의 출금 입력(proto L2761–L2763)은 밑줄 1.5px · 입력 38px(자간 -.025em) ·
+ * `원` 22px/600 으로 달랐는데, 두 시안을 따로 그린 결과일 뿐이라 한쪽으로 모았다.
+ * 고른 이유도 회신이 적었다 — 1.5px 에서는 상태색 차이가 잘 안 보이고, 출금은
+ * 예수금 전액까지 들어가 자릿수가 길어 38px 이 390px 폭에서 넘칠 위험이 있다.
+ * `원` 은 20px/500/`--t3` 로 낮춘다. 숫자와 같은 크기·색이면 금액이 두 덩어리로 읽힌다.
+ *
+ * **밑줄 색만 출금 쪽 규칙을 두 화면 공통으로 가져왔다** — 미입력 `--border2` ·
+ * 입력 `--t1` · 초과 `--t3` (`design.md` L978). 입금에도 미입력·초과 상태가
+ * 똑같이 있다(프로토타입 `depOver`).
  */
 type AmountInputProps = {
   value: number | null;
@@ -26,6 +31,18 @@ type AmountInputProps = {
   label: string;
   errorMessage?: string;
 };
+
+/**
+ * 밑줄 색. 세 상태가 있고 **초과가 입력을 이긴다** — 값이 들어 있어도 한도를 넘으면
+ * 초과 색이다. 빨간색을 쓰지 않는 것은 아래 `.info` 안내와 같은 이유다
+ * (`design.md` §10 "Red Warning Box 금지").
+ */
+function underlineClass(value: number | null, hasError: boolean): string {
+  if (value === null) {
+    return 'border-border-strong';
+  }
+  return hasError ? 'border-text-muted' : 'border-text-primary';
+}
 
 /**
  * 프리셋 라벨. 프로토타입은 `+1만` `+10만` `+100만` 이다 (proto L2631 ·
@@ -67,7 +84,12 @@ export function AmountInput({
       >
         {label}
       </label>
-      <div className="flex items-baseline justify-between gap-2 border-b-2 border-text-primary pb-3">
+      <div
+        className={`flex items-baseline justify-between gap-2 border-b-2 pb-3 transition-colors duration-(--motion-fast) ease-standard ${underlineClass(
+          value,
+          errorMessage !== undefined,
+        )}`}
+      >
         <input
           id="deposit-amount"
           type="text"

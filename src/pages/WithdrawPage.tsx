@@ -5,7 +5,6 @@ import { useAccount } from '@/features/deposit/api/useAccount';
 import { useWithdrawal } from '@/features/deposit/api/useWithdrawal';
 import { AmountInput } from '@/features/deposit/components/AmountInput';
 import { isHttpError } from '@/shared/api';
-import { ORDER_QUANTITY_RATIO_PRESETS } from '@/shared/config/apiContract';
 import { ROUTES } from '@/shared/config/routes';
 import { showToast } from '@/shared/hooks/useToastStore';
 import { formatKrw } from '@/shared/lib/formatNumber';
@@ -27,8 +26,12 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  * 근거: `ia.md` §1 "홈·자산" 표, "출금 화면" 절.
  * API: `GET /api/v1/account` · `POST /api/v1/withdrawals` (`Idempotency-Key` 필수).
  *
- * **비율·최대 버튼의 분모는 `cashBalance` 다** — 출금 한도 조회 API 가 없어서다
- * (ia.md §1). 프리셋 금액 버튼과 별도 확인 단계는 명세에 없어 만들지 않았다.
+ * **비율 버튼(10%·25%·50%)을 뺐다** (이슈 #54 회신 2026-09-11 「라」).
+ * `design.md` §7.19 가 "금액 프리셋 버튼을 만들지 않는다" 로 이미 정한 것이고,
+ * 출금 가능 금액이 예수금 전액이라 별도 한도가 없어 그 비율들이 가리키는 기준이
+ * 없었다. 입금의 `+1만`·`+10만`·`+100만` 과 혼동되기도 한다.
+ * **`전액` 하나만 남는다** — 프리셋이 아니라 상한을 가리키는 것이라 성질이 다르다.
+ * 별도 확인 단계는 명세에 없어 만들지 않았다.
  *
  * **멱등성 키** — 같은 금액으로 다시 누르면(예: `IDEMPOTENCY_IN_PROGRESS` 뒤 재시도)
  * 같은 키를 재사용하고, 금액을 바꾸면 다음 제출에서 새 키를 만든다
@@ -99,24 +102,17 @@ export function WithdrawPage() {
           errorMessage={amountError}
         />
 
+        {/* 프로토타입 `.chip` 실측 — 높이 34px · 반경 10px(토큰 계단에 맞춘 값,
+            `TransactionFilterChips` 주석) · 좌우 14px · 14px/500. 폭을 늘리지
+            않는다. 하나뿐인 버튼을 가로로 채우면 CTA 처럼 읽힌다. */}
         {cashBalance !== undefined && (
-          <div className="flex gap-2">
-            {ORDER_QUANTITY_RATIO_PRESETS.map((ratio) => (
-              <button
-                key={ratio}
-                type="button"
-                onClick={() => setAmount(Math.floor(cashBalance * ratio))}
-                className="flex-1 rounded-sm border border-border-strong bg-surface py-2.5 text-label text-text-primary"
-              >
-                {Math.round(ratio * 100)}%
-              </button>
-            ))}
+          <div className="flex">
             <button
               type="button"
               onClick={() => setAmount(cashBalance)}
-              className="flex-1 rounded-sm border border-border-strong bg-surface py-2.5 text-label text-text-primary"
+              className="inline-flex h-8.5 flex-none items-center rounded-sm bg-surface-soft px-3.5 text-label text-text-secondary transition-colors duration-(--motion-fast) ease-standard"
             >
-              최대
+              전액
             </button>
           </div>
         )}

@@ -4,10 +4,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDepositConfirm } from '@/features/deposit/api/useDepositConfirm';
 import { useDepositMockApprove } from '@/features/deposit/api/useDepositMockApprove';
 import { DepositResultScreen } from '@/features/deposit/components/DepositResultScreen';
+import { isRetryableDepositConfirmError } from '@/features/deposit/lib/depositConfirmRetry';
 import { depositConfirmErrorMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { ROUTES } from '@/shared/config/routes';
 import {
   DEPOSIT_MOCK_APPROVE_SCENARIOS,
+  type DepositConfirmRequest,
   type DepositMockApproveScenario,
 } from '@/shared/types/deposit';
 import { ActionBar } from '@/shared/ui/ActionBar';
@@ -53,7 +55,18 @@ export function DepositTransferPage() {
   const [scenario, setScenario] =
     useState<DepositMockApproveScenario>('SUCCESS');
   const [phase, setPhase] = useState<Phase>('select');
-  const [errorMessage, setErrorMessage] = useState<string>();
+  /*
+   * 문구가 아니라 **에러 자체**를 들고 있는다. 실패 화면의 버튼 갈래가 `code` 로
+   * 갈리기 때문이다(아래 `phase === 'error'`). 문구는 그릴 때 만든다.
+   */
+  const [error, setError] = useState<unknown>();
+  /**
+   * 승인까지는 성공하고 확정에서 실패했을 때의 승인 결과. **재시도가 `confirm`
+   * 만 다시 부르게 하려고 들고 있는다** — `mock-approve` 를 다시 부르면 이미
+   * 승인된 건이라 `DEPOSIT_INVALID_STATE` 로 막히고, 재시도가 의미 있는 갈래
+   * (`DEPOSIT_NOT_APPROVED`)에서도 영영 성공하지 못한다.
+   */
+  const [approved, setApproved] = useState<DepositConfirmRequest>();
   const [result, setResult] = useState<{
     amount: number;
     cashBalanceAfter: number;
@@ -68,22 +81,32 @@ export function DepositTransferPage() {
     }
     setPhase('processing');
     try {
-      const approved = await mockApprove.mutateAsync({
-        paymentId,
-        body: { scenario },
-      });
-      const confirmed = await confirm.mutateAsync({
-        paymentId: approved.paymentId,
-        paymentKey: approved.paymentKey,
-        amount: approved.amount,
-      });
+      /*
+       * 승인이 이미 끝난 건이면 확정만 다시 부른다. `mock-approve` 는 두 번째
+       * 호출에서 `DEPOSIT_INVALID_STATE` 로 막히므로, 확정에서 실패한 건을
+       * 재시도할 때 이 갈래가 없으면 영영 성공하지 못한다.
+       */
+      let request = approved;
+      if (request === undefined) {
+        const res = await mockApprove.mutateAsync({
+          paymentId,
+          body: { scenario },
+        });
+        request = {
+          paymentId: res.paymentId,
+          paymentKey: res.paymentKey,
+          amount: res.amount,
+        };
+        setApproved(request);
+      }
+      const confirmed = await confirm.mutateAsync(request);
       setResult({
         amount: confirmed.amount,
         cashBalanceAfter: confirmed.cashBalanceAfter,
       });
       setPhase('success');
-    } catch (error) {
-      setErrorMessage(depositConfirmErrorMessage(error));
+    } catch (caught) {
+      setError(caught);
       setPhase('error');
     }
   }
@@ -134,21 +157,31 @@ export function DepositTransferPage() {
 
   if (phase === 'error') {
     /*
-     * 만료도 이 화면이 받는다(위 주석). 주 동작은 `DepositCompletePage` 와 같은
-     * 이유로 입금 화면으로 되돌리는 것이다 — 확정에서 막힌 건은 되살릴 수 없고
-     * 처음부터 다시 하는 경로만 준다(`ia.md:85` · contracts C85).
+     * 만료도 이 화면이 받는다(위 주석). 버튼 갈래는 `DepositCompletePage` 와
+     * 같다 — 한도 초과·금액 불일치만 재시도를 막고 그 밖은 `다시 시도` 를 둔다
+     * (이슈 #54 회신 2026-09-11 「다」 · `isRetryableDepositConfirmError`).
      */
+    const retryable = isRetryableDepositConfirmError(error);
     return (
       <PageMain>
         <SubPageHeader title="결제 결과" showBack={false} />
-        <DepositResultScreen
-          variant="error"
-          errorMessage={errorMessage}
-          primaryLabel="다시 입금하기"
-          onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
-          secondaryLabel="나중에 하기"
-          onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
-        />
+        {retryable ? (
+          <DepositResultScreen
+            variant="error"
+            errorMessage={depositConfirmErrorMessage(error)}
+            primaryLabel="다시 시도"
+            onPrimaryAction={() => void handleApprove()}
+            secondaryLabel="홈으로"
+            onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
+          />
+        ) : (
+          <DepositResultScreen
+            variant="error"
+            errorMessage={depositConfirmErrorMessage(error)}
+            primaryLabel="입금 화면으로"
+            onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
+          />
+        )}
       </PageMain>
     );
   }

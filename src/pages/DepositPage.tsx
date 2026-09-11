@@ -5,6 +5,7 @@ import { useAccount } from '@/features/deposit/api/useAccount';
 import { useDepositLimit } from '@/features/deposit/api/useDepositLimit';
 import { useDepositReady } from '@/features/deposit/api/useDepositReady';
 import { AmountInput } from '@/features/deposit/components/AmountInput';
+import { DepositLimitBox } from '@/features/deposit/components/DepositLimitBox';
 import { PaymentMethodPicker } from '@/features/deposit/components/PaymentMethodPicker';
 import { depositLimitExceededMessage } from '@/features/deposit/lib/depositErrorMessages';
 import { toSameOriginPath } from '@/features/deposit/lib/queryParams';
@@ -16,7 +17,7 @@ import { ActionBar } from '@/shared/ui/ActionBar';
 import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { PageMain } from '@/shared/ui/PageMain';
-import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
+import { SoftBoxRow } from '@/shared/ui/SoftBox';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
@@ -146,9 +147,22 @@ export function DepositPage() {
       : undefined;
 
   const exceedsLimit = amountError !== undefined;
+  /*
+   * **한도를 모르면 결제까지 가지 못한다.** 전에는 `limit` 이 없어도 CTA 가 살아
+   * 있어서 조회가 실패한 채로 조용히 결제창까지 갔다 — 위 `amountError` 검사가
+   * `limit !== undefined` 를 요구하므로, 한도를 모르는 동안에는 초과 여부를 아예
+   * 판정하지 못한 채 통과시킨 것이다. 이슈 #54 회신(2026-09-11) 「가」가 이 자리를
+   * 잠그기로 정했다.
+   *
+   * 조회 중과 실패를 함께 잠근다. 둘 다 "한도를 모른다"는 같은 상태다.
+   *
+   * **CTA 문구는 그대로 세 갈래다.** 한도 실패용 네 번째 문구를 만들지 않는다 —
+   * 잠긴 이유는 버튼이 아니라 `DepositLimitBox` 안 둘째 줄이 말한다.
+   */
   const canSubmit =
     amount !== null &&
     amount > 0 &&
+    limit !== undefined &&
     !exceedsLimit &&
     paymentMethod !== null &&
     !readyMutation.isPending;
@@ -201,40 +215,14 @@ export function DepositPage() {
           errorMessage={amountError}
         />
 
-        {/*
-         * 세 줄이다 — `1회 한도` · `누적 한도` · `잔여 한도`. 라벨과 순서는
-         * 프로토타입(`isDeposit` L2643-2645)과 `design.md:946` · `ia.md:87` 이
-         * 같은 것을 말한다. 어느 필드가 어느 줄인지도 계약이 정한다 —
-         * `perRequestLimit`(1회) · `cumulativeLimit`(계정 전체 누적 한도) ·
-         * `remainingAmount`(남은 몫). **`depositedAmount`(누적 입금액)는 이
-         * 박스에 없다** — `누적 한도` 는 한도이고 누적 입금액이 아니다
-         * (contracts C49 · apiSpec §4.1).
-         *
-         * 값은 서버가 준 것을 그대로 그린다. 화면이 계산하지 않는다(`ia.md:87`).
-         *
-         * 구분선은 마지막 `잔여 한도` 줄 위에 온다 — 앞 두 줄이 고정 한도이고
-         * 마지막 줄만 쓴 만큼에 따라 움직이는 값이라 묶음이 갈린다(프로토타입 L2645).
-         *
-         * **회색 Soft Box 다.** 아래 `확인` 은 흰 카드라 둘이 면색으로 갈린다
-         * (프로토타입 L2641 `.soft` vs L2663 `.card`).
-         */}
-        {limit !== undefined && (
-          <SoftBox>
-            <SoftBoxRow
-              label="1회 한도"
-              value={formatKrw(limit.perRequestLimit)}
-            />
-            <SoftBoxRow
-              label="누적 한도"
-              value={formatKrw(limit.cumulativeLimit)}
-            />
-            <SoftBoxRow
-              label="잔여 한도"
-              value={formatKrw(limit.remainingAmount)}
-              divided
-            />
-          </SoftBox>
-        )}
+        {/* 세 줄·구분선·조회 중·실패는 전부 `DepositLimitBox` 안에 있다. */}
+        <DepositLimitBox
+          limit={limit}
+          isPending={limitQuery.isPending}
+          isError={limitQuery.isError}
+          isRetrying={limitQuery.isError && limitQuery.isFetching}
+          onRetry={() => void limitQuery.refetch()}
+        />
 
         {/* 필드 라벨이 아니라 섹션 제목이다 (프로토타입 L2650 `.sh`>`.sht`). */}
         <section>
