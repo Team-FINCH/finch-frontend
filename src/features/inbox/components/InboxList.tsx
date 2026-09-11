@@ -7,6 +7,7 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useInboxItems } from '../api/useInboxItems';
 import { useMarkInboxItemRead } from '../api/useMarkInboxItemRead';
+import type { InboxRecordSubmit } from '../model/recordSubmit';
 import type { InboxItem } from '../model/types';
 
 import { InboxItemRow } from './InboxItemRow';
@@ -49,7 +50,16 @@ import { RecordSheet } from './RecordSheet';
  */
 const STOCK_DETAIL_AI_TAB_QUERY = 'tab=ai';
 
-export function InboxList() {
+type InboxListProps = {
+  /**
+   * `record` 항목의 시트가 쓰는 저장 경로. **알림함이 직접 만들지 못한다** —
+   * 매수 이유는 `POST /ai/wiki/theses` 로 가고 그 훅이 다른 feature 에 있어
+   * `pages/InboxPage.tsx` 가 내려준다(`../model/recordSubmit.ts` 머리 주석).
+   */
+  recordSubmit: InboxRecordSubmit;
+};
+
+export function InboxList({ recordSubmit }: InboxListProps) {
   const { data, isPending, isError, refetch } = useInboxItems();
   const markRead = useMarkInboxItemRead();
   const navigate = useNavigate();
@@ -124,6 +134,7 @@ export function InboxList() {
       </div>
       <RecordSheet
         item={recordItem}
+        submit={recordSubmit}
         onOpenChange={(open) => {
           if (!open) {
             setRecordItem(null);
