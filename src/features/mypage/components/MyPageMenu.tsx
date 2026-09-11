@@ -46,7 +46,7 @@ function Divider() {
 
 /**
  * 내 정보 화면의 행 목록 (프로토타입 `isMy` 블록 — 투자 계좌 · 누적 입금 · 거래 내역 ·
- * 입금·결제 뒤 이 티켓에서 더한 출금). 로그아웃은 여기 없다 — `features/auth` 의
+ * 입금 뒤 이 티켓에서 더한 출금). 로그아웃은 여기 없다 — `features/auth` 의
  * `LogoutButton` 을 그대로 쓴다(스타일이 다른 별개 액션이라 이 목록 리듬에 넣지 않는다).
  *
  * **"투자 계좌"는 항상 "연결됨" 고정 텍스트다.** 프로토타입에도 데이터 바인딩이
@@ -65,8 +65,13 @@ function Divider() {
  * `/withdraw`(`WithdrawPage`)는 라우터에 이미 붙어 있는데 이 행이 없으면 앱 어디서도
  * 들어갈 방법이 없다(코드베이스 전체에서 `ROUTES.withdraw` 를 참조하는 UI가 라우터
  * 정의 하나뿐임을 확인했다). 그래서 프로토타입의 침묵을 "만들지 마라"가 아니라
- * "이 화면이 그 결정 이전 판이다"로 읽고 "입금·결제" 다음 자리에 추가했다.
+ * "이 화면이 그 결정 이전 판이다"로 읽고 "입금" 다음 자리에 추가했다.
  * 이 판단은 보고에도 남긴다.
+ *
+ * **"입금" 행의 라벨에서 "· 결제"를 뺐다**(2026-09-11 화면 확인). 이 행이 여는
+ * 화면(`/deposit`)이 하는 일은 예수금 충전 하나이고 결제 수단은 그 안의 선택지다 —
+ * 수단을 라벨에 끌어올리면 별도의 결제 기능이 있는 것처럼 읽힌다. 옆 행 "출금"
+ * 과도 짝이 맞는다.
  */
 export function MyPageMenu({
   depositedAmount,
@@ -95,7 +100,7 @@ export function MyPageMenu({
       <Divider />
       <NavRow to={ROUTES.transactions} label="거래 내역" />
       <Divider />
-      <NavRow to={ROUTES.deposit} label="입금 · 결제" />
+      <NavRow to={ROUTES.deposit} label="입금" />
       <Divider />
       <NavRow to={ROUTES.withdraw} label="출금" />
     </div>
