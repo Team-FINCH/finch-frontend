@@ -147,9 +147,22 @@ export function DepositPage() {
       : undefined;
 
   const exceedsLimit = amountError !== undefined;
+  /*
+   * **한도를 모르면 결제까지 가지 못한다.** 전에는 `limit` 이 없어도 CTA 가 살아
+   * 있어서 조회가 실패한 채로 조용히 결제창까지 갔다 — 위 `amountError` 검사가
+   * `limit !== undefined` 를 요구하므로, 한도를 모르는 동안에는 초과 여부를 아예
+   * 판정하지 못한 채 통과시킨 것이다. 이슈 #54 회신(2026-09-11) 「가」가 이 자리를
+   * 잠그기로 정했다.
+   *
+   * 조회 중과 실패를 함께 잠근다. 둘 다 "한도를 모른다"는 같은 상태다.
+   *
+   * **CTA 문구는 그대로 세 갈래다.** 한도 실패용 네 번째 문구를 만들지 않는다 —
+   * 잠긴 이유는 버튼이 아니라 `DepositLimitBox` 안 둘째 줄이 말한다.
+   */
   const canSubmit =
     amount !== null &&
     amount > 0 &&
+    limit !== undefined &&
     !exceedsLimit &&
     paymentMethod !== null &&
     !readyMutation.isPending;
@@ -202,8 +215,13 @@ export function DepositPage() {
           errorMessage={amountError}
         />
 
-        {/* 세 줄·구분선·조회 중 자리표시자는 `DepositLimitBox` 안에 있다. */}
-        <DepositLimitBox limit={limit} isPending={limitQuery.isPending} />
+        {/* 세 줄·구분선·조회 중·실패는 전부 `DepositLimitBox` 안에 있다. */}
+        <DepositLimitBox
+          limit={limit}
+          isPending={limitQuery.isPending}
+          isError={limitQuery.isError}
+          onRetry={() => void limitQuery.refetch()}
+        />
 
         {/* 필드 라벨이 아니라 섹션 제목이다 (프로토타입 L2650 `.sh`>`.sht`). */}
         <section>

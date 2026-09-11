@@ -19,12 +19,15 @@ import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
  * **회색 Soft Box 다.** 아래 `확인` 은 흰 카드라 둘이 면색으로 갈린다
  * (프로토타입 L2641 `.soft` vs L2663 `.card`).
  *
- * 조회 중도 이 컴포넌트가 받는다. `DepositPage` 가 상태별로 다른 자리를 만들지
- * 않고 한 곳에 모은 이유는 **같은 박스의 안쪽만 갈리기** 때문이다.
+ * 조회 중·실패도 이 컴포넌트가 받는다. `DepositPage` 가 상태별로 다른 자리를
+ * 만들지 않고 한 곳에 모은 이유는 **같은 박스의 안쪽만 갈리기** 때문이다.
  */
 type DepositLimitBoxProps = {
   limit?: DepositLimitResponse;
   isPending: boolean;
+  isError: boolean;
+  /** 실패 안내의 `다시 시도` 가 부른다 */
+  onRetry: () => void;
 };
 
 /**
@@ -50,7 +53,58 @@ function LimitSkeletonRow({ divided = false }: { divided?: boolean }) {
   );
 }
 
-export function DepositLimitBox({ limit, isPending }: DepositLimitBoxProps) {
+/**
+ * 조회 실패. **화면 일부가 비는 것이라 인라인 위계다** — 왼쪽 정렬이고 화면 전체가
+ * 비는 `.aist`(가운데 정렬 · 원형 배지)를 쓰지 않는다. 이슈 #54 회신(2026-09-11)
+ * 0절이 두 위계를 갈랐다.
+ *
+ * 원형 `!` 는 `AmountInput` 의 한도 초과 안내와 같은 `.info` 다. **빨간 박스를
+ * 만들지 않는다** (`design.md` §10 "Red Warning Box 금지").
+ *
+ * **재시도는 버튼이다.** 밑줄 텍스트로 두면 누를 수 있다는 것이 보이지 않는다
+ * (같은 회신 0절). 치수는 `.aist>button` 과 같은 38px · 반경 10px · `--border2`
+ * 1px 이고, 보이는 높이를 실측값에 두고 눌리는 영역만 위아래 3px 씩 넓혀 터치
+ * 최소 44px(`design.md` §12)을 만든다 — `AiStatus` 가 쓰는 방법과 같다.
+ */
+function LimitErrorBody({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span
+        aria-hidden="true"
+        className="mt-px flex size-4.5 flex-none items-center justify-center rounded-full border-[1.4px] border-text-muted text-[11px] font-bold text-text-muted"
+      >
+        !
+      </span>
+      <div className="flex-1">
+        <p className="text-body-2 font-medium text-text-primary">
+          한도를 불러오지 못했어요.
+        </p>
+        {/*
+         * 하단 CTA 가 잠기는 이유를 말하는 줄이다. 버튼 문구를 바꾸지 않고
+         * 여기서 설명한다 — `design.md` §7.19 가 출금 CTA 에 정한 "유효하지
+         * 않으면 비활성으로만 표현한다" 와 같은 결이다.
+         */}
+        <p className="mt-1 text-[14px] leading-[21px] text-text-secondary">
+          한도를 확인해야 입금할 수 있어요.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="relative mt-3.5 h-9.5 min-w-26 rounded-sm border border-border-strong bg-surface px-4.5 text-label text-text-primary before:absolute before:inset-x-0 before:-inset-y-0.75 before:content-['']"
+        >
+          다시 시도
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function DepositLimitBox({
+  limit,
+  isPending,
+  isError,
+  onRetry,
+}: DepositLimitBoxProps) {
   if (isPending) {
     return (
       <SoftBox aria-busy="true" aria-label="입금 한도를 불러오고 있어요">
@@ -61,8 +115,12 @@ export function DepositLimitBox({ limit, isPending }: DepositLimitBoxProps) {
     );
   }
 
-  if (limit === undefined) {
-    return null;
+  if (isError || limit === undefined) {
+    return (
+      <SoftBox>
+        <LimitErrorBody onRetry={onRetry} />
+      </SoftBox>
+    );
   }
 
   return (
