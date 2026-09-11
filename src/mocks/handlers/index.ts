@@ -4,6 +4,7 @@ import { authHandlers } from './auth';
 import { depositHandlers } from './deposit';
 import { healthHandlers } from './health';
 import { inboxHandlers } from './inbox';
+import { marketHandlers } from './market';
 import { recentHandlers } from './recent';
 import { stockHandlers } from './stocks';
 import { tradingHandlers } from './trading';
@@ -40,6 +41,7 @@ export const handlers = [
   ...depositHandlers,
   ...recentHandlers,
   ...stockHandlers,
+  ...marketHandlers,
   ...watchlistHandlers,
   ...tradingHandlers,
   ...aiHandlers,

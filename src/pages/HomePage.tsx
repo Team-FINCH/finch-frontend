@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { BriefingSection } from '@/features/home/components/BriefingSection';
 import { HoldingsWatchlistPreview } from '@/features/home/components/HoldingsWatchlistPreview';
+import { MarketIndexRoller } from '@/features/home/components/MarketIndexRoller';
 import { TotalAssetsSummary } from '@/features/home/components/TotalAssetsSummary';
 import { useHomeData } from '@/features/home/model/useHomeData';
 import { useInboxItems } from '@/features/inbox';
@@ -18,13 +19,19 @@ import { PageMain } from '@/shared/ui/PageMain';
  * 근거: `ia.md` §1 "홈·자산" 표 · §4 "AI 슬롯 배치" 1번 · 프로토타입
  * `prototype/screen/finch-prototype.html` 의 `isHome` 블록(마크업 최종 근거).
  * API: `GET /api/v1/account` · `GET /api/v1/portfolio` ·
- * `GET /api/v1/watchlist?sort=` · `GET /api/v1/stocks/prices`.
+ * `GET /api/v1/watchlist?sort=` · `GET /api/v1/stocks/prices` ·
+ * `GET /api/v1/market/indices`.
  *
  * 데이터 조합은 `features/home/model/useHomeData.ts` 하나에 모았다 — 이 파일은
- * 배치만 한다.
+ * 배치만 한다. **지수 롤링만 예외로 자기 쿼리를 갖는다**(`MarketIndexRoller`) —
+ * 폴링 주기(15초)가 다르고 다른 블록과 엮이는 값이 없어 `useHomeData` 에
+ * 넣으면 홈 전체가 15초마다 다시 그려진다.
  *
- * **시장 지수 마퀴(`.mkroll`)는 만들지 않는다.** ia.md 의 "필요한 API" 목록에
- * 시장 지수 API 가 없다 — 없는 데이터를 보여줄 수 없어 자리 자체를 비운다.
+ * **시장 지수 롤링(`.mkroll`)은 헤더 제목 옆에 있다** (티켓 FINCH-228 ·
+ * GitLab #65). 전에는 "지수 API 가 없어 자리 자체를 비운다"고 적어 뒀는데
+ * 그 전제가 풀렸다 — apiSpec v0.8.7 이 `GET /market/indices` 를 확정했고
+ * 백엔드 티켓 225 가 머지됐다. **KOSPI · KOSDAQ 둘뿐이다.** 프로토타입은
+ * USD-KRW · NASDAQ 까지 넷을 돌리지만 그 둘은 백엔드 범위 밖으로 구두 확정됐다.
  *
  * **AI 슬롯 2번(수익률 원인 분석)은 이 화면에 없다.** ia.md §4 표는 "홈 · 포트폴리오"
  * 둘 다 이 슬롯이 들어간다고 적었지만, 프로토타입의 실제 `isHome` 마크업에는
@@ -63,6 +70,7 @@ export function HomePage() {
       <PageHeader
         title="홈"
         unreadCount={inbox.data?.unreadCount ?? 0}
+        titleSuffix={<MarketIndexRoller />}
         className="mb-3.5"
       />
       <BriefingSection

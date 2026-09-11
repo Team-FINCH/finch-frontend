@@ -88,3 +88,31 @@ export function getPriceDirection(changeRatio: number): PriceDirection {
   }
   return 'flat';
 }
+
+/**
+ * 지수 포인트 포매터 (apiSpec §5.7). **금액 포매터를 쓰면 안 되는 자리다** —
+ * `formatAmount` 는 `Math.round` 로 소수를 잘라 `2600.54` 를 `2,601` 로 만든다.
+ * 서버가 소수 둘째 자리까지 주므로 자릿수를 둘로 고정한다. 값이 `2600` 으로
+ * 딱 떨어져 와도 `2,600.00` 으로 그려 자리폭이 흔들리지 않게 한다.
+ */
+const INDEX_POINT_FORMATTER = new Intl.NumberFormat('ko-KR', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** 지수 현재값. `2600.54` → `2,600.54` */
+export function formatIndexPoint(value: number): string {
+  return INDEX_POINT_FORMATTER.format(value);
+}
+
+/**
+ * 지수 변동폭에 부호를 붙인다. `-12.31` → `-12.31` · `0.95` → `+0.95`
+ *
+ * `formatSignedAmount` 와 같은 이유로 `Math.abs` 를 먼저 건다 — `Intl` 이 붙이는
+ * 유니코드 빼기표(U+2212)가 아니라 등락률과 같은 ASCII 하이픈을 쓴다.
+ * 0 에 부호를 붙이지 않는 것도 같다.
+ */
+export function formatSignedIndexPoint(value: number): string {
+  const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+  return `${sign}${formatIndexPoint(Math.abs(value))}`;
+}

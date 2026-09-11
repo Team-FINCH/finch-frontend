@@ -68,6 +68,14 @@ export const queryKeys = {
     quote: (stockCode: string) =>
       [...queryKeys.stocks.all(), 'quote', stockCode] as const,
   },
+  /**
+   * `GET /market/indices` (apiSpec §5.7, FINCH-228).
+   * 파라미터가 없어 키에 실을 것이 없다 — 요청 하나에 KOSPI · KOSDAQ 둘이 온다.
+   */
+  market: {
+    all: () => ['market'] as const,
+    indices: () => [...queryKeys.market.all(), 'indices'] as const,
+  },
   /** `GET /watchlist` (FINCH-49). */
   watchlist: {
     all: () => ['watchlist'] as const,
