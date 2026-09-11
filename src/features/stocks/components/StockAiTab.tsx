@@ -204,12 +204,20 @@ function ThesisCheckBlock({ section }: { section: AiAnalysisSection }) {
  * 반경 13, 면 `#F5F6F8` · 라벨 15px/600 `--t1` · `›` 15px `--t3`. 논지가 있을 때의
  * `기록 확인하기` 행과 같은 모양이라 클래스를 맞췄다.
  *
- * **도착지는 AI 채팅이다. 프로토타입의 기록 시트가 아니다.** 프로토타입은
- * `openRecordSheet` 로 입력 시트를 열지만(L1974) **프론트에는 논지를 새로 쓸 API 가
- * 없다** — `POST /wiki/theses` 는 AI 서비스가 대화 안에서 스스로 부르는 경로이고
- * 프론트가 가진 것은 열람·수정·사실 삭제 셋뿐이다(contracts C5·C80·P34).
- * 그래서 ia.md:456 이 "입력 폼이 아니라 AI 채팅으로 보내는 버튼" 으로 못박은 쪽을
- * 따른다. 시트를 만들면 저장할 곳이 없는 폼이 된다.
+ * **도착지는 아직 AI 채팅이다.** 프로토타입은 `openRecordSheet` 로 입력 시트를
+ * 열지만(L1974) 이 버튼은 채팅으로 보낸다.
+ *
+ * **이유가 2026-09-11 에 사라졌다.** 원래는 프론트에 논지를 새로 쓸 API 가 없었다 —
+ * `POST /wiki/theses` 가 중계 대상이 아니어서 프론트가 가진 것은 열람·수정·사실 삭제
+ * 셋뿐이었고(옛 contracts P34), 시트를 만들면 저장할 곳이 없는 폼이 됐다. 그래서
+ * ia.md 가 "입력 폼이 아니라 AI 채팅으로 보내는 버튼" 으로 못박았다. **지금은 경로가
+ * 열려 있다**(이슈 #56 · apiSpec v0.8.8 · contracts C97) — 위키 탭은 같은 티켓
+ * (FINCH-238)에서 시트로 바꿨다.
+ *
+ * **이 자리를 바꾸지 않은 것은 계약이 아니라 범위 때문이다.** 종목 상세에서 시트를
+ * 열려면 여기서 시트 상태를 들고 있어야 하고 저장 뒤 분석 재조회까지 붙는데, 그
+ * 판단을 아직 하지 않았다. 바꿀 때 필요한 것은 `features/portfolio` 의
+ * `ThesisEditSheet` 와 같은 갈래 — 논지가 없으면 `POST`, 있으면 `PUT` — 하나뿐이다.
  */
 function ThesisPromptBlock({ stockCode }: { stockCode: string }) {
   const navigate = useNavigate();
