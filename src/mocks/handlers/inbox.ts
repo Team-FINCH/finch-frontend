@@ -34,6 +34,10 @@ import { store } from '../lib/store';
  * (`wiki` → 포트폴리오 위키 탭, `news` → 그 종목 상세 AI 탭)으로 보내는데, 원천이
  * 붙는 날까지 그 갈래를 확인할 길이 이것뿐이다.
  *
+ * **`wiki` 는 그래도 계산해서 만든다** — 확인이 필요한 추측이 남아 있을 때만 뜬다
+ * (`buildWikiItems`). 위키 탭에서 마지막 추측에 답하면 이 항목이 사라지는 것을
+ * 목으로 확인할 수 있어야 한다.
+ *
  * **상태 유지 범위** — 읽음 표시만 이 파일의 모듈 `Set` 에 남는다. 새로고침하면
  * 전부 미읽음으로 돌아간다.
  */
@@ -73,20 +77,23 @@ interface MockInboxItem {
 const readItemIds = new Set<string>();
 
 /**
- * 서버가 아직 내보내지 않는 두 종류. 위 머리 주석의 "실제로는 오지 않는다" 를 본다.
- * `tradeId` 는 `record` 만 값이 있으므로 둘 다 `null` 이다.
+ * 확인이 필요한 추측이 남아 있을 때만 뜨는 항목. `tradeId` 는 `record` 만 값이 있다.
+ */
+const WIKI_ITEM: Omit<MockInboxItem, 'unread'> = {
+  itemId: 'wiki-005930-3',
+  kind: 'wiki',
+  title: '삼성전자, 실적 발표 전에 담으신 것으로 보여요',
+  summary: 'FINCH가 이해한 투자 기준이에요. 맞는지 확인해 주세요.',
+  createdAt: '2026-09-10T18:04:00+09:00',
+  stockCode: '005930',
+  stockName: '삼성전자',
+  tradeId: null,
+};
+
+/**
+ * 서버가 아직 내보내지 않는 종류. 위 머리 주석의 "실제로는 오지 않는다" 를 본다.
  */
 const STATIC_ITEMS: Omit<MockInboxItem, 'unread'>[] = [
-  {
-    itemId: 'wiki-005930-3',
-    kind: 'wiki',
-    title: '삼성전자, 실적 발표 전에 담으신 것으로 보여요',
-    summary: 'FINCH가 이해한 투자 기준이에요. 맞는지 확인해 주세요.',
-    createdAt: '2026-09-10T18:04:00+09:00',
-    stockCode: '005930',
-    stockName: '삼성전자',
-    tradeId: null,
-  },
   {
     itemId: 'news-000660-7',
     kind: 'news',
@@ -98,6 +105,23 @@ const STATIC_ITEMS: Omit<MockInboxItem, 'unread'>[] = [
     tradeId: null,
   },
 ];
+
+/**
+ * `wiki` 항목은 **확인이 필요한 추측이 하나라도 남아 있을 때만** 만든다
+ * (FINCH-246). `record` 를 고정 배열로 두지 않는 것과 같은 이유다 —
+ * 위키 탭에서 마지막 추측에 `맞아요`·`아니에요` 로 답하고 나면 확인할 것이 없는데,
+ * 고정 배열이면 알림함에 "확인해 주세요" 가 그대로 남아 **답한 것이 반영됐는지
+ * 확인할 길이 없다.** 프로토타입도 승격 시 `mail` 에서 `type==="wiki"` 를 걷는다.
+ *
+ * 항목 자체는 하나뿐이라 종목·문구가 `store.wiki.profile` 의 어느 추측과 이어지지
+ * 않는다. 서버가 추측 생성기를 갖게 되면(이슈 #52) 그때 실제 추측에서 만든다.
+ */
+function buildWikiItems(): Omit<MockInboxItem, 'unread'>[] {
+  const hasGuess = store.wiki.profile.some(
+    (fact) => fact.source === 'ai_inferred',
+  );
+  return hasGuess ? [WIKI_ITEM] : [];
+}
 
 /** 보유 종목과 활성 논지를 대조해 `record` 항목을 만든다 (§6.4 "`record` 규칙"). */
 function buildRecordItems(): Omit<MockInboxItem, 'unread'>[] {
@@ -137,7 +161,11 @@ export const inboxHandlers = [
       return unauthorized;
     }
 
-    const items: MockInboxItem[] = [...buildRecordItems(), ...STATIC_ITEMS]
+    const items: MockInboxItem[] = [
+      ...buildRecordItems(),
+      ...buildWikiItems(),
+      ...STATIC_ITEMS,
+    ]
       .map((item) => ({ ...item, unread: !readItemIds.has(item.itemId) }))
       // 정렬은 서버가 해서 준다 — `createdAt` 내림차순이다.
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
