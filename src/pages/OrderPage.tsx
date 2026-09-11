@@ -18,6 +18,7 @@ import {
 } from '@/features/order';
 import { isHttpError } from '@/shared/api';
 import { ROUTES, STOCK_CODE_PARAM } from '@/shared/config/routes';
+import { showToast } from '@/shared/hooks/useToastStore';
 import { formatAmount } from '@/shared/lib/formatNumber';
 import { type OrderResponse } from '@/shared/types/order';
 import { ActionBar } from '@/shared/ui/ActionBar';
@@ -273,6 +274,20 @@ export function OrderPage() {
           // 체결 뒤에는 종목 상세로 돌아간다. 주문 화면에 남으면 방금 체결한 수량이
           // 그대로 남아 같은 주문을 한 번 더 내기 쉽다.
           void navigate(ROUTES.stockDetail(stockCode));
+          /*
+            체결 토스트 (FINCH-232 의 19자리 중 하나, 프로토타입 `submit`).
+            **결과 시트를 닫고 종목 상세로 돌아간 뒤에 띄운다.** 프로토타입은
+            결과 시트가 없어 `this.back()` 바로 뒤에 띄우는데, 우리는 시트가
+            같은 문장을 이미 제목으로 보여주고 있어서 시트가 떠 있는 동안 겹쳐
+            띄우면 같은 말이 두 번 나온다. 돌아간 화면에서 한 번 확인해 주는
+            것이 이 토스트의 역할이다.
+          */
+          if (result !== null) {
+            const label = result.side === 'SELL' ? '매도' : '매수';
+            showToast(
+              `${result.stockName} ${result.quantity}주를 ${label}했어요.`,
+            );
+          }
         }}
       />
     </>
