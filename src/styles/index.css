@@ -315,7 +315,15 @@
   --color-disabled-text: #78828e; /* --color-text-muted 와 같은 값. 함께 움직인다 */
 
   /* ── 타이포 (프로토타입 .d36·.t1~.t3·.b1·.b2·.lb·.cp) ─────────────── */
-  --font-sans: Pretendard, system-ui, -apple-system, sans-serif;
+  /* 맨 앞은 반드시 `Pretendard Variable` 이다 — 이 파일 머리에서 import 하는
+     `pretendardvariable-dynamic-subset.css` 가 등록하는 패밀리 이름이 그것이다.
+     정적 `Pretendard` 를 앞에 두면 그 서체가 설치된 기기에서만 맞고 나머지는
+     `system-ui` 로 떨어진다. 시스템 서체는 500 웨이트를 갖지 않는 경우가 많아
+     `font-medium`·`font-semibold` 가 400 으로 렌더되거나 합성돼 화면 전체가
+     프로토타입보다 얇아 보인다 (2026-09-11 확인, FINCH-237).
+     정적 `Pretendard` 는 뒤에 남겨 둔다 — 기기에 설치돼 있으면 그쪽이 낫다. */
+  --font-sans:
+    'Pretendard Variable', Pretendard, system-ui, -apple-system, sans-serif;
 
   --text-display: 36px;
   --text-display--line-height: 44px;
