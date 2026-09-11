@@ -10,6 +10,7 @@ import { Button, LinkButton } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 
+import { useConfirmWikiFact } from '../api/useConfirmWikiFact';
 import { useDeleteWikiFact } from '../api/useDeleteWikiFact';
 import { usePortfolio } from '../api/usePortfolio';
 import { useWiki } from '../api/useWiki';
@@ -61,6 +62,7 @@ export function WikiTab() {
   const [infoOpen, setInfoOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WikiFact | null>(null);
   const deleteFact = useDeleteWikiFact();
+  const confirmFact = useConfirmWikiFact();
   /**
    * 시트가 여는 대상. 기존 논지(수정)와 미기록 보유 종목(신규)이 같은 시트를 쓰고
    * 저장 경로만 갈린다 — `ThesisEditSheet.tsx` 머리 주석을 본다.
@@ -226,13 +228,18 @@ export function WikiTab() {
           </p>
           <WikiGuessCarousel
             facts={guessFacts}
+            onConfirm={(fact) => confirmFact.mutate({ factId: fact.id })}
             onReject={(fact) =>
               deleteFact.mutate({
                 factId: fact.id,
                 reason: 'guess_rejected',
               })
             }
-            isRejecting={deleteFact.isPending}
+            /*
+              둘 중 어느 것이 돌든 카드의 두 버튼을 함께 잠근다. 같은 사실에
+              승격과 삭제가 동시에 날아가면 나중에 닿는 쪽이 404 를 받는다.
+            */
+            isAnswering={confirmFact.isPending || deleteFact.isPending}
           />
         </section>
       )}

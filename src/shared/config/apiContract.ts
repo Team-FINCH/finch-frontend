@@ -194,6 +194,22 @@ export const API_PATHS = {
       createThesis: '/ai/wiki/theses',
       updateThesis: (stockCode: string) => `/ai/wiki/theses/${stockCode}`,
       deleteFact: (factId: string) => `/ai/wiki/facts/${factId}`,
+      /**
+       * **계약 없음 — 이 한 줄은 프론트 추정값이다**
+       * (FINCH-246, GitLab 이슈 #26 2번 · #41 회신 대기).
+       *
+       * 추측을 사실로 **승격**하는 경로다. 거절(`DELETE ...?reason=guess_rejected`)
+       * 은 MR !140 으로 열렸는데 승격은 아직 없어서, 카드에 `아니에요` 만 있고
+       * `맞아요` 가 없었다. 알림함(`inbox`)을 만들 때와 같은 방식으로 간다 —
+       * 목으로 흉내 내 화면을 끝까지 만들어 두고, 경로가 열리면 이 줄과
+       * `mocks/handlers/wiki.ts` 의 핸들러만 갈아 끼운다.
+       *
+       * 실제 경로 이름이 무엇이 될지는 모른다. 승격이 `PATCH /facts/{id}` 가 될
+       * 수도 있고 `reason` 처럼 기존 경로의 파라미터로 붙을 수도 있다. 그래서
+       * 화면은 이 값을 직접 쓰지 않고 `features/portfolio/api/confirmWikiFact.ts`
+       * 한 곳만 참조한다.
+       */
+      confirmFact: (factId: string) => `/ai/wiki/facts/${factId}/confirm`,
     },
   },
   /**

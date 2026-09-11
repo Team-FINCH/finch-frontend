@@ -36,6 +36,13 @@ import { nowKstIso } from '../lib/time';
  * | `PUT /ai/wiki/theses/{stockCode}` 정상 | `content`가 갱신된 논지 전체(TODO(계약) 재조회 방식이라 화면은 응답을 무시하고 `GET /wiki`를 다시 부른다, ia.md §1) |
  * | `DELETE /ai/wiki/facts/{factId}` 모르는 `factId` | `404 RESOURCE_NOT_FOUND` — 명세에 정의된 코드가 아니라 목이 고른 값이다(P6) |
  * | `DELETE /ai/wiki/facts/{factId}` 정상 | `content: {id, deletedAt}` |
+ * | `POST /ai/wiki/facts/{factId}/confirm` 모르는 `factId`·추측이 아닌 사실 | `404 RESOURCE_NOT_FOUND` |
+ * | `POST /ai/wiki/facts/{factId}/confirm` 정상 | `content` 가 사실로 승격된 그 항목 |
+ *
+ * **승격 갈래(`confirm`)에는 계약이 없다.** 경로도 응답도 프론트 추정값이고 서버에
+ * 그런 경로가 없다(이슈 #26 2번 · #41 회신 대기). 알림함을 만들 때와 같이 목으로
+ * 흉내 내 화면을 끝까지 만들어 두는 것이고, 경로가 열리면 이 핸들러와
+ * `features/portfolio/api/confirmWikiFact.ts` 둘만 갈아 끼운다.
  *
  * **`POST` 갈래는 2026-09-11 에 생겼다** (이슈 #56 · apiSpec v0.8.8 · contracts C97).
  * 그전까지 이 파일은 "AI 서비스가 대화에서 스스로 부르는 경로라 목에도 없다"고
@@ -68,6 +75,27 @@ function withStockName(thesis: MockWikiThesis) {
         ? thesis.ticker
         : (findStock(thesis.ticker)?.stockName ?? thesis.ticker),
   };
+}
+
+/**
+ * 물음표로 묻던 추측을 평서문으로 바꾼다 (프로토타입 `confirm` 의 `replace` 사슬).
+ *
+ * **이 변환은 목 안에만 있어야 한다. 화면 코드로 올리지 마라.** 어미가 다양해서
+ * 정규식 규칙은 금방 샌다 — `…하나요?`·`…시죠?`·`…맞죠?` 가 한 줄씩 늘어나고,
+ * 규칙에 없는 어미가 오면 물음표만 마침표로 바뀐 이상한 문장이 확정 목록에 남는다.
+ * 문장을 다시 쓰는 것은 서버(AI)가 할 일이고, 화면은 승격 응답의 `text` 를 그대로
+ * 그린다. 여기 있는 이유는 **목이 시연용**이어서다 — 실서버가 붙으면 이 함수는
+ * 핸들러와 함께 통째로 사라진다.
+ *
+ * 줄바꿈도 편다. 추측 카드는 두 줄로 묻지만 확정 목록은 한 줄짜리 문장들이 쌓이는
+ * 자리라, 프로토타입도 승격할 때 줄바꿈을 공백으로 바꾼다.
+ */
+function toStatement(text: string): string {
+  return text
+    .replace(/\n/g, ' ')
+    .replace(/편인가요\?$/, '편이다.')
+    .replace(/하시나요\?$/, '한다.')
+    .replace(/\?$/, '.');
 }
 
 export const wikiHandlers = [
@@ -236,6 +264,53 @@ export const wikiHandlers = [
       return HttpResponse.json(
         aiResponse({ id: factId, deletedAt, reason }, nextAiRequestId()),
       );
+    },
+  ),
+
+  /*
+    `맞아요` — 추측을 사실로 승격한다. **계약 없는 경로다**(위 머리 주석).
+
+    승격 뒤 그 항목은 `확정된 투자 기준` 목록으로 자리를 옮긴다. 그래서 세 가지를
+    함께 바꾼다 —
+
+    - `source` 를 `derived_from_trades` 로. 프로토타입은 `직접 확인` 이라는 말을
+      쓰지만 계약의 `WikiSource` 에는 그런 값이 없다(`user_stated`·
+      `derived_from_trades`·`ai_inferred` 셋뿐이다). 셋 중에서는 이것이 맞다 —
+      화면의 `?` 설명이 "투자 기록에서 읽어낸 성향은 확인을 받은 뒤에만 확정해요"
+      이고, 그 값의 화면 문구가 마침 `투자 기록에서 확인` 이다. `user_stated` 는
+      대화에서 사용자가 먼저 말한 것이라 출처가 다르다.
+    - `editable` 을 `true` 로. 확정 사실은 `삭제` 를 가진다(proto `deletable: !f.guess`).
+    - `confidence` 를 `high` 로. 사용자가 직접 확인해 준 값이다.
+  */
+  http.post(
+    mockPath(API_PATHS.ai.wiki.confirmFact(':factId')),
+    ({ request, params }) => {
+      const unauthorized = requireAuth(request);
+      if (unauthorized !== null) {
+        return unauthorized;
+      }
+
+      const factId = String(params.factId);
+      const fact = store.wiki.profile.find((entry) => entry.id === factId);
+      /*
+        추측이 아닌 사실에 보내는 것도 404 로 막는다. 이미 확정된 것을 다시
+        승격하면 `asOf` 만 오늘로 밀려 사용자가 언제 확인한 것인지 알 수 없게 된다.
+      */
+      if (fact === undefined || fact.source !== 'ai_inferred') {
+        return errorResponse(
+          COMMON_ERROR_CODES.RESOURCE_NOT_FOUND,
+          '확인할 추측을 찾을 수 없어요',
+          404,
+        );
+      }
+
+      fact.text = toStatement(fact.text);
+      fact.source = 'derived_from_trades';
+      fact.confidence = 'high';
+      fact.editable = true;
+      fact.asOf = nowKstIso();
+
+      return HttpResponse.json(aiResponse(fact, nextAiRequestId()));
     },
   ),
 ];

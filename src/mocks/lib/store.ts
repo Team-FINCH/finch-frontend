@@ -262,7 +262,18 @@ export const store: MockStore = {
   nextPaymentId: 56,
   nextWithdrawalId: 1,
   wiki: {
-    // 확정된 사실 둘 — user_stated 하나, derived_from_trades 하나.
+    /*
+      프로토타입 `facts` 픽스처 다섯 줄을 그대로 옮겼다 (proto `facts:[{id:1..5}]`).
+      확정 둘(user_stated·derived_from_trades)에 추측 셋이다.
+
+      **추측을 하나만 두면 캐러셀이 캐러셀로 보이지 않는다.** `WikiGuessCarousel`
+      은 원래부터 좌우 네비·점 네비·겹친 카드를 갖고 있는데 목에 추측이 하나뿐이라
+      그 장치가 전부 접혀 있었다(`facts.length > 1` 분기). 셋이면 겹친 카드 둘까지
+      나온다.
+
+      **문구는 프로토타입이 정본이다** — 줄바꿈 위치까지 그대로 옮긴다. 카드가
+      `whitespace-pre-line` 으로 그리므로 `\n` 이 실제 줄바꿈이 된다.
+    */
     profile: [
       {
         id: 'fact_1',
@@ -282,14 +293,35 @@ export const store: MockStore = {
         evidence: { type: 'trade_history' },
         editable: true,
       },
-      // ai_inferred(확인 필요) 하나. "맞아요/아니에요" 동작은 아직 경로가 없어
-      // 화면에 카드만 그리고 버튼은 만들지 않는다 (ia.md §1, 이슈 #26 2번).
+      /*
+        ai_inferred(확인 필요) 셋. 프로토타입 `guess:true` 세 줄이다.
+        `editable: false` 인 이유는 추측을 지우는 버튼이 확정 사실의 `삭제` 가
+        아니라 카드의 `아니에요` 이기 때문이다(proto `deletable: !f.guess`).
+      */
       {
         id: 'fact_3',
-        text: '손실이 10%를 넘으면 정리하는 편인가요?',
+        text: '손실이 10%를 넘으면\n정리하는 편인가요?',
         source: 'ai_inferred',
         confidence: 'medium',
         asOf: '2026-08-27T21:00:00+09:00',
+        evidence: { type: 'trade_history' },
+        editable: false,
+      },
+      {
+        id: 'fact_4',
+        text: '실적 발표 전에는\n새로 담지 않는 편인가요?',
+        source: 'ai_inferred',
+        confidence: 'medium',
+        asOf: '2026-08-29T21:00:00+09:00',
+        evidence: { type: 'trade_history' },
+        editable: false,
+      },
+      {
+        id: 'fact_5',
+        text: '한 종목에 자산의 30% 이상은\n담지 않으려 하시나요?',
+        source: 'ai_inferred',
+        confidence: 'medium',
+        asOf: '2026-09-01T21:00:00+09:00',
         evidence: { type: 'trade_history' },
         editable: false,
       },

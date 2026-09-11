@@ -31,15 +31,19 @@ const NAV_BUTTON_CLASS =
 
 type WikiGuessCarouselProps = {
   facts: WikiFact[];
+  /** "맞아요" — 추측을 사실로 승격한다(`features/portfolio/api/confirmWikiFact.ts`). */
+  onConfirm: (fact: WikiFact) => void;
   /** "아니에요" — 추측을 지운다(`DELETE /wiki/facts?reason=guess_rejected`). */
   onReject: (fact: WikiFact) => void;
-  isRejecting: boolean;
+  /** 둘 중 하나가 도는 동안 두 버튼을 함께 잠근다. */
+  isAnswering: boolean;
 };
 
 export function WikiGuessCarousel({
   facts,
+  onConfirm,
   onReject,
-  isRejecting,
+  isAnswering,
 }: WikiGuessCarouselProps) {
   const [index, setIndex] = useState(0);
 
@@ -113,15 +117,30 @@ export function WikiGuessCarousel({
           </p>
 
           {/*
-            "아니에요" 만 있다. MR !140 이 `reason=guess_rejected` 를 열어 거절은
-            보낼 수 있게 됐지만, **추측을 사실로 승격하는 "맞아요" 경로는 아직
-            없다** — 이슈 #26 2번·#41 대기. 한쪽만 있는 것이 어색해 보여도 없는
-            버튼을 만들어 아무 일도 안 하게 두는 것보다 낫다.
+            프로토타입처럼 둘을 나란히 둔다(`.gbtn` — gap 8px · margin-top 18px ·
+            둘 다 같은 모양이다. 승격이 더 무거운 행동이 아니므로 한쪽만 강조하지
+            않는다).
+
+            **`맞아요` 의 승격 경로에는 아직 계약이 없다.** 지금은 MSW 만 답한다 —
+            `confirmWikiFact.ts` 머리 주석을 본다. 버튼을 두는 쪽을 고른 이유는,
+            거절만 있는 카드가 "확인해 주세요" 라고 물으면서 확인할 방법을 주지
+            않기 때문이다. 경로가 열리면 목만 끄면 된다.
+
+            **두 버튼을 같은 값으로 잠근다.** 한쪽이 도는 동안 다른 쪽을 누르면
+            같은 사실에 승격과 삭제가 함께 날아간다.
           */}
-          <div className="mt-4.5 flex">
+          <div className="mt-4.5 flex gap-2">
             <Button
               variant="secondary"
-              disabled={isRejecting}
+              disabled={isAnswering}
+              onClick={() => onConfirm(fact)}
+              className="h-10.5 flex-1 rounded-[11px] text-[15px] font-semibold"
+            >
+              맞아요
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={isAnswering}
               onClick={() => onReject(fact)}
               className="h-10.5 flex-1 rounded-[11px] text-[15px] font-semibold"
             >
