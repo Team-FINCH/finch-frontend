@@ -21,7 +21,7 @@ export function RoutePlaceholder({ screen }: RoutePlaceholderProps) {
   const location = useLocation();
 
   return (
-    <PageMain>
+    <PageMain className="pt-6">
       <h1 className="text-lg font-semibold text-text-primary">{screen}</h1>
       <p className="mt-1 text-sm text-text-secondary">
         아직 구현되지 않은 화면입니다. 라우트 자리만 잡혀 있습니다.

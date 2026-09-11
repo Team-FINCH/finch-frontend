@@ -11,7 +11,7 @@ import { PageMain } from '@/shared/ui/PageMain';
  */
 export function NotFoundPage() {
   return (
-    <PageMain className="flex flex-col justify-center">
+    <PageMain className="flex flex-col justify-center pt-6">
       <h1 className="text-lg font-semibold text-text-primary">
         찾을 수 없는 화면입니다
       </h1>

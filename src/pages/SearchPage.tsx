@@ -98,7 +98,7 @@ export function SearchPage() {
   const viewedStocks = recentStocks.data?.items ?? [];
 
   return (
-    <PageMain>
+    <PageMain className="pt-6">
       {/* 프로토타입 isSearch 블록의 `<div class="nav"><span class="navt">탐색</span></div>`
           와 그 아래 검색 입력 줄이다. 다른 상시 화면(홈·포트폴리오·내 정보)과 같은
           자리·같은 크기의 제목이라 여기만 sr-only 로 두면 탭을 옮길 때 이 화면만

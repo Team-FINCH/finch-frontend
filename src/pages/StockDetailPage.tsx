@@ -143,7 +143,7 @@ export function StockDetailPage() {
 
   if (detail.isPending) {
     return (
-      <PageMain>
+      <PageMain className="pt-6">
         <Skeleton className="h-11 w-2/3" />
         <Skeleton className="mt-6 h-11 w-1/2" />
         <Skeleton className="mt-8 h-[150px] w-full" />
@@ -153,7 +153,7 @@ export function StockDetailPage() {
 
   if (detail.isError) {
     return (
-      <PageMain>
+      <PageMain className="pt-6">
         <div className="pt-10 text-center">
           <p className="text-title-3 text-text-primary">
             종목 정보를 불러오지 못했어요

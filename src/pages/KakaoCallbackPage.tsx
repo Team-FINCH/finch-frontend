@@ -32,7 +32,7 @@ function resolveDestination({
 /** 카카오 콘솔에 등록한 redirect URI 와 같은 경로여야 한다 (ia.md §1). */
 export function KakaoCallbackPage() {
   return (
-    <PageMain>
+    <PageMain className="pt-6">
       <KakaoCallback resolveDestination={resolveDestination} />
     </PageMain>
   );

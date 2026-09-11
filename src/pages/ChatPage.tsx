@@ -108,7 +108,7 @@ export function ChatPage() {
       : '내 투자 맥락을 아는 Finch AI와 이야기해보세요.';
 
   return (
-    <PageMain className="flex min-h-[calc(100dvh-3rem)] flex-col pb-24">
+    <PageMain className="flex min-h-[calc(100dvh-3rem)] flex-col pt-6 pb-24">
       <div className="flex items-center justify-between">
         <h1 className="text-title-3 text-text-primary">AI 채팅</h1>
         {messages.length > 0 && (
