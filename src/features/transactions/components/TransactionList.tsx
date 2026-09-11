@@ -1,7 +1,13 @@
 import { Fragment } from 'react';
 
 import { formatKstMonthDay, formatKstTime } from '@/shared/lib/formatDate';
-import { formatKrw, formatSignedAmount } from '@/shared/lib/formatNumber';
+import {
+  formatKrw,
+  formatSignedAmount,
+  formatSignedRate,
+  getPriceDirection,
+  type PriceDirection,
+} from '@/shared/lib/formatNumber';
 import { type PaymentMethod } from '@/shared/types/deposit';
 import { type Transaction } from '@/shared/types/portfolio';
 import { EmptyState } from '@/shared/ui/EmptyState';
@@ -16,6 +22,54 @@ const KIND_LABEL: Record<Transaction['type'], string> = {
   DEPOSIT: '입금',
   WITHDRAWAL: '출금',
   INITIAL_GRANT: '최초 지급',
+};
+
+/**
+ * 원장 유형별 배지의 면색·글자색. **프로토타입 실측값이다** — `tx` fixture 가
+ * 매수에 `tag:"u"`, 매도에 `tag:"d"`, 입금에 `tag:"g"` 를 준다. 다섯 유형이 전부
+ * 회색이던 것을 이 갈래대로 나눴다.
+ *
+ * ```
+ * .tag.u{background:#FDECEC;color:#C13B3B}            매수  적색
+ * .tag.d{background:#EEF4FE;color:#2563EB}            매도  청색
+ * .tag.g{background:#F1F3F6;color:var(--t2)/#565C66}  입금  회색
+ * ```
+ *
+ * **등락 색 관례와 같은 방향이다** — 잔고가 나가는 매수가 적색, 들어오는 매도가
+ * 청색이다(CLAUDE.md "등락 색은 국내 관례를 따른다"). 다만 `--color-stock-up` ·
+ * `--color-stock-down` 을 쓰지 않는다. 저 토큰은 **값의 등락**을 뜻하고 여기는
+ * **거래 종류**를 가르는 자리라 뜻이 다르다. 태그 글자색(`#C13B3B`·`#2563EB`)도
+ * 등락 토큰(`#C93B3B`·`#2258C9`)과 값이 미세하게 달라, 프로토타입은 둘을 별개
+ * 색 계열로 두고 있다.
+ *
+ * **어두운 면 위의 값(`rgba(242,115,115,.16)` · `#F27373` 류)을 쓰지 않는다.**
+ * 투명도를 얹은 값이라 흰 면에 올리면 거의 보이지 않는다. 알림함 태그
+ * (`features/inbox/components/InboxItemRow`)가 같은 이유로 라이트 한 벌만 쓴다.
+ *
+ * **입금 계열 셋은 토큰을 그대로 둔다.** 프로토타입 `.tag.g` 의 라이트 값
+ * `#F1F3F6` · `#565C66` 이 우리 `--color-surface-soft` · `--color-text-secondary`
+ * 와 정확히 같은 값이다 — 값이 없어서 남겨 둔 것이 아니라 같아서 토큰으로 적는다.
+ * 출금·최초 지급은 프로토타입 `tx` 에 표본이 없는데, 둘 다 종목 매매가 아닌
+ * 현금 이동이라 입금과 같은 회색으로 묶었다.
+ *
+ * **토큰으로 올리지 않고 지역 상수로 둔다.** 알림함 태그가 같은 판단을 한
+ * 이유와 같다 — 이 값을 쓰는 자리가 매매 내역 한 곳뿐이고, `styles/index.css` 는
+ * 지금 다른 브랜치가 자라게 하는 공용 파일이라 여기서 토큰을 더하면 머지할 때
+ * 한쪽이 다른 쪽을 지운다.
+ */
+const KIND_TAG_CLASS: Record<Transaction['type'], string> = {
+  BUY: 'bg-[#FDECEC] text-[#C13B3B]',
+  SELL: 'bg-[#EEF4FE] text-[#2563EB]',
+  DEPOSIT: 'bg-surface-soft text-text-secondary',
+  WITHDRAWAL: 'bg-surface-soft text-text-secondary',
+  INITIAL_GRANT: 'bg-surface-soft text-text-secondary',
+};
+
+/** 실현손익 색. 이익 적색 · 손실 청색으로 같은 화면의 등락 표기와 토큰을 맞춘다. */
+const DIRECTION_TEXT_CLASS: Record<PriceDirection, string> = {
+  rise: 'text-stock-up',
+  fall: 'text-stock-down',
+  flat: 'text-stock-neutral',
 };
 
 /**
@@ -43,6 +97,34 @@ function transactionDetail(transaction: Transaction): string | null {
   return null;
 }
 
+/**
+ * 실현손익 보조 줄 문구. 값이 없으면 `null` 을 돌려 줄 자체를 만들지 않는다.
+ *
+ * **계약상 매도에만 값이 있다** — `TransactionSchema` 의 `realizedProfit` ·
+ * `realizedProfitRate` 가 둘 다 `nullable` 이고 매수·입금·출금·최초 지급은 `null`
+ * 이다. 두 필드가 서로 독립으로 `nullable` 이라 금액만 오는 경우도 막지 않는다 —
+ * 금액이 있으면 줄을 그리고 비율은 있을 때만 뒤에 붙인다.
+ *
+ * `realizedProfitRate` 는 `Percent` 계열(이미 백분율)이라 `formatSignedRate` 다
+ * (contracts C18). `formatSignedPercent` 를 쓰면 100 배로 나온다.
+ */
+function realizedProfitLine(
+  transaction: Transaction,
+): { text: string; direction: PriceDirection } | null {
+  const { realizedProfit, realizedProfitRate } = transaction;
+  if (realizedProfit === null) {
+    return null;
+  }
+  const amount = `${formatSignedAmount(realizedProfit)}원`;
+  return {
+    text:
+      realizedProfitRate === null
+        ? `실현손익 ${amount}`
+        : `실현손익 ${amount} · ${formatSignedRate(realizedProfitRate)}`,
+    direction: getPriceDirection(realizedProfit),
+  };
+}
+
 type TransactionListProps = {
   type: (typeof TRANSACTION_FILTERS)[number]['value'];
   pages: { items: Transaction[] }[];
@@ -57,6 +139,20 @@ type TransactionListProps = {
 /**
  * 매매 내역 목록 — 날짜별로 묶어 그린다(프로토타입 `txDays` 그룹).
  * 목록은 최신순 고정이라 순서대로 훑으며 날짜가 바뀔 때만 새 그룹 헤더를 만든다.
+ *
+ * **실현손익 줄의 자리는 우리가 정했다.** 프로토타입 `tx` fixture 에는
+ * `realized`·`realizedPct` 값이 들어 있는데 마크업이 그 값을 쓰지 않는다 —
+ * 데이터만 만들어 두고 그리지 않은 자리라 대조할 원본이 없다. 왼쪽 칸의
+ * `detail`(`10주 · 68,900원`) 아래 셋째 줄로 둔 이유가 둘이다.
+ *
+ * - 오른쪽 칸은 거래금액과 시각이 오른쪽 정렬로 선 숫자 기둥이다. 여기에
+ *   `실현손익 -6,320원 · -0.90%` 처럼 긴 줄을 끼우면 320px 에서 왼쪽 칸이
+ *   눌려 종목명이 잘린다(종목명 span 이 `truncate` 다).
+ * - 왼쪽 칸은 "무슨 거래였나"를 적는 칸이고 실현손익은 그 매도를 설명하는
+ *   값이다. 라벨이 붙은 문구라 왼쪽 정렬이 읽기도 낫다.
+ *
+ * 값이 `null` 이면 줄을 아예 만들지 않는다 — 빈 자리를 남기지 않는다. 그래서
+ * **매도 행만 한 줄 높다.** 행 높이가 종류마다 다른 것은 의도한 것이다.
  */
 export function TransactionList({
   type,
@@ -126,6 +222,7 @@ export function TransactionList({
     <div className="pt-2">
       {rows.map(({ transaction, date, showDateHeader }) => {
         const detail = transactionDetail(transaction);
+        const realized = realizedProfitLine(transaction);
         const isOutflow = OUTFLOW_TYPES.has(transaction.type);
         const name = transaction.stockName ?? KIND_LABEL[transaction.type];
 
@@ -142,13 +239,25 @@ export function TransactionList({
                   <span className="truncate text-body-1 font-medium text-text-primary">
                     {name}
                   </span>
-                  <span className="inline-flex h-5.25 flex-none items-center rounded-xs bg-surface-soft px-1.5 text-caption font-medium text-text-secondary">
+                  {/* 크기는 지금 것을 유지한다 — 프로토타입 `.tag` 는
+                      `24px · radius 8 · 13px` 이지만 목록 행의 밀도가 달라
+                      이미 대조를 마친 자리다. 이번에 바꾼 것은 색뿐이다. */}
+                  <span
+                    className={`inline-flex h-5.25 flex-none items-center rounded-xs px-1.5 text-caption font-medium ${KIND_TAG_CLASS[transaction.type]}`}
+                  >
                     {KIND_LABEL[transaction.type]}
                   </span>
                 </span>
                 {detail !== null && (
                   <span className="text-caption text-text-secondary">
                     {detail}
+                  </span>
+                )}
+                {realized !== null && (
+                  <span
+                    className={`text-caption font-medium tabular-nums ${DIRECTION_TEXT_CLASS[realized.direction]}`}
+                  >
+                    {realized.text}
                   </span>
                 )}
               </span>
