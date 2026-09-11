@@ -9,6 +9,7 @@ import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
 import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
   createMessageId,
+  findRetryTargetId,
   type ChatMessage,
 } from '@/features/chat/model/chatMessages';
 import { isHttpError } from '@/shared/api';
@@ -80,6 +81,9 @@ export function ChatPage() {
     chatContext.ticker === null ? null : (chatContext.stockName ?? '이 종목'),
   );
 
+  // 실패 말풍선이 여럿이어도 `다시 시도` 는 하나다 (FINCH-249).
+  const retryTargetId = findRetryTargetId(messages);
+
   function resetConversation() {
     setMessages([]);
     setConversationId(null);
@@ -104,6 +108,11 @@ export function ChatPage() {
    *
    * 기준은 입력창과 같은 `chatMutation.isPending` 이다. `다시 시도` 버튼도 이 값을
    * 받아 함께 잠긴다 — 막기만 하고 모양이 그대로면 버튼이 고장 난 것으로 읽힌다.
+   *
+   * **이 가드만으로는 부족하다** (FINCH-249). 여기서 막는 것은 답을 기다리는
+   * 동안의 중복이고, 지나간 실패 말풍선이 저마다 들고 있던 버튼은 막지 못한다.
+   * 그쪽은 `findRetryTargetId` 가 버튼 자체를 하나로 줄여서 막는다. 둘은 서로 다른
+   * 것을 막으므로 함께 있어야 한다.
    */
   function handleSend(text: string) {
     if (chatMutation.isPending) {
@@ -195,7 +204,11 @@ export function ChatPage() {
             <ChatBubble
               key={message.id}
               message={message}
-              onRetry={handleSend}
+              // `다시 시도` 는 대화 끝의 실패 하나만 갖는다 (FINCH-249).
+              // 판정과 그 이유는 `findRetryTargetId` 주석에 있다. 핸들러를 주지
+              // 않는 것이 곧 버튼을 내지 않는 것이라, "보이는데 누르면 딴 것을
+              // 보내는" 상태가 만들어지지 않는다.
+              onRetry={message.id === retryTargetId ? handleSend : undefined}
               retryDisabled={chatMutation.isPending}
             />
           ))}

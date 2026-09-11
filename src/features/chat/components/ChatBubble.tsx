@@ -23,7 +23,14 @@ import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
  */
 type ChatBubbleProps = {
   message: ChatMessage;
-  /** `assistant-error` 이고 `retryable` 일 때만 쓰인다. */
+  /**
+   * `assistant-error` 이고 `retryable` 일 때만 쓰인다.
+   *
+   * **없으면 버튼을 내지 않는다.** 실패 말풍선이 저마다 `다시 시도` 를 들고 있으면
+   * 이미 다시 보낸 질문 위에 버튼이 남아 누를 때마다 같은 질문이 쌓인다. 그래서
+   * 버튼을 어느 말풍선에 둘지는 대화 전체를 보는 `ChatPage` 가 정하고
+   * (`findRetryTargetId`), 여기서는 받은 대로 그린다 (FINCH-249).
+   */
   onRetry?: (text: string) => void;
   /**
    * 답변을 기다리는 중인가 (`chatMutation.isPending`). **`다시 시도` 를 잠그는
