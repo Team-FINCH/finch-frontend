@@ -16,6 +16,7 @@ import {
 import { useDeleteRecentStock } from '@/features/stocks/api/useRecentStocks';
 import { STOCK_SEARCH_MIN_KEYWORD_LENGTH } from '@/shared/config/apiContract';
 import { ROUTES } from '@/shared/config/routes';
+import { showToast } from '@/shared/hooks/useToastStore';
 import { type StockSummary } from '@/shared/types/stock';
 import { PageMain } from '@/shared/ui/PageMain';
 import { Skeleton } from '@/shared/ui/Skeleton';
@@ -140,7 +141,16 @@ export function SearchPage() {
                   keywords.length > 0 ? (
                     <button
                       type="button"
-                      onClick={() => deleteKeyword.mutate('all')}
+                      onClick={() =>
+                        // 지운 뒤에 아무 말이 없으면 지워졌는지 실패했는지
+                        // 화면으로 알 수 없다. 목록이 비는 것은 성공했을 때만
+                        // 보이는 신호라 실패와 구분되지 않는다.
+                        deleteKeyword.mutate('all', {
+                          onSuccess: () => {
+                            showToast('최근 검색어를 모두 지웠어요.');
+                          },
+                        })
+                      }
                       className="text-caption text-text-muted"
                     >
                       전체 삭제
