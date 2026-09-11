@@ -19,6 +19,47 @@ const KIND_LABEL: Record<Transaction['type'], string> = {
 };
 
 /**
+ * 원장 유형별 배지의 면색·글자색. **프로토타입 실측값이다** — `tx` fixture 가
+ * 매수에 `tag:"u"`, 매도에 `tag:"d"`, 입금에 `tag:"g"` 를 준다. 다섯 유형이 전부
+ * 회색이던 것을 이 갈래대로 나눴다.
+ *
+ * ```
+ * .tag.u{background:#FDECEC;color:#C13B3B}            매수  적색
+ * .tag.d{background:#EEF4FE;color:#2563EB}            매도  청색
+ * .tag.g{background:#F1F3F6;color:var(--t2)/#565C66}  입금  회색
+ * ```
+ *
+ * **등락 색 관례와 같은 방향이다** — 잔고가 나가는 매수가 적색, 들어오는 매도가
+ * 청색이다(CLAUDE.md "등락 색은 국내 관례를 따른다"). 다만 `--color-stock-up` ·
+ * `--color-stock-down` 을 쓰지 않는다. 저 토큰은 **값의 등락**을 뜻하고 여기는
+ * **거래 종류**를 가르는 자리라 뜻이 다르다. 태그 글자색(`#C13B3B`·`#2563EB`)도
+ * 등락 토큰(`#C93B3B`·`#2258C9`)과 값이 미세하게 달라, 프로토타입은 둘을 별개
+ * 색 계열로 두고 있다.
+ *
+ * **어두운 면 위의 값(`rgba(242,115,115,.16)` · `#F27373` 류)을 쓰지 않는다.**
+ * 투명도를 얹은 값이라 흰 면에 올리면 거의 보이지 않는다. 알림함 태그
+ * (`features/inbox/components/InboxItemRow`)가 같은 이유로 라이트 한 벌만 쓴다.
+ *
+ * **입금 계열 셋은 토큰을 그대로 둔다.** 프로토타입 `.tag.g` 의 라이트 값
+ * `#F1F3F6` · `#565C66` 이 우리 `--color-surface-soft` · `--color-text-secondary`
+ * 와 정확히 같은 값이다 — 값이 없어서 남겨 둔 것이 아니라 같아서 토큰으로 적는다.
+ * 출금·최초 지급은 프로토타입 `tx` 에 표본이 없는데, 둘 다 종목 매매가 아닌
+ * 현금 이동이라 입금과 같은 회색으로 묶었다.
+ *
+ * **토큰으로 올리지 않고 지역 상수로 둔다.** 알림함 태그가 같은 판단을 한
+ * 이유와 같다 — 이 값을 쓰는 자리가 매매 내역 한 곳뿐이고, `styles/index.css` 는
+ * 지금 다른 브랜치가 자라게 하는 공용 파일이라 여기서 토큰을 더하면 머지할 때
+ * 한쪽이 다른 쪽을 지운다.
+ */
+const KIND_TAG_CLASS: Record<Transaction['type'], string> = {
+  BUY: 'bg-[#FDECEC] text-[#C13B3B]',
+  SELL: 'bg-[#EEF4FE] text-[#2563EB]',
+  DEPOSIT: 'bg-surface-soft text-text-secondary',
+  WITHDRAWAL: 'bg-surface-soft text-text-secondary',
+  INITIAL_GRANT: 'bg-surface-soft text-text-secondary',
+};
+
+/**
  * 원장 유형별 잔고 증감 방향. `amount` 는 항상 양수 절대값으로 오고 방향은
  * `type` 으로만 표시한다(contracts C87) — 서버가 부호를 주지 않는다.
  */
@@ -142,7 +183,12 @@ export function TransactionList({
                   <span className="truncate text-body-1 font-medium text-text-primary">
                     {name}
                   </span>
-                  <span className="inline-flex h-5.25 flex-none items-center rounded-xs bg-surface-soft px-1.5 text-caption font-medium text-text-secondary">
+                  {/* 크기는 지금 것을 유지한다 — 프로토타입 `.tag` 는
+                      `24px · radius 8 · 13px` 이지만 목록 행의 밀도가 달라
+                      이미 대조를 마친 자리다. 이번에 바꾼 것은 색뿐이다. */}
+                  <span
+                    className={`inline-flex h-5.25 flex-none items-center rounded-xs px-1.5 text-caption font-medium ${KIND_TAG_CLASS[transaction.type]}`}
+                  >
                     {KIND_LABEL[transaction.type]}
                   </span>
                 </span>
