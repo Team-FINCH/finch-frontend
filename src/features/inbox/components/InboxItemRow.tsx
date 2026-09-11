@@ -1,3 +1,4 @@
+import { formatInboxWhen } from '../lib/formatInboxWhen';
 import type { InboxItem, InboxItemKind } from '../model/types';
 
 /**
@@ -8,6 +9,11 @@ import type { InboxItem, InboxItemKind } from '../model/types';
  *   TODO 를 남겨 뒀었는데 토큰이 생겼다 — 헤더의 미확인 뱃지
  *   (`shared/ui/PageHeader`)가 같은 토큰을 쓰므로 점과 뱃지가 함께 움직인다.
  * - 유형 태그는 종류마다 색이 다르다. 아래 `KIND_TAG_CLASS` 주석을 본다.
+ * - 첫 줄은 **태그와 날짜 둘뿐이다.** `wiki` 항목에 `확인 필요` 를 덧붙이던 것을
+ *   지웠다 — 프로토타입에 없고, 태그가 이미 `확인` 이라 같은 말이 두 번 나왔다.
+ *   design.md §7.11 의 "`확인 필요`만 약한 Attention" 은 이제 태그 자신이 받는다
+ *   (`.tag.a` 앰버). 그 뜻을 풀어 쓰는 자리는 아래 `summary` 줄인데 그 문구는
+ *   서버가 준다.
  * - Card 가 아니라 Flat List — 안쪽 여백만 있고 테두리·배경이 없다.
  *
  * **`title`·`summary` 는 서버가 완성해 준 문구를 그대로 그린다**(apiSpec §6.4).
@@ -52,11 +58,6 @@ const KIND_TAG_CLASS: Record<InboxItemKind, string> = {
   news: 'bg-[#EEF0F3] text-[#4A5361]',
 };
 
-/** `Intl.DateTimeFormat` 대신 날짜만 자른다. 알림함은 상대 시간 없이 날짜로 충분하다. */
-function formatWhen(iso: string): string {
-  return iso.slice(0, 10).replace(/-/g, '.');
-}
-
 type InboxItemRowProps = {
   item: InboxItem;
   onClick: (item: InboxItem) => void;
@@ -86,13 +87,8 @@ export function InboxItemRow({ item, onClick }: InboxItemRowProps) {
           >
             {KIND_LABEL[item.kind]}
           </span>
-          {item.kind === 'wiki' ? (
-            <span className="text-caption font-semibold text-text-primary">
-              확인 필요
-            </span>
-          ) : null}
           <span className="text-caption text-text-secondary">
-            {formatWhen(item.createdAt)}
+            {formatInboxWhen(item.createdAt)}
           </span>
         </span>
         <span className="text-body-1 font-medium text-text-primary">
