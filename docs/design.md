@@ -319,17 +319,25 @@ AI 영역은 웜톤이 아니라 **Dark Charcoal / Graphite Surface**로 구분�
 
 ### 7.1 홈
 
-`지수 Horizontal Ticker → Compact AI 브리핑 → 총자산 → AI 수익 인사이트 → 내 종목 / 관심 종목`
+`지수(헤더 제목 옆 인라인) → Compact AI 브리핑 → 총자산 → AI 수익 인사이트 → 내 종목 / 관심 종목`
+
+지수는 본문의 첫 블록이 아니라 **상단 헤더 안**이다. 아래 "지수" 절을 본다.
 
 #### 지수
 
-- KOSPI / KOSDAQ / USD-KRW / NASDAQ
-- **자동으로 흐르는 Animation은 사용하지 않는다**
-- 한 줄 Horizontal Scroll
-- 다음 항목 일부를 보여 스크롤 가능성을 자연스럽게 인지
-- Scroll Snap 적용 가능
+- **KOSPI / KOSDAQ 둘이다.** USD-KRW · NASDAQ 은 백엔드 범위에서 빠졌다 (apiSpec §5.7, v0.8.7 · 티켓 225). 구현은 항목 수에 기대지 않으므로 그 둘이 나중에 들어와도 화면 코드는 그대로다
 - 카드 / Pagination Dot / Arrow 없음
 - 홈의 보조 정보로 낮은 시각적 강도 유지
+
+**지수는 "자동으로 흐르는 Animation을 쓰지 않는다"의 예외다** (2026-09-11, 티켓 FINCH-228 · GitLab #65).
+
+이 문서의 위 규칙 자체는 살아 있다 — **다른 화면에서 자동 애니메이션을 넣는 근거로 이 예외를 쓰지 않는다.** 예외는 지수 한 자리에 한한다.
+
+- 예외로 정한 것: 지수는 **세로 자동 롤링**이다. 한 번에 지수 하나만 보이고 일정 간격으로 다음 지수가 아래에서 올라온다
+- 근거: **프로토타입이 마크업의 정본이다.** `prototype/screen/finch-prototype.html` 의 `.mkroll` 이 `animation: mkroll 12s cubic-bezier(.7,0,.3,1) infinite` 로 세로 롤링을 그리고 있다
+- 이 문서가 적었던 "한 줄 Horizontal Scroll · 다음 항목 일부 노출 · Scroll Snap" 셋은 함께 폐기했다. **지수가 별도의 띠가 아니라 헤더의 "홈" 글자 옆에 붙는 18px 인라인 요소**여서 가로 스크롤 띠를 놓을 자리가 없다
+- `prefers-reduced-motion: reduce` 에서는 **롤링을 멈추고 첫 항목만 보인다.** 자동으로 움직이는 것이라 이 분기가 없으면 예외를 둘 수 없다
+- 구현: `frontend/src/features/home/components/MarketIndexRoller.tsx`
 
 #### AI 데일리 브리핑
 
