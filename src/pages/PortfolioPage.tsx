@@ -42,33 +42,40 @@ export function PortfolioPage() {
   const inbox = useInboxItems();
 
   return (
-    <PageMain>
+    <>
       {/*
+        헤더는 `PageMain` 밖에 있다 — 프로토타입이 `.nav` 를 `.sc` 밖에 `flex:none`
+        으로 두고 본문만 굴리는 구조다(FINCH-231, `PageHeader` 주석).
+
         프로토타입은 `.nav`(56px) 바로 아래 `.tabs` 가 붙어 여백이 없다
-        (proto L2150-2151). 전에 두었던 4px 은 근거가 없어 걷었다.
+        (proto L2150-2151). 전에 두었던 4px 은 근거가 없어 걷었다. 그래서
+        `PageMain` 이 `pt-0` 이고 4탭 줄이 스크롤 컨테이너 맨 위(`sticky top-0`)에
+        선다 — 그 자리가 곧 헤더 바로 아래다.
       */}
       <PageHeader
         title="포트폴리오"
         unreadCount={inbox.data?.unreadCount ?? 0}
       />
-      <PortfolioTabBar tab={tab} onChange={setTab} />
+      <PageMain className="pt-0">
+        <PortfolioTabBar tab={tab} onChange={setTab} />
 
-      {/*
-        `key` 로 탭마다 새 노드를 만들어 페이드를 다시 태운다. `min-h` 는 탭마다
-        내용 높이가 달라 페이지가 짧아졌다 길어지는 것을 막는다 — 스크롤 위치가
-        튀는 것이 "번쩍" 의 실제 정체다(FINCH-163).
-      */}
-      <div
-        key={tab}
-        className="min-h-[60svh] animate-[tab-panel-fade-in_var(--motion-normal)_var(--ease-standard)_both]"
-      >
-        {tab === 'holdings' && (
-          <HoldingsTab sort={sort} onSortChange={setSort} />
-        )}
-        {tab === 'diagnosis' && <DiagnosisTab />}
-        {tab === 'cause' && <CauseTab />}
-        {tab === 'wiki' && <WikiTab />}
-      </div>
-    </PageMain>
+        {/*
+          `key` 로 탭마다 새 노드를 만들어 페이드를 다시 태운다. `min-h` 는 탭마다
+          내용 높이가 달라 페이지가 짧아졌다 길어지는 것을 막는다 — 스크롤 위치가
+          튀는 것이 "번쩍" 의 실제 정체다(FINCH-163).
+        */}
+        <div
+          key={tab}
+          className="min-h-[60svh] animate-[tab-panel-fade-in_var(--motion-normal)_var(--ease-standard)_both]"
+        >
+          {tab === 'holdings' && (
+            <HoldingsTab sort={sort} onSortChange={setSort} />
+          )}
+          {tab === 'diagnosis' && <DiagnosisTab />}
+          {tab === 'cause' && <CauseTab />}
+          {tab === 'wiki' && <WikiTab />}
+        </div>
+      </PageMain>
+    </>
   );
 }

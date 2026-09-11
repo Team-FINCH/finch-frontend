@@ -62,6 +62,10 @@ const RESTORE_TIMEOUT_MS = 1500;
  *
  * 노드를 붙잡아 두지 않고 매번 다시 찾는다 — lazy 청크를 받는 동안에는
  * `RouteFallback` 의 `<main>` 이 서 있다가 화면이 도착하면 다른 노드로 갈린다.
+ *
+ * **`PageHeader` 가 `PageMain` 밖으로 나가도(FINCH-231) 이 판정은 그대로다** —
+ * 헤더는 `<div>` 이고 굴러가는 요소는 여전히 `<main>` 하나다. 컨테이너 안에 두 번째
+ * `<main>` 을 두지 않는 것이 이 훅의 전제다.
  */
 function findScrollElement(container: HTMLElement) {
   return container.querySelector('main');

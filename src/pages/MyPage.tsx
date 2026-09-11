@@ -38,29 +38,31 @@ export function MyPage() {
   const inbox = useInboxItems();
 
   return (
-    <PageMain>
+    <>
+      {/* 헤더는 `PageMain` 밖이고 헤더 아래 14px 은 `PageMain` 의 `pt-3.5` 다 —
+          이유는 `PageHeader` 주석 "스크롤 밖에 선다" 절에 있다(FINCH-231). */}
       <PageHeader
         title="마이페이지"
         unreadCount={inbox.data?.unreadCount ?? 0}
-        className="mb-3.5"
       />
+      <PageMain className="pt-3.5">
+        <MyPageProfile
+          nickname={me.data?.nickname}
+          profileImageUrl={me.data?.profileImageUrl}
+          isPending={me.isPending}
+          isError={me.isError}
+          onRetry={() => me.refetch()}
+        />
+        <MyPageMenu
+          depositedAmount={depositLimit.data?.depositedAmount}
+          isDepositedAmountPending={depositLimit.isPending}
+          isDepositedAmountError={depositLimit.isError}
+        />
 
-      <MyPageProfile
-        nickname={me.data?.nickname}
-        profileImageUrl={me.data?.profileImageUrl}
-        isPending={me.isPending}
-        isError={me.isError}
-        onRetry={() => me.refetch()}
-      />
-      <MyPageMenu
-        depositedAmount={depositLimit.data?.depositedAmount}
-        isDepositedAmountPending={depositLimit.isPending}
-        isDepositedAmountError={depositLimit.isError}
-      />
-
-      <div className="mt-6">
-        <LogoutButton />
-      </div>
-    </PageMain>
+        <div className="mt-6">
+          <LogoutButton />
+        </div>
+      </PageMain>
+    </>
   );
 }
