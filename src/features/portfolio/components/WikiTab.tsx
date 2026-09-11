@@ -322,6 +322,11 @@ export function WikiTab() {
  * 종목의 기록 시트를 바로 연다 — 알림함(`/inbox`)으로 보내던 이전 동작을
  * FINCH-28-ai-entry에서 바꿨다. 이 섹션은 종목이 이미 정해져 있어(각 행이
  * 자기 `ticker`를 이미 안다) 알림함을 거칠 이유가 없다는 것이 사용자 결정이다.
+ *
+ * **원장에 없는 종목(`name === ticker`)의 표시 규칙은 이슈 #42 에서 정해졌다** —
+ * 보조줄에 `보유하지 않는 종목` 을 앞세우고 썸네일은 코드 앞 두 자리로 그린다.
+ * `이름 없음` 같은 표현은 쓰지 않는다. 매도로 청산했어도 종목 자체는 존재하므로
+ * 행을 흐리게 하거나 잠그지 않는다 — `status: 'closed'`(비활성)와는 별개의 축이다.
  */
 type ThesisListProps = {
   theses: WikiThesis[];
@@ -336,6 +341,11 @@ function ThesisList({ theses, onEditThesis }: ThesisListProps) {
       {theses.map((thesis) => {
         const isOpen = openId === thesis.id;
         const isClosed = thesis.status === 'closed';
+        /*
+          원장에 없는 종목이면 `name` 에 티커가 그대로 온다 (`ai/app/api/routes/
+          wiki.py` `_thesis_names`). 청산했거나 애초에 보유한 적이 없는 종목이다.
+        */
+        const isUnowned = thesis.name === thesis.ticker;
         return (
           <div key={thesis.id} className="border-b border-border/55">
             <button
@@ -343,6 +353,15 @@ function ThesisList({ theses, onEditThesis }: ThesisListProps) {
               onClick={() => setOpenId(isOpen ? null : thesis.id)}
               className="flex w-full items-center gap-2.5 py-3.75 text-left"
             >
+              <span className="flex size-8 flex-none items-center justify-center rounded-[11px] bg-primary-soft text-[13px] font-semibold text-text-secondary">
+                {/*
+                  이름이 없으면 첫 글자가 `0` 하나뿐이라 어느 종목인지 못 읽는다.
+                  코드 앞 두 자리로 대체한다 (이슈 #42 안서진 님 표시 규칙).
+                */}
+                {isUnowned
+                  ? thesis.ticker.slice(0, 2)
+                  : thesis.name.slice(0, 1)}
+              </span>
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span
                   className={`truncate text-body-1 font-semibold tracking-[-0.01em] ${
@@ -354,7 +373,7 @@ function ThesisList({ theses, onEditThesis }: ThesisListProps) {
                     찍지 않는다 — `005930 · 005930` 은 정보가 아니라 잡음이다.
                   */}
                   {thesis.name}
-                  {thesis.name !== thesis.ticker && (
+                  {!isUnowned && (
                     <span className="ml-1.5 text-caption font-normal text-text-muted">
                       {thesis.ticker}
                     </span>
@@ -366,6 +385,12 @@ function ThesisList({ theses, onEditThesis }: ThesisListProps) {
                   )}
                 </span>
                 <span className="text-caption text-text-muted">
+                  {/*
+                    `이름 없음` 같은 말은 쓰지 않는다 — 사용자에게는 시스템 사정이라
+                    의미가 없다. 왜 코드만 보이는지를 보조줄이 대신 설명한다
+                    (이슈 #42 안서진 님 표시 규칙).
+                  */}
+                  {isUnowned ? '보유하지 않는 종목 · ' : ''}
                   {formatKstDate(thesis.recordedAt)} 기록
                   {thesis.horizon === null
                     ? ''
