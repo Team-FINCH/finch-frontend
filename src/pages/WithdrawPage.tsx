@@ -7,6 +7,7 @@ import { AmountInput } from '@/features/deposit/components/AmountInput';
 import { isHttpError } from '@/shared/api';
 import { ORDER_QUANTITY_RATIO_PRESETS } from '@/shared/config/apiContract';
 import { ROUTES } from '@/shared/config/routes';
+import { showToast } from '@/shared/hooks/useToastStore';
 import { formatKrw } from '@/shared/lib/formatNumber';
 import { generateIdempotencyKey } from '@/shared/lib/idempotencyKey';
 import { type IdempotencyKey } from '@/shared/types/primitives';
@@ -73,7 +74,14 @@ export function WithdrawPage() {
     withdrawal.mutate(
       { body: { amount }, idempotencyKey: key },
       {
-        onSuccess: () => navigate(ROUTES.my),
+        onSuccess: (result) => {
+          void navigate(ROUTES.my);
+          // 화면을 옮기면서 띄운다. 토스트 레이어가 `Outlet` 바깥에 있어
+          // (`app/layouts/RootLayout.tsx`) 전환에도 살아남는다.
+          // 금액은 요청값이 아니라 응답값을 쓴다 — 멱등 재시도로 같은 키가
+          // 돌아오면 서버가 처음 처리한 금액이 진실이다.
+          showToast(`${formatKrw(result.amount)}을 출금했어요.`);
+        },
       },
     );
   }
