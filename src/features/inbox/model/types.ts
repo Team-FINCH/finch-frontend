@@ -5,23 +5,32 @@ import { IsoDateTimeSchema, StockCodeSchema } from '@/shared/types/primitives';
 /**
  * 알림함 (FINCH-49, `ia.md` §1 "알림함").
  *
- * **이 파일 전체가 프론트 추정 스키마다. 백엔드 계약이 없다** — GitLab 이슈 #26
- * 1번으로 목록 조회(항목 종류·제목·요약·연결 대상·미읽음 여부·미읽음 개수)와
- * 읽음·처리 표시를 물어 두고 회신 대기 중이다. 회신이 오면 이 파일을 계약 기준으로
- * 다시 짠다 — 지금은 프로토타입(`isMail` 블록)과 PRD 정의를 근거로 그렸다.
+ * **계약 기준이다** — `docs/api/apiSpec.md` §6.4(v0.8.9, 이슈 #57). 이전 판은 계약이
+ * 없어 프론트가 지어낸 스키마로 돌고 있었고, 그 사실을 이 자리에 적어 두었다.
+ * 회신으로 경로·필드·상태 코드가 전부 닫혔으므로 추정 서술을 걷어냈다.
  *
- * 항목 종류 셋 (PRD 정의 그대로):
- * - `record` — 적어야 할 것. 체결 후 매수 이유 기록 요청
- * - `wiki` — 확인해야 할 것. 위키의 AI 추측("~하신 것으로 보이는데 맞나요?") 확인
- * - `briefing` — 읽을 것. 데일리 브리핑
+ * 항목 종류 셋. **세 값 밖의 `kind` 는 서버가 내보내지 않는다**(§6.4) —
+ * 종류를 늘릴 때는 apiSpec 의 표를 먼저 고친다.
+ * - `record` — 적어야 할 것. 체결 후 매수 이유 기록 요청. **지금 유일하게 나온다**
+ * - `wiki` — 확인해야 할 것. 위키의 AI 추측 확인. AI 추측 생성기가 없어 아직 안 온다(이슈 #52)
+ * - `news` — 읽을 것. 종목 하나의 소식. 종목별 소식 원천이 정해지지 않아 아직 안 온다
  */
-export const InboxItemKindSchema = z.enum(['record', 'wiki', 'briefing']);
+export const InboxItemKindSchema = z.enum(['record', 'wiki', 'news']);
 export type InboxItemKind = z.infer<typeof InboxItemKindSchema>;
 
 /**
- * 알림함 한 줄 (추정). `stockCode`·`stockName` 은 `record`·`wiki` 항목에서만
- * 값이 있고 `briefing` 항목은 `null` 이다 — 브리핑은 종목 하나가 아니라
- * 여러 종목을 묶은 요약이라서다.
+ * 알림함 한 줄 (apiSpec §6.4 필드 표).
+ *
+ * **`itemId` 는 해석하지 않는 불투명 문자열이다.** `record-000660-101` 처럼 보여도
+ * 쪼개 읽지 않는다 — 읽음 표시에 그대로 돌려보내는 값이다. 종목이 필요하면
+ * `stockCode` 를 쓴다.
+ *
+ * **`title`·`summary` 는 서버가 완성해서 준다.** 화면이 다시 만들지 않는다
+ * (§1.3 과 같은 원칙). 종목명을 붙이거나 문장을 조립하지 않는다.
+ *
+ * `stockCode`·`stockName` 은 `string | null` 이고 **`record` 만 값이 보장된다.**
+ * `tradeId` 도 `record` 만 값이 있다 — 그 종목의 마지막 매수 체결(§7.1 `orderId`)을
+ * 가리키고, 매수 이유를 기록할 때 **문자열로 바꿔** `linkedTradeId` 에 넣는다(§10.1).
  */
 export const InboxItemSchema = z.object({
   itemId: z.string(),
@@ -32,28 +41,20 @@ export const InboxItemSchema = z.object({
   createdAt: IsoDateTimeSchema,
   stockCode: StockCodeSchema.nullable(),
   stockName: z.string().nullable(),
+  tradeId: z.number().int().nullable(),
 });
 export type InboxItem = z.infer<typeof InboxItemSchema>;
 
-/** `GET /inbox` 응답 (추정). `unreadCount` 는 홈 뱃지 숫자로 그대로 쓴다. */
+/**
+ * `GET /inbox` 응답 (apiSpec §6.4).
+ *
+ * **`unreadCount` 를 뱃지에 그대로 쓴다.** 화면이 `items` 를 세지 않는다.
+ * 정렬은 `createdAt` 내림차순으로 서버가 이미 해서 주고 **페이징이 없다** —
+ * 항목이 보유 종목 수를 넘지 않는다. 빈 목록(`{ unreadCount: 0, items: [] }`)은
+ * 에러가 아니라 정상 응답이다.
+ */
 export const InboxListResponseSchema = z.object({
   unreadCount: z.number().int().nonnegative(),
   items: z.array(InboxItemSchema),
 });
 export type InboxListResponse = z.infer<typeof InboxListResponseSchema>;
-
-/**
- * `POST /inbox/{itemId}/record` 요청 (추정). `record` 항목의 "왜 담으셨나요?" 시트
- * (프로토타입 `sheetRecord`)가 쓴다.
- *
- * **위키(`ai/wiki/theses`)와는 다른 경로다.** 위키 쪽 투자 논지는 대화에서만
- * 기록된다는 것이 확정 사실이라(`ia.md` §1 "AI가 이해한 나" 절, "논지 입력 폼을
- * 만들지 않는다") 이 시트가 그 경로로 이어지지 않는다. 매수 이유 기록이 실제로는
- * 어디로 가야 하는지(위키 논지로 합류하는지, 별도 저장인지)도 이슈 #26 회신 대기다.
- */
-export const RecordInboxItemRequestSchema = z.object({
-  reason: z.string().min(1).max(500),
-});
-export type RecordInboxItemRequest = z.infer<
-  typeof RecordInboxItemRequestSchema
->;
