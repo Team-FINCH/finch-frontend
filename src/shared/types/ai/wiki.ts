@@ -9,14 +9,18 @@ import { createAiResponseSchema } from './envelope';
  * `WikiContent`·`WikiFactOut`·`WikiThesisOut`·`DeletedFactContent`·`ThesisIn` ·
  * `frontend/docs/ia.md` §1 "AI가 이해한 나 — 위키 화면" · `contracts.md` C79·C80).
  *
- * 프론트가 부르는 경로 셋 (C80, 경로 상수는 `shared/config/apiContract.ts`
+ * 프론트가 부르는 경로 넷 (C80, 경로 상수는 `shared/config/apiContract.ts`
  * `API_PATHS.ai.wiki`) —
  * - `GET /api/v1/ai/wiki` — 열람
+ * - `POST /api/v1/ai/wiki/theses` — 논지 신규 기록
  * - `PUT /api/v1/ai/wiki/theses/{stockCode}` — 논지 수정
  * - `DELETE /api/v1/ai/wiki/facts/{factId}` — 사실 삭제
  *
- * `POST /wiki/theses`(논지 최초 기록)는 AI 서비스가 대화 안에서 스스로 부르는
- * 경로라 프론트가 호출하지 않는다(ia.md §1). 논지 입력 폼을 만들지 않는다.
+ * **`POST /wiki/theses`는 2026-09-11에 늘었다**(이슈 #56 · apiSpec v0.8.8 · C97).
+ * 이전 판은 "AI 서비스가 대화 안에서 스스로 부르는 경로라 프론트가 호출하지 않는다,
+ * 논지 입력 폼을 만들지 않는다"로 적었고 그때는 그것이 맞았다 — 중계 대상이 아니어서
+ * 프론트에 신규 기록 경로가 아예 없었다. **`PUT`은 upsert가 아니므로**(활성 논지가
+ * 없으면 서버가 거부한다) 화면은 그 종목에 논지가 있는지로 `POST`·`PUT`을 갈라 부른다.
  *
  * **키 이름은 `ai/docs/openapi.json`에서 직접 읽었다**(C79 — 이 다섯 경로는 전용
  * pydantic 모델이 있어 손으로 옮겨 적을 필요가 없다는 제약이 풀렸다). 백엔드
@@ -131,11 +135,43 @@ export type UpdateWikiThesisRequest = z.infer<
 /** 화면이 실제로 고르는 값 — `ticker`는 호출부가 경로에서 채운다. */
 export type UpdateWikiThesisInput = Omit<UpdateWikiThesisRequest, 'ticker'>;
 
+/**
+ * `POST /wiki/theses` 요청 (openapi `ThesisIn`). **`PUT`과 같은 모델이다** — 서버가
+ * 두 경로에 같은 `ThesisIn`을 쓴다(`ai/app/api/routes/wiki.py`). 그래서 스키마를
+ * 새로 짜지 않고 이름만 따로 둔다. 이름을 나누는 이유는 호출부가 어느 계약을 쓰는지
+ * 읽히게 하려는 것이고, 서버가 둘을 갈라 놓으면 여기서부터 갈린다.
+ *
+ * **`ticker`의 무게가 `PUT`과 다르다.** `PUT`은 경로의 `{stockCode}`로 처리하고 본문의
+ * `ticker`를 무시하지만(C60), 이쪽은 **경로에 종목이 없어 본문의 `ticker`가 종목을
+ * 정하는 유일한 값**이다. 빠지면 `400 INVALID_REQUEST`다.
+ */
+export const CreateWikiThesisRequestSchema = UpdateWikiThesisRequestSchema;
+export type CreateWikiThesisRequest = z.infer<
+  typeof CreateWikiThesisRequestSchema
+>;
+
+/** 화면이 실제로 고르는 값 — `ticker`는 호출부(`postWikiThesis.ts`)가 채운다. */
+export type CreateWikiThesisInput = Omit<CreateWikiThesisRequest, 'ticker'>;
+
 /** `PUT /wiki/theses/{stockCode}` 응답. `content`는 갱신된 논지 전체다(ia.md §1 C61). */
 export const UpdateWikiThesisResponseSchema =
   createAiResponseSchema(WikiThesisSchema);
 export type UpdateWikiThesisResponse = z.infer<
   typeof UpdateWikiThesisResponseSchema
+>;
+
+/**
+ * `POST /wiki/theses` 응답. `PUT`과 같은 논지 한 건이다(apiSpec §10.1).
+ *
+ * **응답은 성공 여부를 읽는 데만 쓴다** — 화면은 이 값을 상태로 옮기지 않고
+ * `GET /wiki`를 재조회한다(ia.md §1). `POST`는 같은 종목의 기존 활성 논지를
+ * `closed`로 닫고 새로 남기므로(교체) 목록 전체가 달라질 수 있어, 재조회 쪽이
+ * 이 응답 한 건으로 목록을 기우는 것보다 싸고 정확하다.
+ */
+export const CreateWikiThesisResponseSchema =
+  createAiResponseSchema(WikiThesisSchema);
+export type CreateWikiThesisResponse = z.infer<
+  typeof CreateWikiThesisResponseSchema
 >;
 
 /**

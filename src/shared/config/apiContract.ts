@@ -182,11 +182,16 @@ export const API_PATHS = {
     briefing: '/ai/briefing',
     feedback: '/ai/feedback',
     /**
-     * 위키 3종 (contracts C80). 경로 파라미터 이름은 프론트 쪽 `stockCode`로
+     * 위키 4종 (contracts C80). 경로 파라미터 이름은 프론트 쪽 `stockCode`로
      * 통일한다 — AI 원본은 `ticker`다(ia.md §1 "AI가 이해한 나 — 위키 화면").
+     *
+     * **`createThesis`만 경로에 종목이 없다.** 종목을 본문의 `ticker`로 보낸다
+     * (contracts C97). 신규 기록은 `POST`, 수정은 `PUT`이다 — `PUT`은 upsert가
+     * 아니라 활성 논지가 없으면 거부한다.
      */
     wiki: {
       get: '/ai/wiki',
+      createThesis: '/ai/wiki/theses',
       updateThesis: (stockCode: string) => `/ai/wiki/theses/${stockCode}`,
       deleteFact: (factId: string) => `/ai/wiki/facts/${factId}`,
     },
