@@ -18,23 +18,28 @@ import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
 import { NoValue } from '@/shared/ui/StockRow';
 
 import { useCandles } from '../api/useCandles';
+import { selectTodayQuote } from '../lib/todayQuote';
 
 import { CandleChart } from './CandleChart';
 import { ChartPeriodSegment } from './ChartPeriodSegment';
+import { StockTodayGrid } from './StockTodayGrid';
 
 /**
  * 차트 탭 (프로토타입 `isDtChart` 블록, 새 디코드 L1748–L1830).
  *
- * 세 묶음이다 — 봉 종류 세그먼트 + 캔들 차트 · (프로토타입만) `오늘` 격자 ·
- * `내 보유 상세`. 그리고 거래정지 종목은 **차트와 기간 탭을 아예 그리지 않는다**
+ * 세 묶음이다 — 봉 종류 세그먼트 + 캔들 차트 · `오늘` 격자 · `내 보유 상세`.
+ * 그리고 거래정지 종목은 **차트와 기간 탭을 아예 그리지 않는다**
  * (`d.tradableChart`, 새 디코드 L1749–L1761).
  *
- * **`오늘`(시가·고가·저가·거래량) 격자는 아직 만들지 못한다** — `GET /stocks/{stockCode}`
- * 응답에 그 넷이 없다 (apiSpec §5.2 는 `currentPrice`·`previousClose`·
- * `changeAmount`·`changeRate` 만 준다). 캔들 마지막 봉에서 끌어다 쓸 수도 있지만
- * 그것은 "오늘"이 아니라 "마지막 거래일"이라 장중에 뜻이 달라진다. 없는 값을
- * 만들지 않는다. **필드 추가는 GitLab #46 으로 백엔드에 요청해 둔 상태다** —
- * 응답이 넷을 실어 오면 이 파일에 격자만 더하면 된다(프로토타입 L1810–L1818).
+ * **`오늘` 격자는 캔들 응답의 마지막 봉에서 온다.** `GET /stocks/{stockCode}`
+ * 응답에는 시가·고가·저가·거래량이 없지만(apiSpec §5.2 는 `currentPrice`·
+ * `previousClose`·`changeAmount`·`changeRate` 만 준다) 캔들 응답(§5.3)의 봉이
+ * 넷을 다 갖고 있고, §5.3 "진행 중인 당일 봉" 이 장중의 마지막 봉은 **현재가
+ * 응답과 같은 출처의 그날 값**이라고 못박았다. 이 탭이 이미 그 응답을 받고
+ * 있으므로 호출을 늘리지 않는다. 값을 고르는 규칙과 봉 종류·날짜 처리의 근거는
+ * `../lib/todayQuote.ts` 에 적었다. **전에 여기 적혀 있던 "필드 추가를 GitLab
+ * #46 으로 요청해 뒀다" 는 더는 유효하지 않다** — 캔들로 되는 것이라 새 필드가
+ * 필요 없다.
  *
  * 봉 종류는 URL 이 갖는다 (`?interval=` — `@/shared/types/candleInterval.ts` 참고).
  * 부모가 넘기고 여기서는 바꾸기만 한다.
@@ -90,6 +95,18 @@ export function StockChartTab({
    */
   const [intervalPressed, setIntervalPressed] = useState(false);
 
+  /*
+   * `오늘` 격자 값. 봉 종류가 일봉이 아니거나 봉이 하나도 없으면 `null` 이고
+   * 그때는 격자를 그리지 않는다 (근거는 `../lib/todayQuote.ts`).
+   *
+   * `useMemo` 로 감싸지 않는다. 오늘이 며칠인지는 렌더마다 다시 봐야 하는 값이고
+   * (화면을 열어 둔 채 자정을 넘길 수 있다) 계산은 배열의 마지막 원소 하나를
+   * 읽는 것이 전부다.
+   */
+  const todayQuote = candles.isSuccess
+    ? selectTodayQuote(candles.data.candles, interval)
+    : null;
+
   return (
     <>
       {suspended ? (
@@ -122,56 +139,64 @@ export function StockChartTab({
           </SoftBox>
         </section>
       ) : (
-        <section className="mt-4.5">
-          <ChartPeriodSegment
-            interval={interval}
-            onChange={(next) => {
-              setIntervalPressed(true);
-              onIntervalChange(next);
-            }}
-          />
+        <>
+          <section className="mt-4.5">
+            <ChartPeriodSegment
+              interval={interval}
+              onChange={(next) => {
+                setIntervalPressed(true);
+                onIntervalChange(next);
+              }}
+            />
 
-          <div className="mt-5.5">
-            {candles.isPending && (
-              <Skeleton className={`${CHART_BOX_CLASS} w-full`} />
-            )}
+            <div className="mt-5.5">
+              {candles.isPending && (
+                <Skeleton className={`${CHART_BOX_CLASS} w-full`} />
+              )}
 
-            {candles.isError && (
-              <div
-                className={`flex ${CHART_BOX_CLASS} flex-col items-center justify-center text-center`}
-              >
-                <p className="text-body-2 text-text-secondary">
-                  차트를 불러오지 못했어요
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void candles.refetch()}
-                  className="mt-2.5 text-label font-medium text-text-secondary underline underline-offset-[3px]"
-                >
-                  다시 시도
-                </button>
-              </div>
-            )}
-
-            {candles.isSuccess &&
-              (candles.data.candles.length === 0 ? (
+              {candles.isError && (
                 <div
-                  className={`flex ${CHART_BOX_CLASS} items-center justify-center`}
+                  className={`flex ${CHART_BOX_CLASS} flex-col items-center justify-center text-center`}
                 >
                   <p className="text-body-2 text-text-secondary">
-                    표시할 시세 기록이 없어요
+                    차트를 불러오지 못했어요
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => void candles.refetch()}
+                    className="mt-2.5 text-label font-medium text-text-secondary underline underline-offset-[3px]"
+                  >
+                    다시 시도
+                  </button>
                 </div>
-              ) : (
-                <CandleChart
-                  candles={candles.data.candles}
-                  interval={interval}
-                  avgBuyPrice={avgBuyPrice}
-                  animateIn={!intervalPressed}
-                />
-              ))}
-          </div>
-        </section>
+              )}
+
+              {candles.isSuccess &&
+                (candles.data.candles.length === 0 ? (
+                  <div
+                    className={`flex ${CHART_BOX_CLASS} items-center justify-center`}
+                  >
+                    <p className="text-body-2 text-text-secondary">
+                      표시할 시세 기록이 없어요
+                    </p>
+                  </div>
+                ) : (
+                  <CandleChart
+                    candles={candles.data.candles}
+                    interval={interval}
+                    avgBuyPrice={avgBuyPrice}
+                    animateIn={!intervalPressed}
+                  />
+                ))}
+            </div>
+          </section>
+
+          {/*
+            `오늘` 격자 (새 디코드 L1820–L1828). 거래정지 종목에는 그리지 않는다 —
+            프로토타입도 `d.tradableChart` 안에 있고, 애초에 캔들을 부르지 않는다.
+          */}
+          {todayQuote !== null && <StockTodayGrid quote={todayQuote} />}
+        </>
       )}
 
       {/*
