@@ -98,3 +98,18 @@ export type Cursor = z.infer<typeof CursorSchema>;
  */
 export const IdempotencyKeySchema = z.uuid().brand<'IdempotencyKey'>();
 export type IdempotencyKey = z.infer<typeof IdempotencyKeySchema>;
+
+/**
+ * 지수 포인트 (apiSpec §5.7 시장 지수 조회).
+ *
+ * **소수 둘째 자리까지의 실수다.** `2600.54` 는 2,600.54 포인트다.
+ * §1.1 의 "금액은 원 단위 정수" 규칙에 대한 **명시적 예외**이고 apiSpec 이
+ * 그렇게 적어 뒀다 — 지수는 금액이 아니다. `KrwAmountSchema` 로 받으면
+ * `z.number().int()` 가 `2600.54` 를 튕겨 지수 전체가 스키마 실패로 죽는다.
+ *
+ * 표시는 `formatIndexPoint`·`formatSignedIndexPoint` 로 한다
+ * (`shared/lib/formatNumber.ts`). `formatAmount` 는 `Math.round` 를 거쳐
+ * 소수를 잘라 버린다.
+ */
+export const IndexPointSchema = z.number().brand<'IndexPoint'>();
+export type IndexPoint = z.infer<typeof IndexPointSchema>;

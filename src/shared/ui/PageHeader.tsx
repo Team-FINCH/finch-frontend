@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
@@ -60,19 +61,35 @@ import { ROUTES } from '@/shared/config/routes';
 type PageHeaderProps = {
   title: string;
   unreadCount: number;
+  /**
+   * 제목 오른쪽 같은 줄에 붙는 보조 정보. 지금 쓰는 곳은 홈의 시장 지수
+   * 롤링(`features/home/components/MarketIndexRoller`) 하나다.
+   *
+   * 프로토타입은 `.navt` 안에 제목과 `.mkroll` 을 `display:flex;
+   * align-items:baseline;gap:10px` 로 나란히 둔다. 우리는 그 배치를 그대로
+   * 옮기되 **`<h1>` 안에 넣지 않는다** — 제목 요소 안에 두면 낭독기가 화면
+   * 이름을 "홈 코스피 2,600.54 …" 로 읽는다. 제목과 형제로 둔다.
+   */
+  titleSuffix?: ReactNode;
   className?: string;
 };
 
 export function PageHeader({
   title,
   unreadCount,
+  titleSuffix,
   className = '',
 }: PageHeaderProps) {
   return (
     <div
       className={`sticky top-0 z-10 -mx-6.5 -mt-6 flex h-(--page-header-height) items-center justify-between gap-3 bg-bg px-6.5 ${className}`}
     >
-      <h1 className="text-section-title text-text-primary">{title}</h1>
+      <div className="flex min-w-0 flex-1 items-baseline gap-2.5">
+        <h1 className="flex-none text-section-title text-text-primary">
+          {title}
+        </h1>
+        {titleSuffix}
+      </div>
       <Link
         to={ROUTES.inbox}
         aria-label={

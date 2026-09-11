@@ -93,6 +93,21 @@ export const QUOTE_POLLING_INTERVAL_MS = {
 } as const;
 
 /**
+ * 시장 지수 폴링 주기 (apiSpec §5.7 · 이슈 #65).
+ *
+ * **`QUOTE_POLLING_INTERVAL_MS` 에 티어로 얹지 않았다.** 지수는 종목 시세와 다른
+ * 수집 경로다 — 서버가 관심 신호와 무관하게 상시로 모으고(§5.7 "누가 보든 안 보든
+ * 계속 갱신한다") 슬롯·TTL 이 없다. 그래서 `useQuoteSubscription` 을 거치지 않고
+ * 일반 쿼리 + `refetchInterval` 로 부른다. 이슈 #65 가 명시한 것이기도 하다.
+ *
+ * 값이 15초인 이유는 **서버 수집 주기가 10초**여서다. 더 짧게 물어도 같은 값이
+ * 돌아오고, 10초에 정확히 맞추면 두 주기가 미끄러질 때마다 방금 갱신된 값과
+ * 한 주기 묵은 값이 번갈아 나온다. apiSpec 이 15초를 권장값으로 적었고 그것이
+ * 계약이 아니라 프론트 재량임도 함께 적었다.
+ */
+export const MARKET_INDICES_POLLING_INTERVAL_MS = 15_000;
+
+/**
  * STOMP 하트비트 (apiSpec §5.6 웹소켓 · contracts C39).
  * 3회 미수신(30초)이면 서버가 연결을 닫고 슬롯을 회수한다.
  * 웹소켓 전환 시점 자체는 미확정이다 (contracts P9).
@@ -144,6 +159,13 @@ export const API_PATHS = {
   watchlist: {
     list: '/watchlist',
     remove: (stockCode: string) => `/watchlist/${stockCode}`,
+  },
+  /**
+   * 시장 지수 (apiSpec §5.7, v0.8.7 신설 · 티켓 225). 파라미터가 없다 —
+   * KOSPI · KOSDAQ 둘을 한 번에 준다. **웹소켓 topic 은 없고 REST 폴링만 쓴다.**
+   */
+  market: {
+    indices: '/market/indices',
   },
   orders: {
     create: '/orders',
