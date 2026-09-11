@@ -83,6 +83,12 @@ import { useStockAnalysis } from '../api/useStockAnalysis';
  */
 type StockAiTabProps = {
   stockCode: string;
+  /**
+   * 종목명 (`GET /stocks/{stockCode}` 의 `stockName`). **채팅으로 넘기려고 받는다**
+   * — `ThesisPromptBlock` 이 `/chat?...&stockName=` 으로 실어 보낸다
+   * (FINCH-248, 아래 그 주석 참고). 이 탭 자체가 그리는 값은 아니다.
+   */
+  stockName: string;
   /** AI 탭이 열려 있을 때만 부른다 — 안 그러면 차트만 보는 사람에게 AI 요금이 나간다. */
   isActive: boolean;
   /**
@@ -219,8 +225,32 @@ function ThesisCheckBlock({ section }: { section: AiAnalysisSection }) {
  * 판단을 아직 하지 않았다. 바꿀 때 필요한 것은 `features/portfolio` 의
  * `ThesisEditSheet` 와 같은 갈래 — 논지가 없으면 `POST`, 있으면 `PUT` — 하나뿐이다.
  */
-function ThesisPromptBlock({ stockCode }: { stockCode: string }) {
+function ThesisPromptBlock({
+  stockCode,
+  stockName,
+}: {
+  stockCode: string;
+  stockName: string;
+}) {
   const navigate = useNavigate();
+
+  /*
+   * **종목명을 쿼리에 함께 싣는다** (FINCH-248). 채팅 빈 상태의 맥락 문구와
+   * 추천 질문이 종목명을 쓰는데 `ticker` 는 6자리 코드라 이름이 따로 필요하고,
+   * 채팅 화면은 그 이름을 구하려고 `GET /stocks/{stockCode}` 를 부를 수 없다 —
+   * 그 호출 자체가 최근 본 종목 기록이다(contracts C51). 이 화면은 이미 이름을
+   * 갖고 있으므로 여기서 얹는다. 파라미터 이름의 근거는
+   * `features/chat/lib/parseChatContext.ts` 에 있다.
+   *
+   * 손으로 문자열을 잇지 않고 `URLSearchParams` 로 만든다 — 종목명은 한글이라
+   * 인코딩이 필요하고 `&` 가 들어간 이름(`SK바이오팜 & …` 같은 값)이 오면
+   * 이어 붙인 주소는 파라미터가 하나 더 있는 것으로 읽힌다.
+   */
+  const chatQuery = new URLSearchParams({
+    screen: 'stock_detail',
+    ticker: stockCode,
+    stockName,
+  });
 
   return (
     <section className="mt-10">
@@ -234,11 +264,7 @@ function ThesisPromptBlock({ stockCode }: { stockCode: string }) {
       </p>
       <button
         type="button"
-        onClick={() =>
-          void navigate(
-            `${ROUTES.chat}?screen=stock_detail&ticker=${stockCode}`,
-          )
-        }
+        onClick={() => void navigate(`${ROUTES.chat}?${chatQuery.toString()}`)}
         className="mt-3.5 flex h-12.5 w-full items-center gap-3 rounded-[13px] bg-surface-soft px-4 text-left active:bg-primary-soft"
       >
         <span className="min-w-0 flex-1 text-[15px] font-semibold text-text-primary">
@@ -293,7 +319,12 @@ const SECTION_CAPTION: Partial<Record<AiAnalysisSectionKey, string>> = {
   risks: '공시와 실적에서 확인한 내용이에요.',
 };
 
-export function StockAiTab({ stockCode, isActive, owned }: StockAiTabProps) {
+export function StockAiTab({
+  stockCode,
+  stockName,
+  isActive,
+  owned,
+}: StockAiTabProps) {
   const analysis = useStockAnalysis(stockCode, isActive);
 
   if (analysis.isPending) {
@@ -458,7 +489,9 @@ export function StockAiTab({ stockCode, isActive, owned }: StockAiTabProps) {
         ),
       )}
 
-      {needThesis && <ThesisPromptBlock stockCode={stockCode} />}
+      {needThesis && (
+        <ThesisPromptBlock stockCode={stockCode} stockName={stockName} />
+      )}
 
       {/*
         근거 표기는 **뱃지 목록이 아니라 캡션 한 줄**이다 (design.md §9 ·

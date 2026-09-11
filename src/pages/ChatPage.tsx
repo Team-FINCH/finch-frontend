@@ -5,7 +5,6 @@ import { useChatMutation } from '@/features/chat/api/useChatMutation';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
 import { ChatEmptyState } from '@/features/chat/components/ChatEmptyState';
-import { useCachedStockName } from '@/features/chat/hooks/useCachedStockName';
 import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
 import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
@@ -44,7 +43,23 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  *
  * 제목이 `Finch AI` 가 아니라 `FINCH AI` 인 이유 — 프로토타입 `.navt` 와 빈 상태
  * 헤드라인이 둘 다 대문자고, 로그인 히어로(`features/auth`)도 대문자를 쓴다.
- * design.md §7.15 의 초기 카피만 `Finch AI` 라 적혀 있다.
+ * design.md §7.15 의 초기 카피만 `Finch AI` 였는데 2026-09-11 에 대문자로 맞췄다
+ * (사용자 확인, FINCH-248).
+ *
+ * ## 종목 맥락의 종목명 (FINCH-248)
+ *
+ * 빈 상태의 맥락 문구와 추천 질문은 **종목명**을 쓰는데 쿼리의 `ticker` 는 6자리
+ * 코드다. 이름은 **진입하는 쪽이 `stockName` 으로 함께 싣는다** — 이 화면에서
+ * `GET /stocks/{stockCode}` 를 불러 구할 수 없어서다. 그 호출 자체가 최근 본 종목
+ * 기록이라(contracts C51) 사용자가 보지도 않은 조회가 기록에 남고 최근 본 종목
+ * 목록까지 무효화된다.
+ *
+ * 전에는 `useCachedStockName` 이 이미 받아 둔 상세 캐시에서 이름만 꺼냈다. **그 훅은
+ * 지웠다.** 이제 모든 진입이 이름을 싣고, 남는 경우는 `/chat?screen=stock_detail&
+ * ticker=…` 를 주소로 바로 여는 것 하나뿐인데 그때는 새로 뜬 앱이라 캐시가 비어 있어
+ * 훅이 어차피 `null` 을 돌려준다. 성공할 수 없는 캐시 조회를 남겨 두면, 나중에
+ * 이름 없이 보내는 진입이 생겼을 때 **캐시가 더울 때만 이름이 나오고 식으면 안 나오는**
+ * 화면이 된다 — 그때는 늘 `이 종목` 으로 떨어지는 편이 고장을 빨리 드러낸다.
  */
 export function ChatPage() {
   const [searchParams] = useSearchParams();
@@ -59,11 +74,10 @@ export function ChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const chatMutation = useChatMutation();
 
-  // 종목 맥락으로 들어왔으면 빈 상태 문구에 종목명이 들어간다. 캐시에 없으면
-  // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다 — 쿼리에 이름이 없어서다.
-  const contextStockName = useCachedStockName(chatContext.ticker);
+  // 종목 맥락으로 들어왔으면 빈 상태 문구에 종목명이 들어간다. 쿼리에 이름이 없으면
+  // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다 — 위 머리 주석 참고.
   const emptyCopy = chatEmptyCopy(
-    chatContext.ticker === null ? null : (contextStockName ?? '이 종목'),
+    chatContext.ticker === null ? null : (chatContext.stockName ?? '이 종목'),
   );
 
   function resetConversation() {
@@ -74,7 +88,28 @@ export function ChatPage() {
     showToast('대화를 초기화했어요.');
   }
 
+  /**
+   * **보내는 자리는 셋인데 가드는 여기 하나다** (FINCH-248). 입력창
+   * (`ChatComposer`) · 빈 상태의 추천 질문(`ChatEmptyState`) · 실패 말풍선의
+   * `다시 시도`(`ChatBubble`) 가 전부 이 함수를 부른다.
+   *
+   * 전에는 입력창만 막혀 있었다(`disabled={chatMutation.isPending}`). `다시 시도`
+   * 는 눌러도 말풍선이 그대로 남아 있어서 연타하면 그만큼 요청이 나갔고, 그만큼
+   * AI 크레딧을 썼다.
+   *
+   * **버튼마다 막지 않고 여기서 막는 이유** — 호출부가 늘 때마다 같은 판정을 다시
+   * 적어야 하고, 하나 빠뜨리면 그 경로에서만 조용히 다시 샌다. 추천 질문이 지금
+   * 새지 않는 것도 설계가 아니라 우연이다(빈 상태는 첫 메시지를 넣는 순간
+   * 사라진다). 우연에 기대는 자리를 규칙으로 바꾼다.
+   *
+   * 기준은 입력창과 같은 `chatMutation.isPending` 이다. `다시 시도` 버튼도 이 값을
+   * 받아 함께 잠긴다 — 막기만 하고 모양이 그대로면 버튼이 고장 난 것으로 읽힌다.
+   */
   function handleSend(text: string) {
+    if (chatMutation.isPending) {
+      return;
+    }
+
     setMessages((prev) => [
       ...prev,
       { id: createMessageId(), role: 'user', text },
@@ -161,6 +196,7 @@ export function ChatPage() {
               key={message.id}
               message={message}
               onRetry={handleSend}
+              retryDisabled={chatMutation.isPending}
             />
           ))}
         </div>
