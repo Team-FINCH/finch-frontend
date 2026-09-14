@@ -11,6 +11,7 @@ import { type Holding, type PortfolioSort } from '@/shared/types/portfolio';
 import { ListEmpty } from '@/shared/ui/ListEmpty';
 import { RollingNumber } from '@/shared/ui/RollingNumber';
 import { Skeleton } from '@/shared/ui/Skeleton';
+import { StockInitialBadge } from '@/shared/ui/StockInitialBadge';
 
 import { usePortfolio } from '../api/usePortfolio';
 
@@ -234,12 +235,10 @@ function HoldingRow({ holding, evaluationTotal }: HoldingRowProps) {
       data-stock-code={holding.stockCode}
       className="flex w-full items-start gap-3 rounded-12 py-3.5 text-left transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
     >
-      <span
-        aria-hidden="true"
-        className="flex size-11 flex-none items-center justify-center rounded-md bg-surface-soft text-body-1 font-bold text-text-secondary"
-      >
-        {holding.stockName.slice(0, 1)}
-      </span>
+      <StockInitialBadge
+        stockCode={holding.stockCode}
+        stockName={holding.stockName}
+      />
       <span className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="flex items-center justify-between gap-2.5">
           <span className="truncate text-body-1 font-medium text-text-primary">

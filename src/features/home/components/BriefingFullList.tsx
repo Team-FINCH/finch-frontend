@@ -12,6 +12,7 @@ import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
+import { StockInitialBadge } from '@/shared/ui/StockInitialBadge';
 import { NoValue } from '@/shared/ui/StockRow';
 
 import { useHomeBriefing } from '../api/useHomeBriefing';
@@ -182,22 +183,6 @@ export function BriefingFullList() {
 }
 
 /**
- * 종목 이니셜 뱃지. `shared/ui/StockRow` 의 것과 규칙은 같지만(틴트를 쓰지 않는다 —
- * 종목별 틴트가 프로토타입에 있어도 API 에 근거가 없다) 치수가 다르다.
- * 목록 행은 44px 이고 브리핑 행 머리는 22px 이라 그쪽을 끌어다 쓸 수 없다.
- */
-function InitialBadge({ stockName }: { stockName: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="flex size-5.5 flex-none items-center justify-center rounded-xs bg-surface-soft text-[11px] font-bold text-text-secondary"
-    >
-      {stockName.slice(0, 1)}
-    </span>
-  );
-}
-
-/**
  * 행 머리의 등락률. 세 상태를 가른다 —
  * 값이 있으면 부호와 등락색을 붙이고, `null`(거래정지·시세 없음)이면 `—` 를 그리고,
  * `undefined`(아직 모름)면 자리를 아예 만들지 않는다.
@@ -245,31 +230,41 @@ function BriefingRow({
   variant?: RowVariant;
 }) {
   const style = ROW_STYLE[variant];
+  /**
+   * 종목코드와 그 종목의 표시값을 **한 덩이로 묶는다.** 둘을 따로 두면 `facts` 가
+   * 있을 때 `stockCode` 도 반드시 있다는 것을 타입이 모른다 — 뱃지가 종목코드로
+   * 색을 고르게 되면서(FINCH-261) 그 자리에 `?? ''` 같은 군더더기가 붙는다.
+   * 빈 문자열은 실제로 올 수 없는 값이라 적어 두면 다음 사람이 그 경우를 고민한다.
+   */
   const stockCode = item.relatedTickers[0];
-  const facts: BriefingStockFacts | undefined =
-    stockCode === undefined ? undefined : factsOf(stockCode);
+  const head: { stockCode: string; facts: BriefingStockFacts } | null =
+    stockCode === undefined ? null : { stockCode, facts: factsOf(stockCode) };
 
   return (
     <Link to={item.deeplink} className={`block ${style.shell}`}>
-      {facts === undefined ? null : (
+      {head === null ? null : (
         <span className={`flex items-center ${style.head} ${style.headGap}`}>
-          <InitialBadge stockName={facts.stockName} />
+          <StockInitialBadge
+            stockCode={head.stockCode}
+            stockName={head.facts.stockName}
+            size="sm"
+          />
           {/* 이름과 `확인 필요` 를 한 덩이로 묶어 왼쪽에 붙인다. 이름에 `flex-1` 을
               주면 `확인 필요` 가 등락률 옆까지 밀려나고, 안 주면 긴 이름이 줄을
               넘친다. 프로토타입은 이름이 짧은 목업이라 그 갈림을 보여주지 않는다. */}
           <span className={`flex min-w-0 flex-1 items-center ${style.headGap}`}>
             <span className="truncate text-[14px] font-medium text-text-secondary">
-              {facts.stockName}
+              {head.facts.stockName}
             </span>
-            {!facts.needCheck ? null : (
+            {!head.facts.needCheck ? null : (
               <span className="flex-none text-[11px] font-semibold text-text-muted">
                 확인 필요
               </span>
             )}
           </span>
-          {facts.changeRate === undefined ? null : (
+          {head.facts.changeRate === undefined ? null : (
             <ChangeRate
-              changeRate={facts.changeRate}
+              changeRate={head.facts.changeRate}
               className={`flex-none font-semibold ${style.rate}`}
             />
           )}
@@ -285,11 +280,11 @@ function BriefingRow({
       </span>
       {/* 메타 줄은 값이 있을 때만 만든다. 빼도 아래 여백은 다음 요소의 margin-top 이
           맡으므로 줄이 사라져도 행 사이가 좁아지지 않는다. */}
-      {facts?.meta === undefined ? null : (
+      {head?.facts.meta === undefined ? null : (
         <span
           className={`block text-[12px] leading-[17px] text-text-muted ${style.meta}`}
         >
-          {facts.meta}
+          {head.facts.meta}
         </span>
       )}
     </Link>

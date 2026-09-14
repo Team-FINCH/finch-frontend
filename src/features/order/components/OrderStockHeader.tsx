@@ -1,5 +1,6 @@
 import { formatAmount, formatSignedRate } from '@/shared/lib/formatNumber';
 import { Skeleton } from '@/shared/ui/Skeleton';
+import { StockInitialBadge } from '@/shared/ui/StockInitialBadge';
 
 /**
  * 주문 화면 맨 위의 종목 한 줄 — 이니셜 뱃지 · 종목명 · `시장가 · {현재가}원` ·
@@ -113,16 +114,7 @@ export function OrderStockHeader({
 
   return (
     <div className="mt-4 flex items-center gap-3">
-      {/* 뱃지는 장식이라 `aria-hidden` 이다 — 바로 옆에 종목명이 글자로 있다.
-          치수는 `shared/ui/StockRow` 의 이니셜 뱃지와 같다(44x44 · 반경 14px).
-          **종목별 색은 FINCH-261 이 넣는다** — 그 티켓이 네 곳에 흩어진
-          같은 뱃지를 공용 컴포넌트 하나로 모으면서 함께 처리한다. */}
-      <span
-        aria-hidden="true"
-        className="flex size-11 flex-none items-center justify-center rounded-md bg-surface-soft text-body-1 font-bold text-text-secondary"
-      >
-        {(stockName ?? stockCode).slice(0, 1)}
-      </span>
+      <StockInitialBadge stockCode={stockCode} stockName={stockName} />
 
       <span className="flex min-w-0 flex-1 flex-col gap-0.75">
         {isDetailPending ? (

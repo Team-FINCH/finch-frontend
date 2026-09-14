@@ -9,6 +9,8 @@ import {
   type PriceDirection,
 } from '@/shared/lib/formatNumber';
 
+import { StockInitialBadge } from './StockInitialBadge';
+
 /**
  * 종목 한 줄. 홈의 내 종목 · 검색 결과 · 시장 랭킹 · 관심 목록 · 포트폴리오 보유 ·
  * 브리핑 전체 · 알림함이 같은 행을 쓴다.
@@ -89,18 +91,6 @@ type StockRowProps = {
   onClick?: () => void;
   className?: string;
 };
-
-/** 이니셜 뱃지 (`.th`). 종목별 틴트가 프로토타입에 있지만 API 에 근거가 없어 중립으로 둔다. */
-function InitialBadge({ stockName }: { stockName: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="flex size-11 flex-none items-center justify-center rounded-md bg-surface-soft text-body-1 font-bold text-text-secondary"
-    >
-      {stockName.slice(0, 1)}
-    </span>
-  );
-}
 
 /**
  * 거래정지 뱃지. 프로토타입 `.tag` 치수(높이 24px · 좌우 8px)를 쓰되 색은 중립이다.
@@ -186,7 +176,7 @@ export function StockRow({
           {rank}
         </span>
       )}
-      <InitialBadge stockName={stockName} />
+      <StockInitialBadge stockCode={stockCode} stockName={stockName} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.75">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-body-1 font-medium text-text-primary">
