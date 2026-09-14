@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 
 import {
   OrderAiPreview,
@@ -93,6 +98,8 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 export function OrderPage() {
   const params = useParams();
   const navigate = useNavigate();
+  // 체결 뒤 돌아가는 방식이 이 값으로 갈린다 (아래 `OrderResultSheet` 주석).
+  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   // 형식 검증은 `StockCodeGuard` 가 이미 했다.
@@ -311,9 +318,27 @@ export function OrderPage() {
         result={result}
         onClose={() => {
           setResult(null);
-          // 체결 뒤에는 종목 상세로 돌아간다. 주문 화면에 남으면 방금 체결한 수량이
-          // 그대로 남아 같은 주문을 한 번 더 내기 쉽다.
-          void navigate(ROUTES.stockDetail(stockCode));
+          /*
+            체결 뒤에는 종목 상세로 돌아간다. 주문 화면에 남으면 방금 체결한 수량이
+            그대로 남아 같은 주문을 한 번 더 내기 쉽다.
+
+            **히스토리에서 주문 화면을 빼면서 돌아간다** (FINCH-269). 전에는
+            `navigate(경로)` 로 새 항목을 쌓아서, 체결하고 뒤로가기를 누르면 **방금
+            주문을 마친 그 화면으로 되돌아갔다.** 수량이 그대로 남아 있어 위에 적은
+            "한 번 더 내기 쉽다" 를 뒤로가기로 그대로 재현하는 셈이었다.
+
+            판정은 `SubPageHeader` 의 뒤로가기와 같은 모양이다 — 새 탭에서 주소로
+            바로 열었으면(`location.key === 'default'`) 되돌릴 항목이 없어
+            `navigate(-1)` 이 앱 밖으로 나가 버리므로 그때만 경로로 간다.
+
+            무효화는 `useCreateOrder` 가 이미 했다. 뒤로 돌아간 종목 상세가 옛 보유를
+            보여주지 않는다 — POP 이라도 무효화된 쿼리는 다시 받는다.
+          */
+          if (location.key === 'default') {
+            void navigate(ROUTES.stockDetail(stockCode), { replace: true });
+          } else {
+            void navigate(-1);
+          }
           /*
             체결 토스트 (FINCH-232 의 19자리 중 하나, 프로토타입 `submit`).
             **결과 시트를 닫고 종목 상세로 돌아간 뒤에 띄운다.** 프로토타입은
