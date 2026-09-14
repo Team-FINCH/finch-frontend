@@ -24,14 +24,38 @@ import { AiFloatingOverlay } from './AiFloatingOverlay';
  *    화면마다 두면 문구가 겹쳐 뜨고, 화면을 옮기며 띄운 토스트(출금 완료처럼
  *    `navigate` 와 함께 뜨는 것)가 전환 도중 사라진다. `Outlet` 바깥이라
  *    라우트가 바뀌어도 이 요소는 언마운트되지 않는다.
+ * 5. **모바일 폭 기둥** (FINCH-269). 아래 주석을 본다.
  */
 export function RootLayout() {
   return (
     <>
       <ScrollRestoration />
-      <Suspense fallback={<RouteFallback />}>
-        <Outlet />
-      </Suspense>
+      {/*
+        데스크톱에서 앱이 어디까지인지 보이게 하는 기둥이다 (FINCH-269).
+        전에는 `body` 도 앱도 --color-bg 라 넓은 화면에서 경계가 없었다.
+
+        **여기 하나로 끝난다.** 모든 라우트가 이 아래라 화면마다 손댈 필요가 없다.
+        화면들이 이미 각자 `max-w-md mx-auto` 를 쓰고 있어 폭이 겹쳐도 무해하다 —
+        안쪽이 이미 최대라 더 좁아지지 않는다.
+
+        **`min-h-dvh` 다.** `h-dvh` 로 못 박으면 창이 굴러가는 화면(입금·주문·브리핑)
+        에서 내용이 기둥 밖으로 넘쳐 그 아래가 바깥 색으로 남는다. `TabBarLayout` 의
+        `h-dvh overflow-hidden` 은 이 안에서 그대로 돈다.
+
+        **전역 오버레이 셋은 이 밖이다.** `AiFloatingOverlay`·`ToastViewport` 와
+        Radix 포털을 타는 시트·모달은 `fixed` 라 조상이 아니라 뷰포트를 기준으로
+        놓인다. 안에 넣어도 자리가 같고, 밖에 두는 편이 "기둥은 본문만 감싼다" 가
+        분명하다. 셋 다 이미 같은 `max-w-md` 가운데 정렬이라 기둥 폭에 정확히 든다.
+
+        **그림자에 미디어 쿼리가 없다.** 모바일에서는 기둥이 화면 폭과 같아져
+        가장자리가 화면 밖으로 떨어진다 — 저절로 안 보인다 (컨벤션 §8 이 커스텀
+        브레이크포인트를 금지하므로 이 성질에 기댄다).
+      */}
+      <div className="mx-auto min-h-dvh w-full max-w-md bg-bg shadow-page-column">
+        <Suspense fallback={<RouteFallback />}>
+          <Outlet />
+        </Suspense>
+      </div>
       <AiFloatingOverlay />
       <ToastViewport />
     </>
