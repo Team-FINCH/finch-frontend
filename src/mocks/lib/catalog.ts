@@ -233,15 +233,24 @@ export function changeRateOf(stock: MockStock): number {
   return Math.round(rate * 100) / 100;
 }
 
-/** 목록 한 줄 (apiSpec §5.1 `StockSummary`). */
+/**
+ * 목록 한 줄 (apiSpec §5.1 `StockSummary`).
+ *
+ * **`quoteState: 'missing'` 이면 가격 셋이 `null` 이다** — `toStockQuote` 와 같은 규칙이고
+ * 근거도 같다 (apiSpec §5.4 셋째 행). 전에는 여기서 `quoteState` 를 보지 않아 시세 없는
+ * 종목도 숫자를 내보냈다. 그래서 `900140`(엘브이엠씨홀딩스)이라는 「시세 없음」 픽스처가
+ * 멀쩡히 있는데도 검색 결과로는 그 상태를 한 번도 재현하지 못했고, 프론트 스키마가
+ * `null` 을 거부하던 것을 목으로는 잡을 수 없었다 (FINCH-255).
+ */
 export function toStockSummary(stock: MockStock) {
+  const missing = stock.quoteState === 'missing';
   return {
     stockCode: stock.stockCode,
     stockName: stock.stockName,
     market: stock.market,
-    currentPrice: stock.currentPrice,
-    changeAmount: changeAmountOf(stock),
-    changeRate: changeRateOf(stock),
+    currentPrice: missing ? null : stock.currentPrice,
+    changeAmount: missing ? null : changeAmountOf(stock),
+    changeRate: missing ? null : changeRateOf(stock),
     suspended: stock.suspended,
   };
 }
