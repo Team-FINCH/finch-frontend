@@ -17,7 +17,11 @@ import {
   ORDER_SIDE_LABEL,
   ORDER_SIDE_PARAM,
 } from '@/features/order';
-import { useStockDetail } from '@/features/stocks';
+// 배럴(`@/features/stocks`)이 아니라 모듈을 직접 가리킨다. 배럴은 `CandleChart` 도
+// 함께 내보내는데, 그것이 `lightweight-charts` 를 끌고 와 **차트를 그리지도 않는
+// 주문 화면 번들에 190kB 짜리 청크가 붙는다**(빌드로 확인). 홈이 `BriefingSection`
+// 을 경로로 집어 오는 것과 같은 방식이다.
+import { useStockDetail } from '@/features/stocks/api/useStockDetail';
 import { isHttpError } from '@/shared/api';
 import { ROUTES, STOCK_CODE_PARAM } from '@/shared/config/routes';
 import { showToast } from '@/shared/hooks/useToastStore';
