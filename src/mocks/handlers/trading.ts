@@ -4,6 +4,7 @@ import {
   API_PATHS,
   CURSOR_PAGE_DEFAULT_SIZE,
   CURSOR_PAGE_MAX_SIZE,
+  MARKET_HOURS_LABEL_KST,
 } from '@/shared/config/apiContract';
 import {
   COMMON_ERROR_CODES,
@@ -53,7 +54,7 @@ import {
  * 가격 변동으로 부족해진 것과 원래 부족했던 것을 서버가 구분하지 않고
  * `ORDER_INSUFFICIENT_CASH` 하나로 응답하기로 확정했다 (§11.2, featureSpec §7.3).
  *
- * 거래 시간(09:00~15:30)은 시계로 판정하지 않는다. 그러면 장 밖에서 주문 화면을 아예
+ * 거래 시간(`MARKET_HOURS_LABEL_KST`)은 시계로 판정하지 않는다. 그러면 장 밖에서 주문 화면을 아예
  * 만들 수 없다. `ORDER_MARKET_CLOSED` 는 위 전용 종목으로만 나온다 (`lib/catalog.ts`).
  */
 
@@ -92,8 +93,9 @@ const ORDER_REJECTION_STATUS: Record<string, number> = {
 };
 
 const ORDER_REJECTION_MESSAGE: Record<string, string> = {
-  [ORDER_ERROR_CODES.MARKET_CLOSED]:
-    '지금은 주문할 수 없어요 (거래 시간 09:00~15:30)',
+  // 실 서버 `OrderErrorCode.ORDER_MARKET_CLOSED` 와 같은 문자열이어야 한다.
+  // 목만 옛 시간을 말하면 화면이 어느 쪽을 그리는지 목에서 검증할 수 없다.
+  [ORDER_ERROR_CODES.MARKET_CLOSED]: `지금은 주문할 수 없어요 (거래 시간 ${MARKET_HOURS_LABEL_KST})`,
   [ORDER_ERROR_CODES.STOCK_SUSPENDED]: '거래정지 종목입니다',
   [ORDER_ERROR_CODES.PRICE_UNAVAILABLE]:
     '시세를 불러올 수 없어 주문이 제한됩니다',

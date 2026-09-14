@@ -45,8 +45,13 @@ export interface MockStock {
    * `GET /orders/available` 이 `tradable: false` 로 답할 때의 `reason` 이고
    * `POST /orders` 가 그대로 거절 코드로 쓴다. `null` 이면 거래 가능하다.
    *
-   * **목은 항상 장중으로 본다.** 시계로 판정하면 09:00~15:30 밖에서 주문 화면을
-   * 아예 만들 수 없다. 대신 `ORDER_MARKET_CLOSED` 는 아래 전용 종목으로 재현한다.
+   * **목은 항상 장중으로 본다.** 시계로 판정하면 거래 시간
+   * (`MARKET_HOURS_LABEL_KST`) 밖에서 주문 화면을 아예 만들 수 없다. 대신
+   * `ORDER_MARKET_CLOSED` 는 아래 전용 종목으로 재현한다.
+   *
+   * **세션(정규장·애프터마켓·닫힘)은 아직 흉내 내지 않는다** (apiSpec §5.8,
+   * `GET /market/status`). 그 API 를 붙여 장 밖에서 폴링을 멈추게 만들 때 목도
+   * 세션을 갈라야 검증이 된다 — 별도 티켓이다.
    */
   orderRejection: string | null;
 }

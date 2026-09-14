@@ -1,7 +1,4 @@
-import {
-  MARKET_CLOSE_TIME_KST,
-  MARKET_OPEN_TIME_KST,
-} from '@/shared/config/apiContract';
+import { MARKET_HOURS_LABEL_KST } from '@/shared/config/apiContract';
 import { ORDER_ERROR_CODES } from '@/shared/types/errorCodes';
 
 /**
@@ -26,9 +23,10 @@ import { ORDER_ERROR_CODES } from '@/shared/types/errorCodes';
  * `ActionBar` 를 쓴다. 회신이 오면 그때 정한다.
  */
 const REASON_MESSAGE: Record<string, string> = {
-  // 두 시각을 숫자로 박지 않는다. 정규장 시간은 계약(contracts C44)이고 상수가 단일
-  // 원천이다. 문자열 모양은 design.md L554 그대로다.
-  [ORDER_ERROR_CODES.MARKET_CLOSED]: `지금은 주문할 수 없어요 (거래 시간 ${MARKET_OPEN_TIME_KST}~${MARKET_CLOSE_TIME_KST})`,
+  // 시각을 숫자로 박지 않는다. 거래 시간은 계약(contracts C44 · apiSpec §5.8)이고
+  // 상수가 단일 원천이다 — 애프터마켓이 들어왔을 때 이 줄을 고칠 필요가 없었던
+  // 이유이기도 하다(고칠 곳은 상수 하나였다).
+  [ORDER_ERROR_CODES.MARKET_CLOSED]: `지금은 주문할 수 없어요 (거래 시간 ${MARKET_HOURS_LABEL_KST})`,
   [ORDER_ERROR_CODES.STOCK_SUSPENDED]: '거래정지 종목이라 주문할 수 없어요.',
   // design.md L555 그대로다.
   [ORDER_ERROR_CODES.PRICE_UNAVAILABLE]:
