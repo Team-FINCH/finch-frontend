@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 
 /**
- * 화면 어딘가에 열려 있는 바텀시트가 하나라도 있는지 세는 전역 카운터
+ * 화면 어딘가에 열려 있는 오버레이(바텀시트·모달)가 하나라도 있는지 세는 전역
+ * 카운터
  * (FINCH-28). `TabBar`(`shared/ui/TabBar.tsx`)와 `AiFloatingOverlay`
  * (`app/layouts/AiFloatingOverlay.tsx`)가 이 값을 구독해 시트가 열려 있는 동안
  * 렌더에서 빠진다 — 프로토타입의 `showTabs`·`showFab`이 `!s.sheet`인 것과 같다.
@@ -21,7 +22,7 @@ import { create } from 'zustand';
  * 동시에 두 시트를 열지 않지만, 그건 프로토타입의 화면별 상태 설계이지
  * 컴포넌트 계층의 제약이 아니다 — 우리 컴포넌트는 그 제약을 상속하지 않는다.
  *
- * **`BottomSheet`가 마운트 이펙트로 스스로 increment/decrement한다.**
+ * **`BottomSheet`와 `Modal`이 마운트 이펙트로 스스로 increment/decrement한다.**
  * `BottomSheet`를 쓰는 화면이 이 스토어를 직접 건드리지 않는다 — 쓰는 사람이
  * 잊으면 탭바가 시트 위에 남는 종류의 버그라 컴포넌트가 스스로 책임진다.
  */
