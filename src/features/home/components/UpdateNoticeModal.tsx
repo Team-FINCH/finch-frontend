@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { BottomSheet } from '@/shared/ui/BottomSheet';
 import { Button } from '@/shared/ui/Button';
+import { Modal } from '@/shared/ui/Modal';
 
 import {
   isUpdateNoticeSeenToday,
@@ -10,6 +10,12 @@ import {
 
 /**
  * 서비스 갱신 규칙 안내 (FINCH-262). 홈에 처음 닿았을 때 하루 한 번 뜬다.
+ *
+ * **바텀시트가 아니라 가운데 모달이다.** 이 앱의 오버레이는 전부 시트지만
+ * (프로토타입 `.scrim` 이 `align-items:flex-end` 로 못박혀 있다) 그쪽은 흐름을 잇는
+ * 자리다 — 고르거나 입력하고 그 결과로 화면이 이어진다. 이것은 흐름을 한 번 끊고
+ * 말을 거는 안내라 아래에 붙는 것보다 가운데 떠 있는 편이 맞다. 그리는 것은
+ * `shared/ui/Modal` 이고 치수 근거는 그 파일 주석에 있다.
  *
  * ## 왜 필요한가
  *
@@ -29,7 +35,7 @@ import {
  *    장 시간 판정을 통째로 끈다(`FinchProperties.Market` 주석). 그 상태에서 이 안내가
  *    "지금은 거래할 수 없어요" 라고 말하면 **바로 옆에서 주문이 되는 채로 거짓말을 한다**
  *
- * 그래서 이 시트는 시제가 없는 **규칙**만 적는다. 조건 분기가 하나도 없는 것이
+ * 그래서 이 모달은 시제가 없는 **규칙**만 적는다. 조건 분기가 하나도 없는 것이
  * 게을러서가 아니라 그것이 이 화면의 설계다.
  *
  * ## 적은 것의 출처
@@ -67,7 +73,7 @@ const NOTICE_ITEMS = [
   },
 ] as const;
 
-export function UpdateNoticeSheet() {
+export function UpdateNoticeModal() {
   /**
    * 초기화 함수로 한 번만 판정한다.
    *
@@ -78,7 +84,7 @@ export function UpdateNoticeSheet() {
    *
    * 매 렌더 다시 읽지 않는 이유 — `markUpdateNoticeSeenToday()` 가 날짜를 적은
    * 직후의 리렌더에서 다시 읽으면, 닫히는 애니메이션 도중에 판정이 뒤집혀
-   * 시트가 그 자리에서 사라진다.
+   * 모달이 그 자리에서 사라진다.
    *
    * StrictMode 가 초기화 함수를 두 번 불러도 안전하다. 읽기만 하고 아무것도
    * 바꾸지 않는다.
@@ -104,13 +110,13 @@ export function UpdateNoticeSheet() {
   };
 
   return (
-    <BottomSheet
+    <Modal
       open={open}
       onOpenChange={setOpen}
       title="FINCH는 이렇게 움직여요"
       /* 같은 제목이 아래에 시각적으로 있다. Radix 가 `aria-labelledby` 로 쓰는
-         제목은 남기고 화면에서만 숨긴다 (`BottomSheet` 주석 · `OrderResultSheet`
-         가 같은 모양이다). 빼면 같은 문장이 두 번 보인다. */
+         제목은 남기고 화면에서만 숨긴다 (`Modal` 주석 · `OrderResultSheet` 가
+         같은 모양이다). 빼면 같은 문장이 두 번 보인다. */
       hideTitle
     >
       <p className="text-title-3 font-bold text-text-primary">
@@ -144,7 +150,7 @@ export function UpdateNoticeSheet() {
       <div className="mt-6 flex flex-col gap-2">
         <Button onClick={() => setOpen(false)}>확인</Button>
         {/* `Button` 의 secondary 를 쓰지 않는다. 두 버튼이 같은 무게로 서면
-            "오늘 하루 보지 않기" 가 기본 동작처럼 읽히는데, 이 시트의 기본은
+            "오늘 하루 보지 않기" 가 기본 동작처럼 읽히는데, 이 모달의 기본은
             읽고 닫는 것이다. */}
         <button
           type="button"
@@ -154,6 +160,6 @@ export function UpdateNoticeSheet() {
           오늘 하루 보지 않기
         </button>
       </div>
-    </BottomSheet>
+    </Modal>
   );
 }
