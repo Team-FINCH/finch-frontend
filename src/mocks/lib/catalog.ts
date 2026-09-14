@@ -65,6 +65,31 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     active: true,
     orderRejection: null,
   },
+  /**
+   * **영문자가 섞인 종목코드 픽스처** (FINCH-255). 우선주·전환우선주·신규 지주사는
+   * 코드에 문자가 들어간다 — 시드 300종목 중 9건이고 실제 KIS 마스터에는 훨씬 많다.
+   *
+   * 목 카탈로그가 순수 숫자뿐이던 탓에 `StockCodeSchema` 가 `\d{6}` 인 것을 아무도
+   * 못 잡았고, 실제 백엔드에 붙이자 `삼성` 검색이 통째로 실패했다. **이 한 줄이 그 회귀를
+   * 막는다** — 프론트에 테스트 러너가 없어(`package.json` 에 `test` 없음) 목 데이터가
+   * 유일한 방어선이다.
+   *
+   * 삼성전자 바로 옆에 두는 것도 의도다. MSW 에서 `삼성` 을 검색하면 이 종목이 함께
+   * 걸려 사고 당시와 같은 응답 모양이 재현된다.
+   */
+  {
+    stockCode: '02826K',
+    stockName: '삼성물산우B',
+    market: 'KOSPI',
+    sector: '상사',
+    previousClose: 229000,
+    currentPrice: 226500,
+    suspended: false,
+    suspendedReason: null,
+    quoteState: 'live',
+    active: true,
+    orderRejection: null,
+  },
   {
     stockCode: '000660',
     stockName: 'SK하이닉스',

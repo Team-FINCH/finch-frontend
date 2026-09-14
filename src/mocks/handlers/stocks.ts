@@ -47,6 +47,7 @@ import { currentPriceOf, profitRate } from '../lib/valuation';
  * | `036570`(엔씨소프트) | `suspended: true` — 뱃지와 주문 차단 렌더 |
  * | `010950`(에스오일) | `stale: true` + 마지막 수신 값 유지 |
  * | `900140`(엘브이엠씨홀딩스) | `stale: true` + 가격 3필드와 `asOf` 가 전부 `null` |
+ * | `02826K`(삼성물산우B) | 영문자가 섞인 종목코드 — `StockCodeSchema` 회귀 픽스처 (FINCH-255) |
  *
  * 시세 없음은 에러가 아니다 (apiSpec §11.2) — 위 두 종목이 그 두 상태를 재현한다.
  */
