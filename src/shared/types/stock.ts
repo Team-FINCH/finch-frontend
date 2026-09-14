@@ -233,10 +233,23 @@ export type WatchlistSort = z.infer<typeof WatchlistSortSchema>;
 export const WatchlistItemSchema = z.object({
   stockCode: StockCodeSchema,
   stockName: z.string(),
-  currentPrice: KrwAmountSchema,
-  changeAmount: KrwAmountSchema,
-  /** 백분율 */
-  changeRate: PercentSchema,
+  /**
+   * **시세 셋은 `null` 일 수 있다.** `GET /watchlist` 가 실제로 `null` 을 주는지는
+   * 아직 확인되지 않았다 — 오늘 이슈 #67 로 물어 뒀고 회신 전이라 방어적으로
+   * 넓혀 둔다. `apiSpec §6.3` 의 예시는 값이 채워져 있지만, 같은 시세 캐시를
+   * 읽는 `§5.4` 는 캐시 미스면 세 필드가 전부 `null` 이라고 적혀 있어 근거가
+   * 갈린다. **`null` 이 실제로 온다고 단정하는 것은 아니다** — 확인된 것은
+   * `§5.4` 가 그렇다는 것뿐이다.
+   *
+   * 답을 기다리지 않고 지금 막는 이유는 zod 배열 스키마가 원소 하나만 어긋나도
+   * 배열 전체를 버리기 때문이다. 시세 없는 종목이 관심 목록에 하나만 섞여도
+   * `items` 전체가 `SchemaError` 로 날아가 목록이 통째로 빈다 — 검색에서 실제로
+   * 났던 사고와 같은 모양이다 (FINCH-255, MR !258).
+   */
+  currentPrice: KrwAmountSchema.nullable(),
+  changeAmount: KrwAmountSchema.nullable(),
+  /** 백분율. `null` 이면 화면은 가격 자리를 비운다 */
+  changeRate: PercentSchema.nullable(),
   held: z.boolean(),
   registeredAt: IsoDateTimeSchema,
 });
