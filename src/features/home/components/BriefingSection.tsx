@@ -21,6 +21,9 @@ import { useHomeBriefing } from '../api/useHomeBriefing';
  * 프로토타입의 `aiShort` 상태는 "아직 모을 소식이 없어요" 한 줄을 보여준다.
  * TODO(계약): 프로토타입(마크업의 최종 근거)을 따라 지금은 후자로 만든다 —
  * 어느 쪽이 맞는지는 팀 확인이 필요하다.
+ *
+ * **그 빈 상태에 설명 한 줄을 더했다** (FINCH-262). 보여줄지 말지의 판정은
+ * 위 TODO 그대로 두고 문구만 고친 것이다 — 이유는 해당 분기 주석에 있다.
  */
 type BriefingSectionProps = {
   hasNoStocks: boolean;
@@ -94,19 +97,45 @@ export function BriefingSection({
 
   const { items } = briefing.data.content;
 
-  // aiShort — 조회는 됐지만 오늘 내보낼 항목이 없다(`status:'empty'`). 위 머리
-  // 주석의 TODO(계약) 참고.
+  /*
+    aiShort — 조회는 됐지만 오늘 내보낼 항목이 없다(`status:'empty'`). 위 머리
+    주석의 TODO(계약) 참고.
+
+    **설명 한 줄을 함께 둔다** (FINCH-262). 전에는 `아직 모을 소식이 없어요`
+    한 줄이었는데, 홈 맨 위에서 이 블록을 처음 만난 사람은 **여기가 원래 무엇을
+    하는 자리인지 알 수 없었다.** 결과만 말하고 정체를 밝히지 않는다.
+
+    두 가지가 이 자리를 예외로 만들고 있었다.
+
+    - `EmptyState` 가 적어 둔 규칙(design.md §13) — "`데이터가 없습니다`를 쓰지
+      않는다. 지금 무엇이 없는지와 **무엇을 하면 채워지는지**를 한 문장씩 적는다".
+      같은 브리핑의 전체 화면(`BriefingFullList`)은 이미 두 문장이다
+    - 프로토타입의 다른 빈 상태 넷도 전부 두 줄이다 — 종목 분석 `공시와 뉴스가
+      조금 더 쌓이면…`, 주문 점검 `매수 이유를 기록하면…`, 진단 `한 종목만
+      담아도…`. 홈 브리핑의 `aiShort` 만 한 줄짜리였다
+
+    바로 위 콜드 스타트 분기(`관심 종목을 담으면 소식을 모아드려요`)와 톤을 맞췄다.
+
+    **"매일 아침" 이라고 적지 않는다.** AI 명세는 `일 1회 배치 생성` 까지만 정하고
+    시각을 계약으로 두지 않았다(응답 예시의 `07:30` 은 예시다). 배치 시각이 바뀌면
+    조용히 틀린 문장이 되므로 횟수만 적는다.
+  */
   if (items.length === 0) {
     return (
-      <div className="mb-5 flex items-center gap-2.75 border-b border-border py-3.5">
+      <div className="mb-5 flex items-start gap-2.75 border-b border-border py-3.5">
         <span
           aria-hidden="true"
-          className="flex-none text-label text-text-muted"
+          className="flex-none text-label leading-5.5 text-text-muted"
         >
           ◌
         </span>
-        <span className="text-body-2 font-medium text-text-secondary">
-          아직 모을 소식이 없어요
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-body-2 font-medium text-text-secondary">
+            오늘 모인 소식이 없어요
+          </span>
+          <span className="text-caption text-pretty break-keep text-text-secondary">
+            보유·관심 종목의 공시와 뉴스를 하루 한 번 모아드려요.
+          </span>
         </span>
       </div>
     );

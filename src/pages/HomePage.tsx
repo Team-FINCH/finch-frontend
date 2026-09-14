@@ -4,6 +4,7 @@ import { BriefingSection } from '@/features/home/components/BriefingSection';
 import { HoldingsWatchlistPreview } from '@/features/home/components/HoldingsWatchlistPreview';
 import { MarketIndexRoller } from '@/features/home/components/MarketIndexRoller';
 import { TotalAssetsSummary } from '@/features/home/components/TotalAssetsSummary';
+import { UpdateNoticeSheet } from '@/features/home/components/UpdateNoticeSheet';
 import { useHomeData } from '@/features/home/model/useHomeData';
 import { useInboxItems } from '@/features/inbox';
 import type { WatchlistSort } from '@/shared/types/stock';
@@ -101,6 +102,20 @@ export function HomePage() {
           onWatchSortChange={setWatchSort}
         />
       </PageMain>
+
+      {/*
+        서비스 갱신 규칙 안내 (FINCH-262). 하루 한 번 뜨고, 노출 판정은 이
+        컴포넌트가 혼자 한다 — 홈은 열지 말지를 알 필요가 없다.
+
+        **`PageMain` 밖이다.** 시트는 `BottomSheet` 안에서 Radix 포털을 타고
+        `body` 바로 아래로 나가므로 어디에 적어도 같은 자리에 그려지지만, 본문 안에
+        두면 홈의 스크롤 컨테이너 안에 있는 것처럼 읽힌다.
+
+        **온보딩과 겹치지 않는다.** 신규 사용자는 로그인 직후 `/onboarding` 으로
+        가고(`KakaoCallbackPage` 의 `resolveDestination`) 이 컴포넌트는 홈에서만
+        마운트되므로, 온보딩을 마치고 홈에 닿은 뒤에 뜬다.
+      */}
+      <UpdateNoticeSheet />
     </>
   );
 }
