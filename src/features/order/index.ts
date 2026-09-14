@@ -7,6 +7,7 @@ export { OrderBlockNotice } from './components/OrderBlockNotice';
 export { OrderQuantityField } from './components/OrderQuantityField';
 export { OrderRatioButtons } from './components/OrderRatioButtons';
 export { OrderResultSheet } from './components/OrderResultSheet';
+export { OrderStockHeader } from './components/OrderStockHeader';
 export { OrderSummaryBox } from './components/OrderSummaryBox';
 
 export { createIdempotencyKey } from './lib/createIdempotencyKey';

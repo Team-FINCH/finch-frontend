@@ -7,6 +7,7 @@ import {
   OrderQuantityField,
   OrderRatioButtons,
   OrderResultSheet,
+  OrderStockHeader,
   OrderSummaryBox,
   createIdempotencyKey,
   parseOrderSideParam,
@@ -16,6 +17,7 @@ import {
   ORDER_SIDE_LABEL,
   ORDER_SIDE_PARAM,
 } from '@/features/order';
+import { useStockDetail } from '@/features/stocks';
 import { isHttpError } from '@/shared/api';
 import { ROUTES, STOCK_CODE_PARAM } from '@/shared/config/routes';
 import { showToast } from '@/shared/hooks/useToastStore';
@@ -75,6 +77,14 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  * 되돌리고, 새 탭에서 바로 열었으면 종목 상세로 보낸다 — 이 화면의 진입점은 종목
  * 상세의 매수·매도 바 하나뿐이고(ia.md §1 주문 행의 선행 조건 `종목 상세`),
  * 체결 뒤 `OrderResultSheet` 도 같은 곳으로 돌아간다.
+ *
+ * ## 종목 한 줄 (FINCH-260)
+ *
+ * 헤더 바로 아래에 이니셜 뱃지 · 종목명 · `시장가 · {현재가}원` · 등락률이 온다
+ * (프로토타입 `isOrder` 의 첫 `.sec`). 전에는 이 자리가 `시장가 · 현재가 68,100원`
+ * 한 줄이라 **어느 종목을 사는지 화면 어디에도 없었다** — 헤더 제목도 `매수`/`매도`
+ * 라 종목을 말하지 않는다. 그리는 것은 `OrderStockHeader` 이고, 종목명이 어디서
+ * 오는지는 아래 `useStockDetail` 주석에 있다.
  */
 export function OrderPage() {
   const params = useParams();
@@ -88,6 +98,22 @@ export function OrderPage() {
   const sideLabel = ORDER_SIDE_LABEL[sideParam];
 
   const available = useOrderAvailable(stockCode, side);
+  /**
+   * 종목명·전일 종가를 받는다 (FINCH-260).
+   *
+   * **`GET /orders/available` 에 `stockName` 이 없어서** 두 쿼리를 여기서 합친다.
+   * feature 끼리 직접 import 하지 않는 규약이라(frontConvention §2) 이 조립은
+   * pages 층인 이 파일의 몫이고, `OrderStockHeader` 는 서버를 모른 채 props 만 받는다.
+   *
+   * 왕복이 실제로 늘지 않는다 — 이 화면의 진입점은 종목 상세 하나뿐이고
+   * (`SubPageHeader` 의 `fallbackTo` 도 그곳이다) 그 화면이 같은 키로 방금 받아 둔
+   * 캐시가 `staleTime` 30초 안에 살아 있다.
+   *
+   * **실패해도 주문을 막지 않는다.** 종목명은 확인을 돕는 값이지 주문에 필요한 값이
+   * 아니다 — 주문이 쓰는 값은 전부 `available` 에서 온다. 그래서 `isError` 를 보지
+   * 않고 `data` 가 없으면 없는 대로 그린다(헤더가 종목코드로 대신한다).
+   */
+  const detail = useStockDetail(stockCode);
   const createOrder = useCreateOrder();
 
   const [quantity, setQuantity] = useState(0);
@@ -207,9 +233,19 @@ export function OrderPage() {
           fallbackTo={ROUTES.stockDetail(stockCode)}
         />
 
-        <p className="mt-4 text-body-2 text-text-secondary">
-          시장가 · 현재가 {formatAmount(orderAvailable.currentPrice)}원
-        </p>
+        {/* 어느 종목을 사는지 화면에 남긴다 (FINCH-260). 전에는 종목명 없이
+            `시장가 · 현재가 68,100원` 한 줄이라, 헤더 제목(`매수`)까지 합쳐도
+            화면 어디에도 종목이 없었다. */}
+        <OrderStockHeader
+          stockCode={stockCode}
+          stockName={detail.data?.stockName ?? null}
+          isDetailPending={detail.isPending}
+          /* 주문 금액을 계산하는 값과 같은 출처여야 한다. 상세 응답의 현재가를
+             쓰면 화면에 적힌 단가와 실제 체결 금액이 갈린다. */
+          currentPrice={orderAvailable.currentPrice}
+          previousClose={detail.data?.previousClose ?? null}
+          suspended={detail.data?.suspended ?? false}
+        />
 
         <OrderQuantityField
           quantity={quantity}
