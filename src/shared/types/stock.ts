@@ -42,10 +42,20 @@ export const StockSummarySchema = z.object({
   stockCode: StockCodeSchema,
   stockName: z.string(),
   market: MarketSchema,
-  currentPrice: KrwAmountSchema,
-  changeAmount: KrwAmountSchema,
+  /**
+   * **시세 셋은 `null` 일 수 있다** (apiSpec §5.4 셋째 행 · `StockSearchRes` 주석).
+   * 캐시 미스(수신 이력 없음)면 세 필드가 전부 `null` 이고, 이것은 에러가 아니라
+   * 정상 상태다 — 거래가 드문 우선주나 서버 재시작 직후가 그렇다. 화면은 가격
+   * 영역을 비운다 (`StockRow` 의 `figures.kind: 'quote'` 가 이미 그렇게 그린다).
+   *
+   * 전에는 셋 다 non-nullable 이었다. zod 배열 스키마는 원소 하나만 어긋나도 배열
+   * 전체를 버리므로, 시세 없는 종목이 검색 결과에 하나만 섞여도 나머지 아홉 개까지
+   * 같이 사라졌다 — `StockCodeSchema` 와 같은 사고다 (FINCH-255).
+   */
+  currentPrice: KrwAmountSchema.nullable(),
+  changeAmount: KrwAmountSchema.nullable(),
   /** 백분율. 100 을 곱하지 않는다 */
-  changeRate: PercentSchema,
+  changeRate: PercentSchema.nullable(),
   suspended: z.boolean(),
 });
 export type StockSummary = z.infer<typeof StockSummarySchema>;

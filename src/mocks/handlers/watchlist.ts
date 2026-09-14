@@ -109,12 +109,15 @@ export const watchlistHandlers = [
     const body = await readJsonBody(request);
     const stockCode = body?.stockCode;
 
-    if (typeof stockCode !== 'string' || !/^\d{6}$/.test(stockCode)) {
+    // 영문자를 허용하는 이유는 `StockCodeSchema` 주석에 있다 (FINCH-255) —
+    // 우선주·전환우선주 코드에 문자가 섞인다(`02826K`). 목이 숫자만 받으면
+    // 실제 백엔드에서는 되는 요청이 여기서만 400 이 된다.
+    if (typeof stockCode !== 'string' || !/^[0-9A-Z]{6}$/.test(stockCode)) {
       return errorResponse(
         COMMON_ERROR_CODES.INVALID_REQUEST,
         '요청 값이 올바르지 않습니다',
         400,
-        { stockCode: '6자리 숫자 문자열이어야 합니다' },
+        { stockCode: '6자리 문자열이어야 합니다' },
       );
     }
 
