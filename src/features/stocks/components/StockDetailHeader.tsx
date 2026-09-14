@@ -13,6 +13,7 @@ import {
   type StockQuote,
 } from '@/shared/types/stock';
 import { hasQuoteValues } from '@/shared/types/stock';
+import { HomeLink } from '@/shared/ui/HomeLink';
 
 /**
  * 종목 상세 머리 — 뒤로가기 · 종목명 · 관심 토글 · 현재가 · 등락 · 기준 시각.
@@ -123,6 +124,18 @@ export function StockDetailHeader({
         >
           {detail.watched ? '♥' : '♡'}
         </button>
+        {/*
+          홈으로 (FINCH-269). 이 화면은 하단 탭 바가 없고 진입 경로가 여럿이라
+          (홈·탐색·포트폴리오·브리핑·알림함) 뒤로가기만으로는 홈까지 몇 번을
+          눌러야 할지 화면마다 다르다.
+
+          관심 토글 **뒤**에 둔다. 토글은 이 화면의 동작이고 홈은 화면을 떠나는
+          길이라, 떠나는 것을 가장자리로 민다 — `SubPageHeader` 도 같은 자리다.
+
+          좁은 화면에서 버튼 셋(뒤로·관심·홈)이 132px 을 쓰지만 종목명이
+          `truncate` 라 넘치지 않고 줄어든다.
+        */}
+        <HomeLink />
       </div>
 
       <div className="pt-3.5">

@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
+import { HomeLink } from '@/shared/ui/HomeLink';
 
 /**
  * 하단 탭에 없는 하위 화면(입금·출금·매매 내역·알림함·브리핑 전체 등)이 공유하는
@@ -46,6 +47,13 @@ type SubPageHeaderProps = {
   showBack?: boolean;
   /** 앱 안에 되돌아갈 곳이 없을 때(새 탭에서 바로 열었을 때) 갈 경로. 기본 홈. */
   fallbackTo?: string;
+  /**
+   * 오른쪽 끝 홈 버튼을 그린다. 기본 `true` — **끄는 화면은 아직 없다.**
+   *
+   * 하위 화면에는 하단 탭 바가 없어서(그쪽은 탭 화면 넷 전용) 홈으로 가려면
+   * 뒤로가기를 온 만큼 눌러야 했다. 뒤로가기가 **한 칸**이고 이것이 **끝까지**다.
+   */
+  showHome?: boolean;
   className?: string;
 };
 
@@ -53,6 +61,7 @@ export function SubPageHeader({
   title,
   showBack = true,
   fallbackTo = ROUTES.home,
+  showHome = true,
   className = '',
 }: SubPageHeaderProps) {
   const navigate = useNavigate();
@@ -87,6 +96,17 @@ export function SubPageHeader({
       >
         {title}
       </h1>
+      {/*
+        홈으로 (FINCH-269). `showBack={false}` 인 결제 결과 화면에도 **그린다** —
+        그 화면은 뒤로가기를 일부러 뺀 자리라(이중 확정 방지) 나갈 길이 본문 버튼
+        하나뿐인데, 승인 대기 상태에서는 그 버튼조차 비어 있어 아예 갇힌다.
+        홈으로 가는 것은 이중 확정과 무관하므로 막을 이유가 없다.
+
+        `button` + `navigate` 가 아니라 `Link` 다. 링크는 새 탭으로 열거나 주소를
+        복사할 수 있어야 하고, 이 동작에는 뒤로가기처럼 "스택을 몇 칸 되돌릴까" 하는
+        판단이 없다 — 언제나 홈 한 곳이다.
+      */}
+      {showHome ? <HomeLink /> : null}
     </div>
   );
 }
