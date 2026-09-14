@@ -222,10 +222,20 @@ export const stockHandlers = [
      */
     touchRecentSearchKeyword(keyword);
 
-    // 상장폐지 종목은 검색 결과에서 빠진다 (계약 C77 · 백엔드 is_active 조건).
+    /*
+     * 상장폐지 종목은 검색 결과에서 빠진다 (계약 C77 · 백엔드 is_active 조건).
+     *
+     * **대소문자와 일치 방식을 백엔드와 맞춘다.** 백엔드 `StockRepository.searchByKeyword` 는
+     * 이름에 `ILIKE '%kw%'`(대소문자 무시 부분 일치), 코드에 `LIKE 'kw%'`(대소문자 구분 접두
+     * 일치)를 쓴다. 전에는 둘 다 `includes` 라서, `sk` 로 검색하면 목만 0건이 나왔다 —
+     * `'SK하이닉스'.includes('sk')` 가 false 다. 실제 백엔드에서는 되는 검색이 목에서만
+     * 안 되면 없는 버그를 쫓게 된다.
+     */
+    const normalized = keyword.toLowerCase();
     const items = ACTIVE_MOCK_STOCKS.filter(
       (stock) =>
-        stock.stockName.includes(keyword) || stock.stockCode.includes(keyword),
+        stock.stockName.toLowerCase().includes(normalized) ||
+        stock.stockCode.startsWith(keyword),
     )
       .slice(0, size)
       .map(toStockSummary);
