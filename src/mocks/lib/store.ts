@@ -142,6 +142,9 @@ export const store: MockStore = {
     { stockCode: '005930', registeredAt: '2026-08-26T09:12:00+09:00' },
     { stockCode: '000660', registeredAt: '2026-08-27T10:41:00+09:00' },
     { stockCode: '247540', registeredAt: '2026-08-31T13:05:00+09:00' },
+    // 시세 없음(quoteState: 'missing') 픽스처. 관심 목록에서 이 상태가 화면에
+    // 재현되는 유일한 자리다 (FINCH-265).
+    { stockCode: '900140', registeredAt: '2026-09-02T09:30:00+09:00' },
   ],
   recentStocks: [
     { stockCode: '000660', viewedAt: '2026-09-01T15:02:00+09:00' },

@@ -67,20 +67,26 @@ export const watchlistHandlers = [
      * 목록만 거르고 한도는 전체 행을 세면 "47/50 인데 왜 못 담지" 가 된다.
      * 등록 행 자체는 지우지 않는다 — 재상장되면 목록과 한도에 함께 돌아온다.
      */
+    // `quoteState: 'missing'` 이면 가격 셋이 `null` 이다 — `toStockSummary` 와 같은
+    // 규칙이고 근거도 같다 (apiSpec §5.4 셋째 행). `900140`(엘브이엠씨홀딩스)이 이
+    // 상태의 유일한 픽스처라, 여기서 놓치면 관심 목록에서는 시세 없음 화면을
+    // 한 번도 재현하지 못한다 (FINCH-265).
     const items = store.watchlist
       .map((entry) => {
         const stock = findActiveStock(entry.stockCode);
-        return stock === undefined
-          ? null
-          : {
-              stockCode: stock.stockCode,
-              stockName: stock.stockName,
-              currentPrice: stock.currentPrice,
-              changeAmount: changeAmountOf(stock),
-              changeRate: changeRateOf(stock),
-              held: findHolding(stock.stockCode) !== undefined,
-              registeredAt: entry.registeredAt,
-            };
+        if (stock === undefined) {
+          return null;
+        }
+        const missing = stock.quoteState === 'missing';
+        return {
+          stockCode: stock.stockCode,
+          stockName: stock.stockName,
+          currentPrice: missing ? null : stock.currentPrice,
+          changeAmount: missing ? null : changeAmountOf(stock),
+          changeRate: missing ? null : changeRateOf(stock),
+          held: findHolding(stock.stockCode) !== undefined,
+          registeredAt: entry.registeredAt,
+        };
       })
       .filter((item) => item !== null);
 
@@ -90,7 +96,17 @@ export const watchlistHandlers = [
       );
     }
     if (sort === 'CHANGE_RATE') {
-      items.sort((left, right) => right.changeRate - left.changeRate);
+      // 시세 없음(`changeRate: null`)은 0% 가 아니다 — 등락 중간에 끼워 넣지 않고
+      // 정렬 방향과 무관하게 항상 맨 뒤로 보낸다 (FINCH-265).
+      items.sort((left, right) => {
+        if (left.changeRate === null) {
+          return right.changeRate === null ? 0 : 1;
+        }
+        if (right.changeRate === null) {
+          return -1;
+        }
+        return right.changeRate - left.changeRate;
+      });
     }
 
     return HttpResponse.json({

@@ -85,12 +85,15 @@ function WatchRowSub({
   stockCode: string;
   held: boolean;
   news: WatchRowNews | undefined;
-  changeRate: number;
+  /** `null` 이면 시세 없음(apiSpec §5.4) — 등락률 폴백 힌트를 만들지 못한다 */
+  changeRate: number | null;
 }) {
   const hint =
-    news === undefined
-      ? `오늘 ${formatSignedRate(changeRate)} 움직인 이유 보기`
-      : `관련 소식 ${news.count}건 · ${news.summary}`;
+    news !== undefined
+      ? `관련 소식 ${news.count}건 · ${news.summary}`
+      : changeRate === null
+        ? '시세 없음'
+        : `오늘 ${formatSignedRate(changeRate)} 움직인 이유 보기`;
 
   return (
     <span className="flex min-w-0 flex-col gap-0.75">
