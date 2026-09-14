@@ -21,7 +21,11 @@ export function useLogout() {
     onSettled: () => {
       // 세션을 먼저 비운다. 순서가 반대면 캐시를 지우는 순간 아직 로그인 상태로
       // 판단한 쿼리들이 다시 요청을 날린다.
-      clearSession();
+      //
+      // 사유를 밝히는 유일한 호출자다 (FINCH-260). 이것을 빠뜨리면 로그아웃이
+      // 세션 만료와 구별되지 않아, `RequireAuth` 가 방금 떠난 화면을 "돌아갈 곳"
+      // 으로 기억한다 — 다시 로그인했을 때 홈이 아니라 그 화면이 열린다.
+      clearSession('signedOut');
 
       // queryClient.clear() 가 아니다. 그쪽은 mutation 캐시까지 비우는데 지금 실행
       // 중인 이 로그아웃이 거기 들어 있다. 지울 대상은 쿼리 캐시뿐이다.
