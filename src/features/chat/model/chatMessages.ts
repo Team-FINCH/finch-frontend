@@ -40,11 +40,31 @@ export type ChatMessage =
       id: string;
       role: 'assistant-error';
       message: string;
-      /** 재시도 버튼을 낼지. `code` 가 없거나(네트워크 실패) 재시도 가능한 코드일 때만 `true`. */
+      /**
+       * 재시도 버튼을 낼지. `code` 가 없거나(네트워크 실패) 재시도 가능한 코드일 때만
+       * `true` 다. **`retryCount` 가 `MAX_CHAT_RETRY_COUNT` 에 닿으면 코드가 재시도
+       * 가능해도 `false` 로 떨어진다** (FINCH-283) — 소진 판정은 호출부
+       * (`ChatPage.handleSend`)가 하고, 여기 실린 값은 그 결과다.
+       */
       retryable: boolean;
       /** 재시도가 다시 보낼 원래 사용자 메시지. */
       retryText: string;
+      /**
+       * 이 실패에 이르기까지 이미 쓴 재시도 횟수 (FINCH-283). 세는 단위는
+       * **이 실패 말풍선 하나**다 — 처음 실패하면 `0`, `다시 시도`를 눌러 또
+       * 실패하면 `1`, 그다음도 실패하면 `2`(소진)다. `MAX_CHAT_RETRY_COUNT` 이상이면
+       * `retryable` 이 이미 `false` 라 버튼이 없다. 일일 한도 소진(daily_token_budget)
+       * 은 애초에 버튼이 없어 이 값이 의미가 없다 — 항상 `0` 으로 둔다.
+       */
+      retryCount: number;
     };
+
+/**
+ * 실패 말풍선 하나가 가질 수 있는 재시도 최대 횟수 (FINCH-283).
+ * 대화 전체가 아니라 **실패 말풍선 단위**로 센다 — `retryCount` 주석 참고.
+ * 다 쓰면 버튼을 없애고 입력창으로 유도한다(`ChatPage.handleSend`).
+ */
+export const MAX_CHAT_RETRY_COUNT = 2;
 
 let nextMessageId = 0;
 
