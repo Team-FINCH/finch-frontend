@@ -11,12 +11,16 @@
  * 실패 말풍선·다시 시도 경로(`assistant-error`, 티켓 248·249)로 이어진다 —
  * 이 컴포넌트 자신은 성공·실패를 구분하지 않는다.
  *
- * 점 세 개는 타이머로 상태를 바꾸는 것이 아니라 CSS 애니메이션(`animate-bounce`)
- * 이 계속 도는 것뿐이라, `usePrefersReducedMotion` 훅 없이 Tailwind
- * `motion-reduce:animate-none` 으로 끈다 — 이 저장소의 관용
- * (`usePrefersReducedMotion` 주석, `RollingNumber`·`TabBar` 동일)을 그대로 따른다.
- * 꺼지면 점 세 개가 제자리에 멈춘 정적 표시로 떨어진다(연출만 빠지고 "답을
- * 기다린다"는 사실 자체는 그대로 보인다).
+ * 점 세 개는 타이머로 상태를 바꾸는 것이 아니라 CSS 애니메이션이 계속 도는 것뿐이라,
+ * `usePrefersReducedMotion` 훅 없이 Tailwind `motion-reduce:animate-none` 으로 끈다
+ * — 이 저장소의 관용(`usePrefersReducedMotion` 주석, `RollingNumber`·`TabBar` 동일)을
+ * 그대로 따른다. 꺼지면 점 세 개가 제자리에 멈춘 정적 표시로 떨어진다(연출만 빠지고
+ * "답을 기다린다"는 사실 자체는 그대로 보인다).
+ *
+ * 기본 `animate-bounce` 는 액션이 너무 작다는 지적(FINCH-277)을 받아 자체
+ * 키프레임 `chat-typing-bounce` 로 바꿨다 — 값과 근거는 `styles/index.css` 주석에
+ * 있다. 점 사이 지연은 150ms(키프레임 주기 600ms 의 1/4)로 세 점의 정점이 고르게
+ * 갈리게 했다. 기존 120ms 는 1s 주기 기준이라 이 주기에서는 물결이 잘 안 읽힌다.
  */
 export function ChatTypingIndicator() {
   return (
@@ -30,8 +34,8 @@ export function ChatTypingIndicator() {
           {[0, 1, 2].map((index) => (
             <span
               key={index}
-              className="size-1.5 animate-bounce rounded-full bg-ai-text-muted motion-reduce:animate-none"
-              style={{ animationDelay: `${String(index * 120)}ms` }}
+              className="size-1.5 animate-[chat-typing-bounce_600ms_ease-in-out_infinite] rounded-full bg-ai-text-muted motion-reduce:animate-none"
+              style={{ animationDelay: `${String(index * 150)}ms` }}
             />
           ))}
         </span>
