@@ -5,6 +5,7 @@ import { useChatHistoryQuery } from '@/features/chat/api/useChatHistoryQuery';
 import { useChatMutation } from '@/features/chat/api/useChatMutation';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
+import { ChatContextSuggestionChips } from '@/features/chat/components/ChatContextSuggestionChips';
 import { ChatEmptyState } from '@/features/chat/components/ChatEmptyState';
 import { ChatTypingIndicator } from '@/features/chat/components/ChatTypingIndicator';
 import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
@@ -187,6 +188,17 @@ export function ChatPage() {
   // 실패 말풍선이 여럿이어도 `다시 시도` 는 하나다 (FINCH-249).
   const retryTargetId = findRetryTargetId(messages);
 
+  /**
+   * 종목 진입 추천 칩 (FINCH-286). 이 방문에서 메시지를 한 번이라도 보내면
+   * 계속 숨긴다 — `messages.length` 만 보면 안 된다. 답이 하나 오면 `messages`
+   * 가 다시 비지 않아 그 뒤로도 계속 보여야 할 이유가 없어진다.
+   */
+  const [chipsSentThisVisit, setChipsSentThisVisit] = useState(false);
+  const showContextChips =
+    chatContext.screen === 'stock_detail' &&
+    messages.length > 0 &&
+    !chipsSentThisVisit;
+
   function resetConversation() {
     setMessages([]);
     setConversationId(null);
@@ -230,6 +242,8 @@ export function ChatPage() {
     if (chatMutation.isPending) {
       return;
     }
+
+    setChipsSentThisVisit(true);
 
     setMessages((prev) => [
       ...prev,
@@ -390,6 +404,18 @@ export function ChatPage() {
         ref={bottomFixedRef}
         className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-border bg-surface px-6.5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
       >
+        {/*
+          칩 줄도 이 바 안에 둔다 — `useRegisterBottomFixedSpace` 가 이 div 를
+          `ResizeObserver` 로 재기 때문에, 칩이 나타나거나 사라져 바 높이가
+          바뀌면 토스트 자리도 같은 렌더에서 함께 갱신된다(FINCH-286).
+        */}
+        {showContextChips && (
+          <ChatContextSuggestionChips
+            suggestions={emptyCopy.suggestions.slice(0, 2)}
+            disabled={chatMutation.isPending}
+            onPick={handleSend}
+          />
+        )}
         <ChatComposer disabled={chatMutation.isPending} onSend={handleSend} />
       </div>
     </PageMain>
