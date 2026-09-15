@@ -1,8 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 
-import { isHttpError } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
 import { showToast } from '@/shared/hooks/useToastStore';
+import {
+  isInsufficientDataErrorCode,
+  readAiErrorCode,
+  readAiErrorMessage,
+} from '@/shared/lib/aiErrorRetry';
 import {
   formatKstMonthDay,
   formatKstMonthDayTime,
@@ -13,7 +17,6 @@ import {
   type AiAnalysisSectionKey,
 } from '@/shared/types/ai/analysis';
 import { type AiCitation } from '@/shared/types/ai/envelope';
-import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
 import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 import { AiSegmentText } from '@/shared/ui/AiSegmentText';
@@ -345,7 +348,7 @@ export function StockAiTab({
 
   if (analysis.isError) {
     const error = analysis.error;
-    const code = isHttpError(error) ? error.code : undefined;
+    const code = readAiErrorCode(error);
 
     /*
      * **데이터 부족은 실패가 아니다** (contracts C12 · design.md L1237-1255).
@@ -355,7 +358,7 @@ export function StockAiTab({
      * 문구는 프로토타입 실측 그대로다 — 여기서 서버 `message` 를 쓰지 않는 이유는
      * 이 자리의 문장이 "왜 실패했나" 가 아니라 "무엇이 쌓이면 켜지나" 이기 때문이다.
      */
-    if (code === AI_SERVICE_ERROR_CODES.INSUFFICIENT_DATA) {
+    if (isInsufficientDataErrorCode(code)) {
       return (
         <AiStatus
           code={code}
@@ -372,13 +375,11 @@ export function StockAiTab({
     }
 
     // 문구는 서버가 완성해 준 message 를 쓴다 (컨벤션 §5). 화면이 다시 짓지 않는다.
-    const message = isHttpError(error)
-      ? error.message
-      : '잠시 후 다시 시도해 주세요.';
+    const message = readAiErrorMessage(error, '잠시 후 다시 시도해 주세요.');
 
     return (
       <AiStatus
-        code={code ?? undefined}
+        code={code}
         title="분석을 불러오지 못했어요"
         description={message}
         onRetry={() => {

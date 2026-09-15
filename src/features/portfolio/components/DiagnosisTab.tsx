@@ -1,7 +1,10 @@
-import { isHttpError } from '@/shared/api';
-import { isRetryableAiErrorCode } from '@/shared/lib/aiErrorRetry';
+import {
+  isInsufficientDataErrorCode,
+  isRetryableAiErrorCode,
+  readAiErrorCode,
+  readAiErrorMessage,
+} from '@/shared/lib/aiErrorRetry';
 import { formatPercent } from '@/shared/lib/formatNumber';
-import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiStatus } from '@/shared/ui/AiStatus';
@@ -68,12 +71,10 @@ export function DiagnosisTab() {
   }
 
   if (isError) {
-    const code = isHttpError(error) ? (error.code ?? undefined) : undefined;
-    const message = isHttpError(error)
-      ? error.message
-      : '분석을 불러오지 못했어요';
+    const code = readAiErrorCode(error);
+    const message = readAiErrorMessage(error, '분석을 불러오지 못했어요');
 
-    if (code === AI_SERVICE_ERROR_CODES.INSUFFICIENT_DATA) {
+    if (isInsufficientDataErrorCode(code)) {
       return (
         <AiStatus
           title="아직 분석할 정보가 충분하지 않아요"

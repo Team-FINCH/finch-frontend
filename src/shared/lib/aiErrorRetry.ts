@@ -1,3 +1,4 @@
+import { isHttpError } from '@/shared/api';
 import {
   AI_RELAY_ERROR_CODES,
   AI_SERVICE_ERROR_CODES,
@@ -46,4 +47,41 @@ export function isRetryableAiErrorCode(
     return false;
   }
   return (RETRYABLE_AI_ERROR_CODES as readonly string[]).includes(code);
+}
+
+/**
+ * AI 슬롯 화면 다섯(`OrderAiPreview`·`CauseTab`·`DiagnosisTab`·`WikiTab`·
+ * `StockAiTab`)이 각자 반복하던 전처리 — `error` 가 `HttpError` 인지 보고
+ * `code` 를 꺼내는 자리다 (FINCH-125). `HttpError` 가 아니면(네트워크
+ * 끊김 등) `undefined` 다. 화면이 `isHttpError` 를 직접 부르지 않아도 되게 한다.
+ */
+export function readAiErrorCode(error: unknown): string | undefined {
+  return isHttpError(error) ? (error.code ?? undefined) : undefined;
+}
+
+/**
+ * 같은 전처리의 `message` 쪽이다. `HttpError` 가 아니면 `defaultMessage` 를
+ * 대신 쓴다.
+ *
+ * **`defaultMessage` 는 인자로 받는다.** 서버 `message` 자체가 없을 때 보여줄
+ * 문구가 화면마다 다르고, 같은 화면 안에서도 분기마다 다를 수 있다 —
+ * `OrderAiPreview` 는 `INSUFFICIENT_DATA` 분기와 일반 실패 분기의 기본 문구가
+ * 서로 다르다. 문구를 이 함수 안에 고정하면 그 차이를 표현할 수 없다.
+ */
+export function readAiErrorMessage(
+  error: unknown,
+  defaultMessage: string,
+): string {
+  return isHttpError(error) ? error.message : defaultMessage;
+}
+
+/**
+ * `INSUFFICIENT_DATA` 인지 판정한다. AI 서비스가 정상적으로 거절한 것이라
+ * (contracts C12) 에러 화면이 아니라 화면마다 다른 대체 UI 로 접는다 — 판정만
+ * 여기서 하고 무엇을 그릴지는 화면이 정한다.
+ */
+export function isInsufficientDataErrorCode(
+  code: string | null | undefined,
+): boolean {
+  return code === AI_SERVICE_ERROR_CODES.INSUFFICIENT_DATA;
 }

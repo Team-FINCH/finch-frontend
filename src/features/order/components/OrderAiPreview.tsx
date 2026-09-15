@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 
-import { isHttpError } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
+import {
+  isInsufficientDataErrorCode,
+  readAiErrorCode,
+  readAiErrorMessage,
+} from '@/shared/lib/aiErrorRetry';
 import { formatKstDate } from '@/shared/lib/formatDate';
 import { formatKrw } from '@/shared/lib/formatNumber';
-import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { type OrderSide } from '@/shared/types/order';
 import { AiCard } from '@/shared/ui/AiCard';
 import { AiStatus } from '@/shared/ui/AiStatus';
@@ -86,10 +89,10 @@ export function OrderAiPreview({
 
   if (preview.isError) {
     const error = preview.error;
-    const code = isHttpError(error) ? (error.code ?? undefined) : undefined;
+    const code = readAiErrorCode(error);
 
     // 재시도가 무의미한 자리다. `AiStatus` 가 코드로 판정해 버튼을 내지 않는다.
-    if (code === AI_SERVICE_ERROR_CODES.INSUFFICIENT_DATA) {
+    if (isInsufficientDataErrorCode(code)) {
       return (
         <AiStatus
           code={code}
@@ -116,11 +119,10 @@ export function OrderAiPreview({
            * 아무리 적어도 이 블록이 열리지 않는다 — design.md §10 이 금지한
            * "`~하면 볼 수 있어요`" (기다리면 열린다는 거짓 인상) 그대로였다.
            */
-          description={
-            isHttpError(error)
-              ? error.message
-              : '주문 전 점검에 필요한 정보를 아직 불러오지 못했어요.'
-          }
+          description={readAiErrorMessage(
+            error,
+            '주문 전 점검에 필요한 정보를 아직 불러오지 못했어요.',
+          )}
           className="pt-8.5 pb-4"
         />
       );
@@ -131,9 +133,7 @@ export function OrderAiPreview({
         code={code}
         title="점검 결과를 불러오지 못했어요"
         // 문구는 서버가 완성해 준 message 를 그대로 쓴다 (컨벤션 §5).
-        description={
-          isHttpError(error) ? error.message : '잠시 후 다시 시도해 주세요.'
-        }
+        description={readAiErrorMessage(error, '잠시 후 다시 시도해 주세요.')}
         onRetry={() => void preview.refetch()}
         className="pt-8.5 pb-4"
       />
