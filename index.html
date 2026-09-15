@@ -9,6 +9,15 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+    <!-- PWA 설치 메타 (FINCH-287). theme-color 는 styles/index.css 의
+         --color-bg 와 같은 값이다 — manifest.webmanifest 와도 맞춘다. -->
+    <meta name="theme-color" content="#f7f8fa" />
+    <!-- iOS Safari 는 매니페스트의 display 를 읽지 않는다. standalone 설치는
+         이 태그 셋으로 따로 켠다. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>FINCH</title>
   </head>
   <body>
