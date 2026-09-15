@@ -12,7 +12,7 @@ import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
-import { StockInitialBadge } from '@/shared/ui/StockInitialBadge';
+import { StockLogo } from '@/shared/ui/StockLogo';
 import { NoValue } from '@/shared/ui/StockRow';
 
 import { useHomeBriefing } from '../api/useHomeBriefing';
@@ -244,7 +244,7 @@ function BriefingRow({
     <Link to={item.deeplink} className={`block ${style.shell}`}>
       {head === null ? null : (
         <span className={`flex items-center ${style.head} ${style.headGap}`}>
-          <StockInitialBadge
+          <StockLogo
             stockCode={head.stockCode}
             stockName={head.facts.stockName}
             size="sm"

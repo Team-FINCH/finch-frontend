@@ -9,7 +9,7 @@ import {
   type PriceDirection,
 } from '@/shared/lib/formatNumber';
 
-import { StockInitialBadge } from './StockInitialBadge';
+import { StockLogo } from './StockLogo';
 
 /**
  * 종목 한 줄. 홈의 내 종목 · 검색 결과 · 시장 랭킹 · 관심 목록 · 포트폴리오 보유 ·
@@ -176,7 +176,7 @@ export function StockRow({
           {rank}
         </span>
       )}
-      <StockInitialBadge stockCode={stockCode} stockName={stockName} />
+      <StockLogo stockCode={stockCode} stockName={stockName} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.75">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-body-1 font-medium text-text-primary">
