@@ -68,6 +68,7 @@ export function StockDetailHeader({
     quote !== undefined && !hasQuoteValues(quote) && quote.stale;
 
   const changeClass = DIRECTION_TEXT_CLASS[getPriceDirection(changeRate)];
+  const showStaleNotice = quote?.stale === true && !hasNoValue;
 
   return (
     <header>
@@ -174,12 +175,20 @@ export function StockDetailHeader({
           않는다. 값이 정해지면 `shared/config` 상수로 두고 여기서 참조한다
           (ia.md §7 "시세 갱신 주기와 stale 임계값은 코드에 숫자로 박지 않는다").
           — 근거: contracts P10 / 스프린트 0 결정
+
+          줄 자체는 늘 그린다. `visible`/`invisible` 토글만 한다 —
+          안 그리면 켜질 때마다 `text-caption` 줄 높이만큼 아래가 밀린다 (FINCH-284).
+          `invisible` 은 `visibility: hidden` 이라 스크린리더 트리에서도 빠지므로
+          `aria-hidden` 을 겹쳐 명시적으로 맞춘다.
         */}
-        {quote?.stale === true && !hasNoValue && (
-          <p className="mt-2 text-caption text-text-muted">
-            시세가 지연되고 있어요
-          </p>
-        )}
+        <p
+          aria-hidden={!showStaleNotice}
+          className={`mt-2 text-caption text-text-muted ${
+            showStaleNotice ? 'visible' : 'invisible'
+          }`}
+        >
+          시세가 지연되고 있어요
+        </p>
 
         {/*
           거래정지 안내 회색 박스는 걷어냈다. 프로토타입은 헤더에 **중립 회색 뱃지**만
