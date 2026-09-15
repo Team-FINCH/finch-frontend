@@ -86,19 +86,34 @@ export const AiChatHistoryMessageSchema = z.object({
 export type AiChatHistoryMessage = z.infer<typeof AiChatHistoryMessageSchema>;
 
 /**
- * `GET /ai/chat/conversations/{conversationId}/messages` 응답 (AI 명세 §4.1).
+ * `GET /ai/chat/conversations/{conversationId}/messages` 응답의 `content`
+ * (AI 명세 §4.1 Response — content).
+ */
+export const AiChatHistoryContentSchema = z.object({
+  conversationId: z.string(),
+  messages: z.array(AiChatHistoryMessageSchema),
+});
+export type AiChatHistoryContent = z.infer<typeof AiChatHistoryContentSchema>;
+
+/**
+ * `GET /ai/chat/conversations/{conversationId}/messages` 응답 (AI 명세 §4.1 ·
+ * FINCH-280).
  *
- * **봉투가 없다.** 다른 여섯 종과 달리 `content`·`requestId`·`dataAsOf`·
- * `citations`·`disclaimer` 로 감싸지 않고 본문을 그대로 준다 — AI 명세 §4.1의
- * 예시는 "Response — content" 절 밖에 있다(§4 의 `POST /chat` 예시와 비교하면
- * 그 절 표시가 있고 없고가 갈린다). 저장된 값을 그대로 돌려주는 조회라
- * `dataAsOf`·`citations`·`disclaimer` 를 새로 지어낼 근거가 없다.
+ * **봉투가 있다.** 다른 여섯 종과 같은 `createAiResponseSchema` 재포장 형태다.
+ * 이전 판은 "봉투가 없다"고 적었는데 틀렸다 — AI 명세 §4.1 이 MR !289 로
+ * "Response — content" 절로 고쳐졌고, GitLab 이슈 #79 회신이
+ * `Envelope[ChatHistoryContent]` 가 맞다고 못박았다. 화면은 `createAiResponseSchema`
+ * 로 감싼 뒤 `response.content.messages` 를 읽는다(`frontend/docs/contracts.md` C100).
+ *
+ * 조회 결과는 저장된 대화만 돌려주므로 `dataAsOf` 다섯 값은 항상 `null`이고
+ * `citations`도 항상 빈 배열이다(§4.1). AI 명세는 `freshnessWarnings`도 함께
+ * 빈 배열이라고 적지만, 그 필드는 여섯 종 전부에서 아직 프론트 스키마
+ * (`envelope.ts`)에 자리가 없다 — 이 티켓의 범위 밖이라 여기서 새로 만들지 않는다.
  *
  * **존재하지 않거나 남의 `conversationId` 는 빈 `messages` 를 돌려준다.**
  * 에러가 아니다 — 소유권 격리는 AI 쪽에서 끝난다(§4.1).
  */
-export const AiChatHistorySchema = z.object({
-  conversationId: z.string(),
-  messages: z.array(AiChatHistoryMessageSchema),
-});
+export const AiChatHistorySchema = createAiResponseSchema(
+  AiChatHistoryContentSchema,
+);
 export type AiChatHistory = z.infer<typeof AiChatHistorySchema>;
