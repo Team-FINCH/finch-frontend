@@ -58,6 +58,19 @@ export function countBriefingEventTypes(
 }
 
 /**
+ * 명세엔 없지만 빈 문자열·공백만 있는 `publisher` 를 "없음" 으로 취급한다 —
+ * 걸러내지 않으면 `label ?? publisher` 가 `''` 를 그대로 돌려주고, 호출부는
+ * `=== undefined` 로만 없음을 판정하므로(`useBriefingStockFacts.ts:63`) 본문
+ * 아래에 가운뎃점 없는 빈 줄만 남는다.
+ */
+function normalizePublisher(
+  publisher: string | null | undefined,
+): string | undefined {
+  const trimmed = publisher?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+/**
  * 본문 아래 보조 한 줄 `{종류} · {출처}` (프로토타입 `briefTop.meta`).
  *
  * 한쪽만 있으면 그 쪽만 보여주고, 둘 다 없으면 `undefined` 를 돌려준다 —
@@ -71,9 +84,10 @@ export function briefingItemMeta(
   const label = isKnownEventType(eventType)
     ? BRIEFING_EVENT_LABELS[eventType]
     : undefined;
+  const normalizedPublisher = normalizePublisher(publisher);
 
-  if (label !== undefined && publisher != null) {
-    return `${label} · ${publisher}`;
+  if (label !== undefined && normalizedPublisher !== undefined) {
+    return `${label} · ${normalizedPublisher}`;
   }
-  return label ?? publisher ?? undefined;
+  return label ?? normalizedPublisher;
 }
