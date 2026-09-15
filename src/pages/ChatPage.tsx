@@ -12,20 +12,40 @@ import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
   createMessageId,
   findRetryTargetId,
+  MAX_CHAT_RETRY_COUNT,
   toRestoredMessage,
   type ChatMessage,
 } from '@/features/chat/model/chatMessages';
 import { isHttpError } from '@/shared/api';
 import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
 import { showToast } from '@/shared/hooks/useToastStore';
-import { isRetryableAiErrorCode } from '@/shared/lib/aiErrorRetry';
+import {
+  isDailyTokenBudgetExhausted,
+  isRetryableAiErrorCode,
+  readAiErrorCode,
+} from '@/shared/lib/aiErrorRetry';
 import {
   clearStoredConversationId,
   getStoredConversationId,
   storeConversationId,
 } from '@/shared/lib/chatConversationId';
+import { AI_RELAY_ERROR_CODES } from '@/shared/types/errorCodes';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
+
+/** 일일 예산 소진 전용 문구 (FINCH-283). 사실만 적고 재시도를 유도하지 않는다. */
+const DAILY_TOKEN_BUDGET_MESSAGE =
+  '오늘의 AI 답변 한도를 모두 사용했어요. 내일 다시 이용할 수 있어요.';
+
+/**
+ * 실패당 재시도 2회를 다 썼을 때(FINCH-283). "다시 시도" 버튼이 사라진
+ * 대신 입력창을 가리킨다 — 입력창은 잠겨 있지 않다(티켓 249와 같은 결).
+ * "잠시 후 다시 시도해 주세요"처럼 할 수 없는 행동을 가리키지 않는다.
+ */
+const RETRY_EXHAUSTED_MESSAGE =
+  '답을 받지 못했어요. 입력창에 다시 물어봐 주세요.';
+
+const DEFAULT_CHAT_ERROR_MESSAGE = '메시지를 보내지 못했어요.';
 
 /**
  * AI 채팅 — 내 포트폴리오에 대해 묻고 답 받기. 화면 맥락(`screen`·`ticker`)을 실어
@@ -192,8 +212,14 @@ export function ChatPage() {
    * 동안의 중복이고, 지나간 실패 말풍선이 저마다 들고 있던 버튼은 막지 못한다.
    * 그쪽은 `findRetryTargetId` 가 버튼 자체를 하나로 줄여서 막는다. 둘은 서로 다른
    * 것을 막으므로 함께 있어야 한다.
+   *
+   * @param retryCount 이 전송이 몇 번째 재시도인지 (FINCH-283). 입력창·빈 상태
+   * 추천 질문처럼 **새 질문**이면 `0`이다. `다시 시도` 버튼을 눌러서 온 호출이면
+   * 그 실패 말풍선의 `retryCount + 1`을 렌더 쪽(`messages.map`)이 실어 보낸다 —
+   * 다시 실패했을 때 다음 말풍선에 얼마나 더 재시도할 수 있는지를 이어서 세려면
+   * 몇 번째 시도인지를 이 함수가 알아야 한다.
    */
-  function handleSend(text: string) {
+  function handleSend(text: string, retryCount = 0) {
     if (chatMutation.isPending) {
       return;
     }
@@ -233,20 +259,62 @@ export function ChatPage() {
           ]);
         },
         onError: (error) => {
-          const code = isHttpError(error) ? error.code : null;
-          // 네트워크 실패·응답 스키마 불일치(code 없음)는 재시도가 유의미하다.
-          // 알려진 코드는 도메인 판정(`isRetryableAiErrorCode`)을 따른다.
-          const retryable = code === null ? true : isRetryableAiErrorCode(code);
+          /**
+           * 일일 예산 소진은 갈래가 다르다(FINCH-283). `code` 만으로는
+           * `AI_UPSTREAM_RATE_LIMITED` 의 두 갈래(분당 한도 · 일일 예산)를 가를 수
+           * 없어 `detail.reason` 까지 보는 전용 판정(`isDailyTokenBudgetExhausted`)
+           * 을 먼저 거친다 — 여기 해당하면 재시도 횟수와 무관하게 버튼이 없다.
+           */
+          if (isDailyTokenBudgetExhausted(error)) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: createMessageId(),
+                role: 'assistant-error',
+                message: DAILY_TOKEN_BUDGET_MESSAGE,
+                retryable: false,
+                retryText: text,
+                retryCount: 0,
+              },
+            ]);
+            return;
+          }
+
+          const code = readAiErrorCode(error) ?? null;
+          /**
+           * 네트워크 실패·응답 스키마 불일치(code 없음)는 재시도가 유의미하다.
+           * 알려진 코드는 도메인 판정(`isRetryableAiErrorCode`)을 따르되,
+           * `AI_UPSTREAM_RATE_LIMITED` 는 위에서 일일 예산 갈래를 걸러 낸
+           * 뒤라 여기 남은 것은 분당 한도(`request_rate_limit`)뿐이다 — 그쪽은
+           * `Retry-After` 뒤에 재시도하면 풀린다(apiSpec §10.4). 채팅은
+           * 뮤테이션이라 `queryClient` 의 자동 재시도가 적용되지 않으므로
+           * (`createQueryClient` 의 `mutations.retry: false`), 이 버튼이 그
+           * "기다렸다 재시도"를 사람이 대신하는 자리다.
+           */
+          const codeRetryable =
+            code === null
+              ? true
+              : isRetryableAiErrorCode(code) ||
+                code === AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED;
+          const hasRetriesLeft = retryCount < MAX_CHAT_RETRY_COUNT;
+          const retryable = codeRetryable && hasRetriesLeft;
+
           setMessages((prev) => [
             ...prev,
             {
               id: createMessageId(),
               role: 'assistant-error',
-              message: isHttpError(error)
-                ? error.message
-                : '메시지를 보내지 못했어요.',
+              // 재시도를 다 썼으면 서버 문구 대신 입력창으로 유도하는 문구로
+              // 바꾼다 — 남은 재시도가 없다는 사실이 서버 메시지보다 중요하다.
+              message:
+                codeRetryable && !hasRetriesLeft
+                  ? RETRY_EXHAUSTED_MESSAGE
+                  : isHttpError(error)
+                    ? error.message
+                    : DEFAULT_CHAT_ERROR_MESSAGE,
               retryable,
               retryText: text,
+              retryCount,
             },
           ]);
         },
@@ -279,18 +347,29 @@ export function ChatPage() {
         />
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          {messages.map((message) => (
-            <ChatBubble
-              key={message.id}
-              message={message}
-              // `다시 시도` 는 대화 끝의 실패 하나만 갖는다 (FINCH-249).
-              // 판정과 그 이유는 `findRetryTargetId` 주석에 있다. 핸들러를 주지
-              // 않는 것이 곧 버튼을 내지 않는 것이라, "보이는데 누르면 딴 것을
-              // 보내는" 상태가 만들어지지 않는다.
-              onRetry={message.id === retryTargetId ? handleSend : undefined}
-              retryDisabled={chatMutation.isPending}
-            />
-          ))}
+          {messages.map((message) => {
+            // 다음 재시도가 몇 번째인지는 이 말풍선의 retryCount + 1 이다
+            // (FINCH-283). `assistant-error` 가 아니면(=retryTargetId 가
+            // 이 id 일 수 없다) 쓰이지 않는 값이라 0 으로 둔다.
+            const nextRetryCount =
+              message.role === 'assistant-error' ? message.retryCount + 1 : 0;
+            return (
+              <ChatBubble
+                key={message.id}
+                message={message}
+                // `다시 시도` 는 대화 끝의 실패 하나만 갖는다 (FINCH-249).
+                // 판정과 그 이유는 `findRetryTargetId` 주석에 있다. 핸들러를 주지
+                // 않는 것이 곧 버튼을 내지 않는 것이라, "보이는데 누르면 딴 것을
+                // 보내는" 상태가 만들어지지 않는다.
+                onRetry={
+                  message.id === retryTargetId
+                    ? (retryText) => handleSend(retryText, nextRetryCount)
+                    : undefined
+                }
+                retryDisabled={chatMutation.isPending}
+              />
+            );
+          })}
           {/*
             요청을 보낸 뒤 답이 오기 전까지 점 세 개 (FINCH-274). 사용자
             말풍선은 `handleSend` 가 뮤테이션을 부르기 전에 먼저 붙이므로, 이

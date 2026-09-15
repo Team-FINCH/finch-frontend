@@ -20,11 +20,17 @@ import {
  * **`AI_UPSTREAM_RATE_LIMITED`(429)는 일부러 넣지 않았다.** 더하지 마라.
  * 이 코드의 재시도 가능 여부는 `code` 가 아니라 `detail.reason` 이 가른다 —
  * `request_rate_limit` 은 기다리면 풀리지만 `daily_token_budget` 은 자정(KST)까지
- * 풀리지 않는다(apiSpec §10.4 v0.8.6). 이 자리는 `code` 만 받으므로 두 갈래를 나눌 수
- * 없고, 넣으면 예산이 마른 사용자에게 눌러도 같은 429 가 오는 버튼을 내놓게 된다.
- * `request_rate_limit` 쪽은 `queryClient` 의 자동 재시도가 `Retry-After` 를 존중해
- * 이미 처리한다 — 그것이 다 소진된 뒤에 손으로 한 번 더 두드리는 것은 한도를 더
- * 밀어붙이는 일이다. 버튼이 필요해지면 `reason` 을 이 자리까지 넘기는 것이 먼저다.
+ * 풀리지 않는다(apiSpec §10.4 v0.8.6).
+ *
+ * **이 함수(와 이 목록)는 여전히 `code` 하나만 받는다.** `readAiErrorReason` 아래로
+ * `detail.reason` 을 읽는 길이 생겼지만, 그것을 쓰는 자리(`ChatPage`)가 따로
+ * 이 코드를 자기 분기로 처리한다 — 이 목록에 넣지 않는다. 이 목록은
+ * `OrderAiPreview`·`StockAiTab`·`CauseTab`·`DiagnosisTab`·`WikiTab` 처럼
+ * `readAiErrorCode` 로 `code` 만 뽑아 쓰는 자리에서 공유하는데, 그 자리들은
+ * `reason` 을 보지 않는다. 여기 넣으면 그 화면들에서 예산이 마른 사용자에게도
+ * 눌러도 같은 429 가 오는 버튼을 내놓게 된다. **화이트리스트는 가장 안전한 갈래
+ * (daily_token_budget)를 기준으로 잡는다** — `reason` 을 볼 수 있는 자리에서만
+ * `request_rate_limit` 을 예외로 다룬다(`ChatPage` 의 `handleSend`).
  *
  * **화이트리스트로 두고 모르는 코드는 재시도 불가로 본다.** 반대로 두면 처음 보는
  * 코드에서 재시도 버튼이 생겨 사용자가 같은 요청을 반복한다. 엔드포인트별 전체
@@ -73,6 +79,40 @@ export function readAiErrorMessage(
   defaultMessage: string,
 ): string {
   return isHttpError(error) ? error.message : defaultMessage;
+}
+
+/**
+ * `429 AI_UPSTREAM_RATE_LIMITED` 의 `detail.reason` 중 기다려도 풀리지 않는 값
+ * (apiSpec §10.4 v0.8.6). 그날의 AI 사용량을 다 쓴 것이라 자정(KST)까지 같은
+ * 답이 온다. `shared/api/queryClient.ts` 도 같은 문자열을 자체 상수로 갖고 있다 —
+ * 그쪽은 모든 쿼리의 자동 재시도를 막는 일반 정책이고 이쪽은 채팅 화면 하나의
+ * 문구·버튼 분기라, 계층이 달라 상수를 하나로 합치지 않았다.
+ */
+const DAILY_TOKEN_BUDGET_REASON = 'daily_token_budget';
+
+/**
+ * `HttpError.detail.reason` 을 읽는다. `detail` 은 코드마다 키 구성이 달라
+ * `unknown` 이라(`shared/types/error.ts` `ErrorDetail`) 여기서 문자열로 좁힌다.
+ * `HttpError` 가 아니거나 `reason` 이 문자열이 아니면 `null` 이다.
+ */
+export function readAiErrorReason(error: unknown): string | null {
+  if (!isHttpError(error)) {
+    return null;
+  }
+  const value = error.detail?.reason;
+  return typeof value === 'string' ? value : null;
+}
+
+/**
+ * `429 AI_UPSTREAM_RATE_LIMITED` 이고 `detail.reason` 이 `daily_token_budget` 인지.
+ * **`code` 와 `reason` 을 함께 봐야 한다** — `reason` 만 보면 다른 엔드포인트가
+ * 우연히 같은 키를 쓰는 `detail` 을 잘못 판정할 수 있다.
+ */
+export function isDailyTokenBudgetExhausted(error: unknown): boolean {
+  return (
+    readAiErrorCode(error) === AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED &&
+    readAiErrorReason(error) === DAILY_TOKEN_BUDGET_REASON
+  );
 }
 
 /**
