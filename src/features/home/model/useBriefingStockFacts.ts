@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from 'react';
 
+import { toQuoteMap } from '@/shared/lib/applyQuotes';
 import type { AiBriefingItem } from '@/shared/types/ai/briefing';
 import { hasQuoteValues } from '@/shared/types/stock';
 
 import { useHomePortfolio } from '../api/useHomePortfolio';
 import { useHomeStockQuotes } from '../api/useHomeStockQuotes';
 import { useHomeWatchlist } from '../api/useHomeWatchlist';
-import { toQuoteMap } from '../lib/applyQuotes';
 
 /**
  * 브리핑 행 머리에 그릴 종목 이름과 등락률 (프로토타입 `isBriefing` 의

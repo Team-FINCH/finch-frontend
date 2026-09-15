@@ -1,6 +1,12 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
+import {
+  applyQuoteToHolding,
+  evaluationTotals,
+  toQuoteMap,
+} from '@/shared/lib/applyQuotes';
 import {
   formatAmount,
   formatSignedAmount,
@@ -14,6 +20,7 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import { StockInitialBadge } from '@/shared/ui/StockInitialBadge';
 
 import { usePortfolio } from '../api/usePortfolio';
+import { usePortfolioStockQuotes } from '../api/usePortfolioStockQuotes';
 
 type HoldingsTabProps = {
   sort: PortfolioSort;
@@ -47,6 +54,26 @@ const DIRECTION_TEXT_CLASS = {
 export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
   const { data, isPending, isError, refetch } = usePortfolio(sort);
 
+  const stockCodes = useMemo(
+    () => data?.holdings.map((holding) => holding.stockCode) ?? [],
+    [data],
+  );
+  const quotes = usePortfolioStockQuotes(stockCodes);
+  const quoteMap = useMemo(
+    () => toQuoteMap(quotes.snapshot?.items ?? []),
+    [quotes.snapshot],
+  );
+  // 홈과 같은 함수로 실시간 시세를 얹는다 — 서버 응답 시점의 값에 머물지 않는다
+  // (`shared/lib/applyQuotes`, 티켓 273).
+  const holdings = useMemo(
+    () =>
+      (data?.holdings ?? []).map((holding) =>
+        applyQuoteToHolding(holding, quoteMap),
+      ),
+    [data, quoteMap],
+  );
+  const totals = useMemo(() => evaluationTotals(holdings), [holdings]);
+
   if (isPending) {
     return (
       <div className="flex flex-col gap-3 pt-4">
@@ -79,15 +106,10 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
     return null;
   }
 
-  const { cashBalance, evaluationAmount, holdings } = data;
-  const totalCost = holdings.reduce(
-    (sum, holding) => sum + holding.avgBuyPrice * holding.quantity,
-    0,
-  );
-  const totalProfit = evaluationAmount - totalCost;
-  // `PercentSchema` 계열이 아니라 화면이 직접 만든 값이라 formatSignedRate 대신
-  // formatSignedAmount 로 부호만 맞추고 %는 별도 계산한다.
-  const totalProfitRate = totalCost === 0 ? 0 : (totalProfit / totalCost) * 100;
+  const { cashBalance, evaluationAmount } = data;
+  // 홈과 같은 규칙(`shared/lib/applyQuotes` 의 `evaluationTotals`, 계약 C93)으로 낸
+  // 합계다 — 시세 없는 종목은 분자·분모에서 함께 빠진다.
+  const { profit: totalProfit, rate: totalProfitRate } = totals;
   const direction = getPriceDirection(totalProfit);
   const hasHoldings = holdings.length > 0;
 
