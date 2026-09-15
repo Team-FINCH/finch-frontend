@@ -1,4 +1,5 @@
 import { useQuery, type QueryKey } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 
 import { QUOTE_POLLING_INTERVAL_MS } from '@/shared/config/apiContract';
 
@@ -37,6 +38,16 @@ import { useMarketStatus } from './useMarketStatus';
  *   쿼리 자체가 멈춰 이미 받아 둔 마지막 시세까지 화면에서 사라질 수 있다.
  *   `quotesLive` 를 아직 모르면(로딩 중) 원래 주기로 돈다 — 이 응답 없이 폴링해도
  *   틀리지 않으므로(§5.8) 모르는 동안 멈출 이유가 없다.
+ * - **`quotesLive` 가 `true` → `false` 로 바뀌는 순간, 폴링을 멈추기 전에 한 번 더
+ *   읽는다** (티켓 271 후속). React Query 는 `refetchInterval` 값이 바뀌었다는
+ *   이유만으로 다시 읽지 않는다 — 타이머만 갈아 끼운다. 그 한 번을 놓치면 장이
+ *   닫힌 뒤에도 마지막으로 받아 둔 `tradable: true` 가 화면에 남는다
+ *   (`useOrderAvailable` 소비처). 감지를 소비처마다 따로 두지 않고 여기 한 곳에
+ *   두는 이유는 목록·상세·주문이 전부 이 훅을 지나기 때문이다 — 한 곳만 고치면
+ *   전부에 걸린다. **전환에서만 읽는다** — `quotesLive` 가 계속 `false` 인 동안은
+ *   다시 읽지 않고, 앱을 장 밖에 처음 열어 `false` 로 시작하는 경우(전환이 아니다)도
+ *   추가 요청을 만들지 않는다. `false → true`(장이 열림) 쪽은 폴링이 저절로
+ *   재개되므로 따로 다루지 않는다.
  * - `staleTime: 0` — 폴링 값이라 항상 오래된 것으로 본다. 안 그러면 기본 `staleTime`
  *   30초가 주기를 삼킨다. 주기와 같은 값도 안 된다 — 타이머가 깨어나는 순간이 막 stale 이
  *   되는 경계라 한 주기를 통째로 건너뛸 수 있다.
@@ -122,10 +133,9 @@ export function useQuoteSubscription<TQuote>(
   // quotesLive 를 모르는 동안(로딩 중)은 원래 주기로 돈다 — 이 응답 없이 폴링해도
   // 틀리지 않는다(apiSpec §5.8).
   const { data: marketStatus } = useMarketStatus();
+  const quotesLive = marketStatus?.quotesLive;
   const refetchInterval =
-    marketStatus?.quotesLive === false
-      ? false
-      : QUOTE_POLLING_INTERVAL_MS[tier];
+    quotesLive === false ? false : QUOTE_POLLING_INTERVAL_MS[tier];
 
   const query = useQuery({
     queryKey,
@@ -136,6 +146,19 @@ export function useQuoteSubscription<TQuote>(
     staleTime: 0,
     refetchIntervalInBackground: false,
   });
+
+  // quotesLive 가 true → false 로 바뀌는 그 순간에만 한 번 더 읽는다. ref 의 초기값이
+  // 마운트 시점 값이라, 장 밖에 처음 열어 false 로 시작하는 경우는 전환으로 잡히지
+  // 않는다 — 그 갈래는 useQuery 의 최초 1회 fetch 가 이미 정확한 값을 가져왔다.
+  const wasQuotesLiveRef = useRef(quotesLive);
+  useEffect(() => {
+    if (enabled && wasQuotesLiveRef.current === true && quotesLive === false) {
+      void query.refetch();
+    }
+    wasQuotesLiveRef.current = quotesLive;
+    // query.refetch 는 매 렌더 새 참조라 의존성에서 뺀다 — quotesLive 전환만 본다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, quotesLive]);
 
   // 재구독. 폴링 경로에서는 지금 한 번 다시 읽는 것이다. 결과는 상태로 돌아오므로
   // 프로미스를 밖에 내지 않는다.
