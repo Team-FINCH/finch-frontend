@@ -73,7 +73,48 @@ const MOCK_INDICES: MockIndex[] = [
   },
 ];
 
+/**
+ * 시장 상태 (apiSpec §5.8 시장 상태 조회, v0.8.14 · 이슈 #78 · 티켓 271).
+ *
+ * **기본값은 열린 장이다** — `quotesLive: true`, `nextChangeAt: null`(시연용
+ * always-open). 개발 중에 시세가 멈춰 보이면 목 때문인지 코드 때문인지 구분이
+ * 안 되므로, 기본은 항상 폴링이 도는 상태로 둔다.
+ *
+ * **닫힌 장을 보려면** 아래 `MOCK_MARKET_STATUS` 를 이렇게 바꾼다.
+ * ```ts
+ * const MOCK_MARKET_STATUS: MarketStatusMock = {
+ *   open: false,
+ *   quotesLive: false,
+ *   session: 'CLOSED',
+ *   nextChangeAt: '2026-09-15T09:00:00+09:00',
+ * };
+ * ```
+ * `useQuoteSubscription` 의 시세 재요청이 멈추는지, `nextChangeAt` 을 과거로
+ * 두면 곧바로 재요청되는지를 이렇게 눈으로 확인한다.
+ */
+type MarketStatusMock = {
+  open: boolean;
+  quotesLive: boolean;
+  session: 'REGULAR' | 'AFTER' | 'CLOSED';
+  nextChangeAt: string | null;
+};
+
+const MOCK_MARKET_STATUS: MarketStatusMock = {
+  open: true,
+  quotesLive: true,
+  session: 'REGULAR',
+  nextChangeAt: null,
+};
+
 export const marketHandlers = [
+  http.get(mockPath(API_PATHS.market.status), ({ request }) => {
+    const unauthorized = requireAuth(request);
+    if (unauthorized !== null) {
+      return unauthorized;
+    }
+
+    return HttpResponse.json(MOCK_MARKET_STATUS);
+  }),
   http.get(mockPath(API_PATHS.market.indices), ({ request }) => {
     const unauthorized = requireAuth(request);
     if (unauthorized !== null) {

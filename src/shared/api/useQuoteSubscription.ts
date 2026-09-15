@@ -2,6 +2,8 @@ import { useQuery, type QueryKey } from '@tanstack/react-query';
 
 import { QUOTE_POLLING_INTERVAL_MS } from '@/shared/config/apiContract';
 
+import { useMarketStatus } from './useMarketStatus';
+
 /**
  * 시세 구독 추상화 (apiSpec §5.6 · contracts C34).
  *
@@ -29,6 +31,12 @@ import { QUOTE_POLLING_INTERVAL_MS } from '@/shared/config/apiContract';
  *   프론트 재량이다.** 서버가 보장하는 것은 티어 TTL 30초뿐이고 관계식
  *   (`TTL >= 주기 x 4~6`)만 지키면 된다(contracts C40). 숫자를 여기 박지 않고
  *   `shared/config` 상수를 쓴다(ia.md §7).
+ * - **`useMarketStatus` 의 `quotesLive` 가 `false` 면 `refetchInterval` 을 `false` 로
+ *   준다** (`GET /market/status`, apiSpec §5.8 · 티켓 271). 장 밖에는 다시 물어도
+ *   같은 값이 오므로 재요청만 멈춘다. **`enabled` 는 건드리지 않는다** — 껐다면
+ *   쿼리 자체가 멈춰 이미 받아 둔 마지막 시세까지 화면에서 사라질 수 있다.
+ *   `quotesLive` 를 아직 모르면(로딩 중) 원래 주기로 돈다 — 이 응답 없이 폴링해도
+ *   틀리지 않으므로(§5.8) 모르는 동안 멈출 이유가 없다.
  * - `staleTime: 0` — 폴링 값이라 항상 오래된 것으로 본다. 안 그러면 기본 `staleTime`
  *   30초가 주기를 삼킨다. 주기와 같은 값도 안 된다 — 타이머가 깨어나는 순간이 막 stale 이
  *   되는 경계라 한 주기를 통째로 건너뛸 수 있다.
@@ -111,11 +119,19 @@ export function useQuoteSubscription<TQuote>(
 ): QuoteSubscription<TQuote> {
   const { queryKey, fetchQuote, tier, enabled = true } = source;
 
+  // quotesLive 를 모르는 동안(로딩 중)은 원래 주기로 돈다 — 이 응답 없이 폴링해도
+  // 틀리지 않는다(apiSpec §5.8).
+  const { data: marketStatus } = useMarketStatus();
+  const refetchInterval =
+    marketStatus?.quotesLive === false
+      ? false
+      : QUOTE_POLLING_INTERVAL_MS[tier];
+
   const query = useQuery({
     queryKey,
     queryFn: ({ signal }) => fetchQuote(signal),
     enabled,
-    refetchInterval: QUOTE_POLLING_INTERVAL_MS[tier],
+    refetchInterval,
     // 폴링 값이라 항상 오래된 것으로 본다. 안 그러면 기본 staleTime 30초가 주기를 삼킨다.
     staleTime: 0,
     refetchIntervalInBackground: false,

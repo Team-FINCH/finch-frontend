@@ -75,6 +75,8 @@ export const queryKeys = {
   market: {
     all: () => ['market'] as const,
     indices: () => [...queryKeys.market.all(), 'indices'] as const,
+    /** `GET /market/status` (apiSpec §5.8, FINCH-271). 파라미터가 없다. */
+    status: () => [...queryKeys.market.all(), 'status'] as const,
   },
   /** `GET /watchlist` (FINCH-49). */
   watchlist: {

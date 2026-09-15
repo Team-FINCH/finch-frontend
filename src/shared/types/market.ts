@@ -95,3 +95,33 @@ export function hasIndexValues(
  */
 export const MarketIndicesResponseSchema = createItemsSchema(MarketIndexSchema);
 export type MarketIndicesResponse = z.infer<typeof MarketIndicesResponseSchema>;
+
+/**
+ * 시장 상태 (`docs/api/apiSpec.md` §5.8 시장 상태 조회, v0.8.14 신설 · 이슈 #78 · 티켓 271).
+ *
+ * **시간표(09:00·15:30·16:00·20:00)를 프론트가 갖지 않는다.** 이 응답이 서버
+ * 시계로 내린 판정 그 자체다 — 애프터마켓처럼 시간표가 바뀔 때 서버 한 곳만
+ * 고치기 위해서다. 소비처는 `useMarketStatus`·`useQuoteSubscription` 뿐이다.
+ */
+export const MarketSessionSchema = z.enum(['REGULAR', 'AFTER', 'CLOSED']);
+export type MarketSession = z.infer<typeof MarketSessionSchema>;
+
+/**
+ * **`nextChangeAt` 은 nullable 이다** — FINCH-265 관심 종목 셋과 같은 자리다.
+ * 시연용 always-open 상태에서 `null` 이 오는데 nullable 을 빠뜨리면 그 갈래에서
+ * 응답이 통째로 zod 파싱에 실패해 화면이 버려진다.
+ */
+export const MarketStatusSchema = z.object({
+  /** 주문 접수 가능. apiSpec §7.2 `ORDER_MARKET_CLOSED` 와 같은 판정이다 */
+  open: z.boolean(),
+  /** 시세가 살아 움직이는 중. false 면 시세 재요청을 멈춘다 */
+  quotesLive: z.boolean(),
+  session: MarketSessionSchema,
+  /**
+   * 세션이 다음에 바뀌는 시각(KST). **경계 시각 자체는 아직 이전 세션이다**
+   * (15:30:00 은 정규장) — 소비처가 이 시각 정각이 아니라 몇 초 뒤에 다시 불러야
+   * 한다. `null` 이면 시연용 always-open 상태라 다시 부를 시점이 없다.
+   */
+  nextChangeAt: IsoDateTimeSchema.nullable(),
+});
+export type MarketStatus = z.infer<typeof MarketStatusSchema>;
