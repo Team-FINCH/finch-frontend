@@ -56,6 +56,10 @@ export function nextAiRequestId(): string {
 /**
  * `content` 를 감싸고 그 옆에 보존 필드 넷을 얹는다.
  * **재포장 형태가 이 함수 하나에 갇혀 있다** (이슈 #22 — (나) `content` 유지).
+ *
+ * `citations` 는 기본이 `MOCK_CITATIONS` 다. **대화 이력 조회만 빈 배열을 넘긴다** —
+ * 저장된 대화를 그대로 돌려주는 조회라 근거를 새로 지어낼 근거가 없다
+ * (AI 명세 §4.1 · FINCH-280).
  */
 export function aiResponse<TContent extends object>(
   content: TContent,
@@ -67,6 +71,7 @@ export function aiResponse<TContent extends object>(
     news: string | null;
     macro: string | null;
   }>,
+  citations: (typeof MOCK_CITATIONS)[number][] = MOCK_CITATIONS,
 ) {
   return {
     content,
@@ -79,7 +84,7 @@ export function aiResponse<TContent extends object>(
       macro: null,
       ...dataAsOf,
     },
-    citations: MOCK_CITATIONS,
+    citations,
     disclaimer: DISCLAIMER,
   };
 }

@@ -70,7 +70,7 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  * 이름 없이 보내는 진입이 생겼을 때 **캐시가 더울 때만 이름이 나오고 식으면 안 나오는**
  * 화면이 된다 — 그때는 늘 `이 종목` 으로 떨어지는 편이 고장을 빨리 드러낸다.
  *
- * ## 대화 복원 (FINCH-278)
+ * ## 대화 복원 (FINCH-278, 봉투 FINCH-280)
  *
  * `messages`·`conversationId` 는 여전히 `useState` 다 — 화면 메모리에만 있고
  * 화면을 나가면 사라진다. 대신 `conversationId` **하나만** `localStorage` 에도
@@ -79,6 +79,10 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  * (`useChatHistoryQuery`). 대화 전체를 스토리지에 그대로 두지 않는 이유는 —
  * id 만 있으면 서버가 언제든 같은 배열을 다시 만들어 주고, 두 군데(로컬·서버)에
  * 같은 내용을 들고 있으면 둘이 어긋났을 때 어느 쪽이 맞는지 다투게 된다.
+ *
+ * 이 조회도 다른 AI 응답과 같은 봉투로 온다(`AiChatHistorySchema`) — 읽는 값은
+ * `historyQuery.data.content.conversationId`·`.content.messages` 다. 봉투의
+ * `dataAsOf`·`citations` 는 이 조회에서 전부 `null`/빈 배열이라 읽지 않는다.
  *
  * 복원은 `appliedHistoryData` 참조 비교로 한 번만 반영한다 — 세션 안에서 이미
  * 대화가 쌓인 뒤에 이력 조회가 다시 실행되면(쿼리 재요청 등) 그 결과로 화면을
@@ -124,9 +128,9 @@ export function ChatPage() {
     historyQuery.data !== appliedHistoryData
   ) {
     setAppliedHistoryData(historyQuery.data);
-    if (historyQuery.data.messages.length > 0) {
-      setConversationId(historyQuery.data.conversationId);
-      setMessages(historyQuery.data.messages.map(toRestoredMessage));
+    if (historyQuery.data.content.messages.length > 0) {
+      setConversationId(historyQuery.data.content.conversationId);
+      setMessages(historyQuery.data.content.messages.map(toRestoredMessage));
     }
     // 조회 실패는 여기서 다루지 않는다 — `messages` 초기값이 이미 빈 배열이라
     // "불러오기 실패는 빈 상태로 떨어뜨린다"가 아무 것도 안 하는 것으로 충족된다.
@@ -139,7 +143,7 @@ export function ChatPage() {
    * set-state-in-effect` 에 걸리지 않는다.
    */
   useEffect(() => {
-    if (historyQuery.data?.messages.length === 0) {
+    if (historyQuery.data?.content.messages.length === 0) {
       // 저장된 id 가 가리키는 대화에 메시지가 없다. 매번 빈 조회를 반복하지
       // 않게 지운다 — 이 id 로 화면이 얻을 수 있는 것이 앞으로도 없다(정하고
       // 근거를 남긴다, task-I 완료 판정).

@@ -491,13 +491,15 @@ export const aiHandlers = [
   }),
 
   /**
-   * 대화 이력 조회 (AI 명세 §4.1 · FINCH-278). **계약 없음 — 경로는 프론트
+   * 대화 이력 조회 (AI 명세 §4.1 · FINCH-280). **계약 없음 — 경로는 프론트
    * 추정값이다** (`API_PATHS.ai.chatMessages` 주석). 백엔드 중계가 열리면 이
    * 핸들러만 지운다.
    *
-   * **봉투가 없다.** 다른 여섯 종과 달리 `aiResponse()` 로 감싸지 않는다 —
-   * `content`·`requestId`·`dataAsOf`·`citations`·`disclaimer` 를 두르지 않는
-   * 조회라서다(`shared/types/ai/chat.ts` `AiChatHistorySchema` 주석).
+   * **봉투가 있다.** 다른 여섯 종과 같은 `aiResponse()` 재포장이다 — 이전 판은
+   * 감싸지 않았는데 틀렸다(GitLab 이슈 #79 회신, `shared/types/ai/chat.ts`
+   * `AiChatHistorySchema` 주석). 저장된 대화만 돌려주는 조회라 `dataAsOf` 다섯
+   * 값은 전부 `null`(기본값), `citations` 는 **빈 배열을 넘겨** 근거를 지어내지
+   * 않는다.
    *
    * **모르는 `conversationId` 는 빈 `messages` 를 낸다.** 에러가 아니다 —
    * 존재하지 않거나 다른 사용자의 id 를 구분하지 않는 것도 §4.1 그대로다("소유권
@@ -513,10 +515,18 @@ export const aiHandlers = [
       }
 
       const conversationId = String(params.conversationId);
-      return HttpResponse.json({
-        conversationId,
-        messages: store.chatConversations[conversationId] ?? [],
-      });
+      const requestId = nextAiRequestId();
+      return HttpResponse.json(
+        aiResponse(
+          {
+            conversationId,
+            messages: store.chatConversations[conversationId] ?? [],
+          },
+          requestId,
+          {},
+          [],
+        ),
+      );
     },
   ),
 

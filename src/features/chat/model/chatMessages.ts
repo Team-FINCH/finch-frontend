@@ -9,11 +9,14 @@ import { type AiCitation, type AiSection } from '@/shared/types/ai/envelope';
  * **`requestId`·`disclaimer` 는 이번 턴 응답에만 있다.** 피드백 슬롯은 `requestId`
  * 가 있는 응답에만 붙는다(contracts C14·C70) — `AI_UPSTREAM_UNAVAILABLE`·
  * `AI_UPSTREAM_TIMEOUT` 은 백엔드 자체 에러라 `requestId` 가 없고, **복원된
- * 말풍선도 없다**(FINCH-278) — 대화 이력 조회(AI 명세 §4.1)는 봉투가 없어
- * `requestId` 도 `disclaimer` 도 함께 오지 않는다. `disclaimer` 를 하드코딩해
- * 채우지 않는 이유는 `StockAiTab.tsx` 의 같은 주석과 같다 — 규제 문구가 바뀌면
- * 서버만 고치게 하기 위해서라, 서버가 실제로 준 적 없는 문구를 복원 자리에서
- * 지어내지 않는다. 둘 다 `null` 이면 `ChatBubble` 이 그 자리를 생략한다.
+ * 말풍선도 없다**(FINCH-278). 대화 이력 조회(AI 명세 §4.1)도 다른 여섯 종과
+ * 같은 봉투로 와서 `requestId`·`disclaimer` 가 봉투 최상위에 실리긴 하지만
+ * (FINCH-280), 그 값은 **조회 호출 하나에 대한 것이지 메시지 하나하나에
+ * 대한 것이 아니다** — 어느 과거 메시지가 그 값의 주인인지 알 수 없어 개별
+ * 말풍선에 붙이지 않는다. `disclaimer` 를 하드코딩해 채우지 않는 이유는
+ * `StockAiTab.tsx` 의 같은 주석과 같다 — 규제 문구가 바뀌면 서버만 고치게 하기
+ * 위해서라, 서버가 그 메시지에 실제로 준 적 없는 문구를 복원 자리에서 지어내지
+ * 않는다. 둘 다 `null` 이면 `ChatBubble` 이 그 자리를 생략한다.
  */
 export type ChatMessage =
   | { id: string; role: 'user'; text: string }
