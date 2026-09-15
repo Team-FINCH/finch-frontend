@@ -5,6 +5,7 @@ import { useChatMutation } from '@/features/chat/api/useChatMutation';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
 import { ChatEmptyState } from '@/features/chat/components/ChatEmptyState';
+import { ChatTypingIndicator } from '@/features/chat/components/ChatTypingIndicator';
 import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
 import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
@@ -212,6 +213,14 @@ export function ChatPage() {
               retryDisabled={chatMutation.isPending}
             />
           ))}
+          {/*
+            요청을 보낸 뒤 답이 오기 전까지 점 세 개 (FINCH-274). 사용자
+            말풍선은 `handleSend` 가 뮤테이션을 부르기 전에 먼저 붙이므로, 이
+            자리에 올 때는 이미 `messages.length > 0` 이라 빈 상태(`ChatEmptyState`)
+            분기와 겹치지 않는다. 실패하면 `isPending` 이 꺼지며 이 자리가 사라지고
+            같은 렌더에서 `assistant-error` 말풍선이 뒤이어 붙는다.
+          */}
+          {chatMutation.isPending && <ChatTypingIndicator />}
         </div>
       )}
 
