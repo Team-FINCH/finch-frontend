@@ -221,6 +221,7 @@ export function ChatPage() {
               role: 'assistant',
               requestId: data.requestId,
               section: data.content.answer,
+              citations: data.citations,
               disclaimer: data.disclaimer,
               // 방금 도착한 응답이다. 타자 효과를 그대로 건다.
               restored: false,

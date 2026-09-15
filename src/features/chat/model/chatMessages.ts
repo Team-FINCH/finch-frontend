@@ -1,5 +1,5 @@
 import { type AiChatHistoryMessage } from '@/shared/types/ai/chat';
-import { type AiSection } from '@/shared/types/ai/envelope';
+import { type AiCitation, type AiSection } from '@/shared/types/ai/envelope';
 
 /**
  * 채팅 화면의 말풍선 하나. 서버 응답(`AiChatContent`)을 그대로 두지 않고
@@ -22,6 +22,7 @@ export type ChatMessage =
       role: 'assistant';
       requestId: string | null;
       section: AiSection;
+      citations: AiCitation[];
       disclaimer: string | null;
       /**
        * 복원된 말풍선인가. `true` 면 `ChatBubble` 이 타자 효과 없이 전문을
@@ -110,6 +111,7 @@ export function toRestoredMessage(entry: AiChatHistoryMessage): ChatMessage {
       cached: false,
       cachedAt: null,
     },
+    citations: [],
     disclaimer: null,
     restored: true,
   };
