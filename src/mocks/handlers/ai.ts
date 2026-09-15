@@ -861,6 +861,10 @@ export const aiHandlers = [
               deeplink: '/stocks/000660?tab=ai',
               // 현재 구현에서 항상 빈 배열이다. 실패로 다루지 않는다 (contracts C56)
               citations: [],
+              // 보유 등락이라 이벤트가 아니다 — 둘 다 null (AI 명세 §8, GitLab `#68`).
+              // "값이 없으면 줄을 그리지 않는다" 갈래를 이 항목으로 재현한다.
+              eventType: null,
+              publisher: null,
             },
             {
               rank: 2,
@@ -874,6 +878,8 @@ export const aiHandlers = [
               relatedTickers: ['035720'],
               deeplink: '/stocks/035720?tab=ai',
               citations: [],
+              eventType: 'macro',
+              publisher: '한국경제',
             },
             {
               rank: 3,
@@ -889,6 +895,8 @@ export const aiHandlers = [
               relatedTickers: ['005930'],
               deeplink: '/stocks/005930?tab=ai',
               citations: [],
+              eventType: 'earnings',
+              publisher: '연합뉴스',
             },
           ],
         },

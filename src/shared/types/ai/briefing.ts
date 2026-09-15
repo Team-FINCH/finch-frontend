@@ -44,6 +44,25 @@ export const AI_BRIEFING_CATEGORIES = [
 export type AiBriefingCategory = (typeof AI_BRIEFING_CATEGORIES)[number];
 
 /**
+ * `items[].eventType` 의 확인된 값 (AI 명세 §8, GitLab 이슈 `#68` 회신).
+ * 원본 EventType 이며 `category` 와는 다른 분류다 — `category` 는 브리핑 항목이
+ * 뽑힌 이유(보유 등락·실적·공시·거시·포트폴리오 변화)이고 `eventType` 은 그 항목이
+ * 실제 이벤트라면 어떤 종류인지다. 보유 등락·업종 변화처럼 이벤트가 아닌 항목은
+ * `eventType` 이 `null` 이다.
+ *
+ * **스키마에서는 이 배열로 값을 좁히지 않는다.** 화면에서 한글 라벨을 고를 때만
+ * 참조한다(`AiBriefingItemSchema.eventType` 주석 참고).
+ */
+export const AI_BRIEFING_EVENT_TYPES = [
+  'earnings',
+  'filing',
+  'dividend',
+  'macro',
+  'product',
+] as const;
+export type AiBriefingEventType = (typeof AI_BRIEFING_EVENT_TYPES)[number];
+
+/**
  * 브리핑 항목 (AI 명세 §8). 최대 4건이다.
  *
  * `relevanceScore` 는 LLM 이 아니라 규칙 엔진이 매긴다.
@@ -61,6 +80,28 @@ export const AiBriefingItemSchema = z.object({
   /** 화면 내 이동 경로 (`/stocks/000660?tab=ai`). 라우터 경로와 대조해서 쓴다 */
   deeplink: z.string(),
   citations: z.array(AiCitationSchema),
+  /**
+   * 이벤트 종류(AI 명세 §8, GitLab `#68`). 이벤트가 아닌 보유 등락·업종 변화는
+   * `null` 이다.
+   *
+   * **계약은 `nullable`(항상 포함)이라고 적었지만 `nullish` 로 넓게 받는다.**
+   * 같은 문단이 "이 키가 없는 기존 캐시는 재생성한다"고도 적었다 — 재생성 전
+   * 캐시에는 키 자체가 빠질 수 있다. `items` 는 배열이라 원소 하나만 이 검증에
+   * 걸려도 브리핑 전체가 파싱에 실패한다 — 검색(FINCH-255)과 관심 종목
+   * (FINCH-265)에서 이미 겪은 자리다.
+   *
+   * **`z.enum(AI_BRIEFING_EVENT_TYPES)` 로 좁히지 않는다.** 모르는 값이 오면
+   * 그 원소가 통째로 버려져 배열이 줄어드는 대신 브리핑 자체가 파싱 실패로
+   * 사라진다. 알려진 값은 `AI_BRIEFING_EVENT_TYPES` 로만 두고, 화면에서
+   * 모르는 값은 그냥 무시한다.
+   */
+  eventType: z.string().nullish(),
+  /**
+   * 연결된 원문 Document 의 표시용 출처(언론사명, AI 명세 §8). 문서가 없거나
+   * 삭제됐거나 publisher 가 없으면 `null` 이다. `eventType` 과 같은 이유로
+   * `nullish` 로 받는다.
+   */
+  publisher: z.string().nullish(),
 });
 export type AiBriefingItem = z.infer<typeof AiBriefingItemSchema>;
 

@@ -7,6 +7,7 @@ import { hasQuoteValues } from '@/shared/types/stock';
 import { useHomePortfolio } from '../api/useHomePortfolio';
 import { useHomeStockQuotes } from '../api/useHomeStockQuotes';
 import { useHomeWatchlist } from '../api/useHomeWatchlist';
+import { briefingItemMeta } from '../lib/briefingEventLabel';
 
 /**
  * 브리핑 행 머리에 그릴 종목 이름과 등락률 (프로토타입 `isBriefing` 의
@@ -55,12 +56,12 @@ export type BriefingStockFacts = {
    */
   needCheck: boolean;
   /**
-   * 본문 아래 보조 한 줄 `{종류} · {출처}` (프로토타입 `briefTop.meta`).
+   * 본문 아래 보조 한 줄 `{종류} · {출처}` (프로토타입 `briefTop.meta`,
+   * GitLab `#68` 회신으로 `eventType`·`publisher` 가 실려 온 뒤 채운다).
    *
-   * TODO(계약): **출처가 없어 항상 `undefined` 다.** `category` 는 뉴스 종류가
-   * 아니라 브리핑 항목 분류(`holding_move`·`portfolio_shift` 등)이고, `출처` 에
-   * 해당하는 필드가 응답에 없다 — `citations` 는 현재 구현에서 항상 빈 배열이다
-   * (contracts C56).
+   * 종류는 `eventType` 의 한글 라벨, 출처는 `publisher` 그대로다
+   * (`briefingItemMeta`). 한쪽만 있으면 그 쪽만, 둘 다 없으면 `undefined` 다 —
+   * `undefined` 면 이 줄을 그리지 않는다.
    */
   meta: string | undefined;
 };
@@ -77,10 +78,14 @@ const WATCHLIST_SORT = 'REGISTERED';
  *
  * 항목 하나가 여러 종목을 가리킬 수 있지만 행 머리에는 하나만 그리므로
  * (프로토타입도 이름 하나다) `relatedTickers[0]` 만 모은다.
+ *
+ * 반환하는 함수는 `item` 도 함께 받는다 — 이름·등락률은 종목코드로 모아 찾지만
+ * `meta` 는 그 항목 고유의 `eventType`·`publisher` 에서 바로 나오므로, 같은
+ * 종목을 가리키는 항목이 둘이어도 각자의 메타 문구가 나와야 한다.
  */
 export function useBriefingStockFacts(
   items: readonly AiBriefingItem[],
-): (stockCode: string) => BriefingStockFacts {
+): (stockCode: string, item: AiBriefingItem) => BriefingStockFacts {
   const stockCodes = useMemo(() => {
     const codes = items.flatMap((item) => item.relatedTickers.slice(0, 1));
     return Array.from(new Set(codes));
@@ -115,7 +120,7 @@ export function useBriefingStockFacts(
   const quotePending = quotes.isConnecting;
 
   return useCallback(
-    (stockCode: string): BriefingStockFacts => {
+    (stockCode: string, item: AiBriefingItem): BriefingStockFacts => {
       const quote = quoteMap.get(stockCode);
 
       return {
@@ -126,7 +131,7 @@ export function useBriefingStockFacts(
             ? quote.changeRate
             : null,
         needCheck: false,
-        meta: undefined,
+        meta: briefingItemMeta(item.eventType, item.publisher),
       };
     },
     [nameMap, quoteMap, quotePending],

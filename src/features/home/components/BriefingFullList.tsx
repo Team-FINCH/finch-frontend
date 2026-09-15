@@ -16,6 +16,7 @@ import { StockInitialBadge } from '@/shared/ui/StockInitialBadge';
 import { NoValue } from '@/shared/ui/StockRow';
 
 import { useHomeBriefing } from '../api/useHomeBriefing';
+import { countBriefingEventTypes } from '../lib/briefingEventLabel';
 import {
   useBriefingStockFacts,
   type BriefingStockFacts,
@@ -84,19 +85,6 @@ const ROW_STYLE = {
 
 type RowVariant = keyof typeof ROW_STYLE;
 
-/**
- * 제목 아래 보조 한 줄 `정책 n · 공시 n · 실적 n` (프로토타입 `briefMix`).
- *
- * TODO(계약): **출처가 없어 항상 `undefined` 다.** `items[].category` 는 뉴스 분류가
- * 아니라 브리핑 항목 분류(`holding_move`·`earnings`·`filing`·`macro_event`·
- * `portfolio_shift`)라 `정책`·`공시`·`실적` 로 셀 수 없다.
- *
- * **빈 줄을 그리지 않는다.** 자리만 남기면 제목 아래 14px 이 이유 없이 벌어진다 —
- * 줄을 통째로 빼면 제목과 `핵심 소식` 사이 간격만 남고 화면이 어색하지 않다.
- * 값이 생기면 이 상수를 `items` 를 세는 함수로 바꾸기만 하면 된다.
- */
-const BRIEF_MIX: string | undefined = undefined;
-
 export function BriefingFullList() {
   const briefing = useHomeBriefing();
   const items = briefing.data?.content.items ?? NO_ITEMS;
@@ -141,6 +129,15 @@ export function BriefingFullList() {
 
   const sorted = [...items].sort((a, b) => a.rank - b.rank);
   const [top, ...rest] = sorted;
+  /**
+   * 제목 아래 보조 한 줄 `정책 n · 공시 n · 실적 n` (프로토타입 `briefMix`).
+   *
+   * **빈 줄을 그리지 않는다.** 자리만 남기면 제목 아래 14px 이 이유 없이
+   * 벌어진다 — 줄을 통째로 빼면 제목과 `핵심 소식` 사이 간격만 남고 화면이
+   * 어색하지 않다. `countBriefingEventTypes` 가 이벤트가 하나도 없을 때(`items`
+   * 전부 `eventType: null` 이거나 모르는 값)를 `undefined` 로 떨어뜨린다.
+   */
+  const briefMix = countBriefingEventTypes(items);
 
   return (
     <div className="pt-2">
@@ -157,8 +154,8 @@ export function BriefingFullList() {
       <p className="text-title-2 tracking-[-.02em] text-text-primary">
         오늘 확인할 소식 {items.length}건
       </p>
-      {BRIEF_MIX === undefined ? null : (
-        <p className="mt-3.5 text-[13px] text-text-muted">{BRIEF_MIX}</p>
+      {briefMix === undefined ? null : (
+        <p className="mt-3.5 text-[13px] text-text-muted">{briefMix}</p>
       )}
 
       {top === undefined ? null : (
@@ -226,7 +223,7 @@ function BriefingRow({
   variant = 'rest',
 }: {
   item: AiBriefingItem;
-  factsOf: (stockCode: string) => BriefingStockFacts;
+  factsOf: (stockCode: string, item: AiBriefingItem) => BriefingStockFacts;
   variant?: RowVariant;
 }) {
   const style = ROW_STYLE[variant];
@@ -238,7 +235,9 @@ function BriefingRow({
    */
   const stockCode = item.relatedTickers[0];
   const head: { stockCode: string; facts: BriefingStockFacts } | null =
-    stockCode === undefined ? null : { stockCode, facts: factsOf(stockCode) };
+    stockCode === undefined
+      ? null
+      : { stockCode, facts: factsOf(stockCode, item) };
 
   return (
     <Link to={item.deeplink} className={`block ${style.shell}`}>
