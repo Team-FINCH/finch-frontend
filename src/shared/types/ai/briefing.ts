@@ -7,11 +7,7 @@ import {
   UnitIntervalSchema,
 } from '@/shared/types/primitives';
 
-import {
-  AiCitationSchema,
-  AiSegmentSchema,
-  createAiResponseSchema,
-} from './envelope';
+import { AiSegmentSchema, createAiResponseSchema } from './envelope';
 
 /**
  * 데일리 브리핑 (`ai/docs/api-spec.md` §8 데일리 브리핑, `GET /ai/briefing`).
@@ -66,8 +62,6 @@ export type AiBriefingEventType = (typeof AI_BRIEFING_EVENT_TYPES)[number];
  * 브리핑 항목 (AI 명세 §8). 최대 4건이다.
  *
  * `relevanceScore` 는 LLM 이 아니라 규칙 엔진이 매긴다.
- * `citations` 는 **현재 구현에서 항상 빈 배열**이다(C56) — 이 기능은 일정·시세에서 항목을 뽑을 뿐
- * 문서를 조회하지 않는다. **빈 배열을 실패로 다루지 않는다.**
  */
 export const AiBriefingItemSchema = z.object({
   rank: z.number().int().positive(),
@@ -79,7 +73,20 @@ export const AiBriefingItemSchema = z.object({
   relatedTickers: z.array(StockCodeSchema),
   /** 화면 내 이동 경로 (`/stocks/000660?tab=ai`). 라우터 경로와 대조해서 쓴다 */
   deeplink: z.string(),
-  citations: z.array(AiCitationSchema),
+  /**
+   * 근거 ID 목록 (AI 명세 §8, GitLab 이슈 `#86`). `AiCitationSchema` 객체 배열이
+   * **아니다** — 봉투 최상위 `citations`(`AiResponseMeta.citations`)에 실린
+   * 객체를 가리키는 ID 문자열 배열이다. 예: 항목 안쪽은 `["cit_1"]`, 최상위엔
+   * `{ id: "cit_1", ... }` 이 있다. 출처 객체가 필요하면 이 ID 를 최상위
+   * `citations` 에서 찾아 매핑한다.
+   *
+   * 이전 주석은 "citations 는 항상 빈 배열이다(C56)" 라고 적었는데 더는
+   * 사실이 아니다 — 운영에서 값이 채워진 배열이 내려오면서 객체 배열을
+   * 기대하던 옛 스키마가 `invalid_type` 으로 브리핑 전체를 깨뜨렸다. 원소
+   * 하나가 어긋나 배열 전체가 파싱 실패로 사라지는 자리는 검색
+   * (FINCH-255)·관심종목(FINCH-265)과 같다.
+   */
+  citations: z.array(z.string()),
   /**
    * 이벤트 종류(AI 명세 §8, GitLab `#68`). 이벤트가 아닌 보유 등락·업종 변화는
    * `null` 이다.

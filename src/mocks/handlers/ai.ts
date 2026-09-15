@@ -904,8 +904,10 @@ export const aiHandlers = [
               ],
               relatedTickers: ['000660'],
               deeplink: '/stocks/000660?tab=ai',
-              // 현재 구현에서 항상 빈 배열이다. 실패로 다루지 않는다 (contracts C56)
-              citations: [],
+              // 최상위 citations(MOCK_CITATIONS)를 가리키는 ID 배열이다 — 객체가
+              // 아니다 (GitLab 이슈 #86). cit_1 은 `aiResponse()` 가 봉투 최상위에
+              // 함께 싣는다.
+              citations: ['cit_1'],
               // 보유 등락이라 이벤트가 아니다 — 둘 다 null (AI 명세 §8, GitLab `#68`).
               // "값이 없으면 줄을 그리지 않는다" 갈래를 이 항목으로 재현한다.
               eventType: null,
@@ -939,7 +941,7 @@ export const aiHandlers = [
               ],
               relatedTickers: ['005930'],
               deeplink: '/stocks/005930?tab=ai',
-              citations: [],
+              citations: ['cit_2'],
               eventType: 'earnings',
               publisher: '연합뉴스',
             },
