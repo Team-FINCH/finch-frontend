@@ -69,7 +69,7 @@ export function PageMain({ className = '', ...props }: ComponentProps<'main'>) {
   return (
     <main
       {...props}
-      className={`mx-auto min-h-0 w-full max-w-md flex-1 overflow-y-auto overscroll-contain px-6.5 pb-[calc(var(--page-bottom-space,1.5rem)+env(safe-area-inset-bottom))] ${className}`}
+      className={`scroll-touch mx-auto min-h-0 w-full max-w-md flex-1 overflow-y-auto overscroll-contain px-6.5 pb-[calc(var(--page-bottom-space,1.5rem)+env(safe-area-inset-bottom))] ${className}`}
     />
   );
 }

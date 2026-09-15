@@ -190,7 +190,7 @@ export function ThesisRecordSheet({
 
       {/* 안쪽 스크롤은 시트 셸이 아니라 내용이 연다(`BottomSheet` 머리 주석).
           좌우 -2px/+2px 는 선택지 버튼의 포커스 링이 잘리지 않게 하는 자리다. */}
-      <div className="-mx-0.5 min-h-0 flex-1 overflow-y-auto px-0.5">
+      <div className="scroll-touch -mx-0.5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5">
         {showReasonOptions &&
           RECORD_REASONS.map((reason) => {
             const selected = pickedReason === reason;

@@ -146,7 +146,7 @@ export function OnboardingPage() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6.5 pb-8">
+      <div className="scroll-touch flex-1 overflow-y-auto overscroll-contain px-6.5 pb-8">
         <div className="flex flex-col">
           {rows.map((row) => (
             <StockPickRow

@@ -775,6 +775,14 @@ body,
  */
 html {
   background-color: var(--color-bg);
+  /* 문서 자체가 구르는 화면(입금·주문·브리핑·채팅 등, `PageMain` 주석의 "껍데기가
+     없는 화면")은 창 스크롤바가 뜬다. 앱처럼 보이려면 이것도 지운다 — 아래
+     `.scroll-touch` 와 같은 두 줄이지만 `html` 은 클래스를 못 받는 루트 엘리먼트라
+     여기 직접 적는다. */
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar {
+  display: none;
 }
 
 body {
@@ -783,6 +791,34 @@ body {
   background-color: var(--color-page-surround);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+}
+
+/*
+ * 스크롤 조작감 전역 유틸리티 (FINCH-281, GitLab #83).
+ *
+ * 스크롤 "기능"은 그대로 두고 브라우저 스크롤바 "표시"만 지운다.
+ * `overflow:hidden` 을 쓰면 스크롤 자체가 막히므로 쓰지 않는다 — 이 클래스가
+ * 건드리는 것은 스크롤바 렌더링뿐이다. 포커스 이동(Tab)·키보드 스크롤(방향키·
+ * Page Up/Down)·`scrollIntoView` 같은 스크롤 위치 이동은 그대로 동작한다 —
+ * 스크롤바가 안 보일 뿐 컨테이너의 스크롤 가능 여부(`scrollHeight`·`scrollTo` 등)는
+ * 바뀌지 않는다.
+ *
+ * `-webkit-overflow-scrolling: touch` 는 표준에서 빠진 지 오래고 최신 iOS Safari는
+ * 이미 기본으로 관성 스크롤을 켜 두지만, 구형 WebView(카카오톡 인앱 브라우저 등)는
+ * 이 선언이 없으면 스크롤이 프레임 단위로 뻑뻑하게 움직인다. 부작용이 없어 전역
+ * 유틸리티에 함께 넣는다.
+ *
+ * `overflow-y-auto`·`overflow-x-auto` 를 새로 쓰는 자리는 이 클래스를 같이 얹는다 —
+ * 컴포넌트마다 스크롤바 숨김을 손으로 다시 적지 않는다(`RecentKeywordChips` 가
+ * 전에 인라인 arbitrary value 로 하던 것을 여기로 옮겼다).
+ */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 구형 Edge/IE */
+}
+.scroll-touch::-webkit-scrollbar {
+  display: none; /* Chrome·Safari·최신 Edge */
 }
 
 /* 숫자는 자리폭을 고정한다 (design.md §4). 값이 갱신될 때 폭이 흔들리지 않는다. */

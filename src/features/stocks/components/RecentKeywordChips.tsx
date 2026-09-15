@@ -30,7 +30,7 @@ export function RecentKeywordChips({
   onRemove,
 }: RecentKeywordChipsProps) {
   return (
-    <div className="-mx-6.5 [scrollbar-width:none] overflow-x-auto px-6.5 pb-0.5 [&::-webkit-scrollbar]:hidden">
+    <div className="scroll-touch -mx-6.5 overflow-x-auto px-6.5 pb-0.5">
       <ul className="flex w-max gap-1.5">
         {keywords.map((item) => (
           <li
