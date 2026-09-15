@@ -86,8 +86,8 @@ export function Modal({
             // `top-1/2 left-1/2` + `-translate-1/2` 로 가운데 세운다. flex 로 가운데
             // 두려면 래퍼가 하나 더 필요한데, Radix 가 `Content` 에 직접 포커스와
             // 애니메이션 상태를 붙여서 그 사이에 요소를 끼우면 둘이 어긋난다.
-            'fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-4rem)] w-[calc(100%-2.5rem)] max-w-82 ' +
-            '-translate-1/2 flex-col overflow-y-auto rounded-card bg-surface p-5 shadow-float ' +
+            'scroll-touch fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-4rem)] w-[calc(100%-2.5rem)] max-w-82 ' +
+            '-translate-1/2 flex-col overflow-y-auto overscroll-contain rounded-card bg-surface p-5 shadow-float ' +
             // 등장은 크기로 말한다 (`styles/index.css` 의 `modal-pop-in` 주석).
             // `prefers-reduced-motion` 에서는 끈다 — `Toast` 와 같은 처리다.
             'data-[state=open]:animate-[modal-pop-in_var(--motion-sheet)_var(--ease-standard)] motion-reduce:animate-none ' +

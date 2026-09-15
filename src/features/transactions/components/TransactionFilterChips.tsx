@@ -25,7 +25,7 @@ export function TransactionFilterChips({
     <div
       role="tablist"
       aria-label="매매 내역 필터"
-      className="flex gap-1.5 overflow-x-auto pb-1"
+      className="scroll-touch flex gap-1.5 overflow-x-auto pb-1"
     >
       {TRANSACTION_FILTERS.map((filter) => {
         const isActive = filter.value === type;
