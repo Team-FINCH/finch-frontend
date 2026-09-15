@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 /**
  * 답을 기다리는 동안 AI 말풍선 자리에 뜨는 점 세 개 (FINCH-274, task-F).
  *
@@ -18,26 +20,67 @@
  * "답을 기다린다"는 사실 자체는 그대로 보인다).
  *
  * 기본 `animate-bounce` 는 액션이 너무 작다는 지적(FINCH-277)을 받아 자체
- * 키프레임 `chat-typing-bounce` 로 바꿨다 — 값과 근거는 `styles/index.css` 주석에
- * 있다. 점 사이 지연은 150ms(키프레임 주기 600ms 의 1/4)로 세 점의 정점이 고르게
- * 갈리게 했다. 기존 120ms 는 1s 주기 기준이라 이 주기에서는 물결이 잘 안 읽힌다.
+ * 키프레임 `chat-typing-bounce` 로 바꿨다 — 이동 폭·불투명도 근거는
+ * `styles/index.css` 주석에 있다.
+ *
+ * **주기 900ms·지연 180ms(FINCH-283).** 277 이 잡은 600ms·150ms 는 배포
+ * 화면에서 "방정맞다"는 지적을 받았다 — 6px 이동에 600ms 는 눈에는 띄지만 여유가
+ * 없어 조급해 보였다. 900ms 로 늦추고, 점 사이 지연은 여전히 주기의 1/5(180ms)로
+ * 세 점의 정점이 고르게 갈리게 했다(주기가 바뀌면 지연도 같이 바뀌어야 물결이
+ * 유지된다 — 277 코멘트가 이미 남긴 교훈).
+ *
+ * ## 10초 뒤 보조 문구 (FINCH-283)
+ *
+ * 점 세 개만으로는 멈춘 것인지 일하는 중인지 구분이 안 된다. 10초가 지나면
+ * `SLOW_RESPONSE_HINT` 문구가 점 아래에 나타난다. **시간을 약속하지 않는다** —
+ * "조금만 기다려 주세요"처럼 곧 끝난다는 인상을 주면 실제로 30초 가까이 걸릴 때
+ * 더 나쁘다.
+ *
+ * **`sr-only` 문구를 따로 두지 않는다.** 이 자리는 `role="status"` 라 스크린
+ * 리더가 텍스트가 바뀌는 순간을 읽는다 — 처음엔 `sr-only` 로 숨겨 뒀다가 10초
+ * 뒤 같은 노드의 텍스트를 보이는 문구로 바꿔치기하면, 그 변경 자체가 한 번만
+ * 읽힌다. 두 문구를 각자 다른 노드에 두면(하나는 항상 `sr-only`, 하나는 10초
+ * 뒤에만 보임) 스크린 리더가 둘을 겹쳐 읽어 중복된다.
  */
+const SLOW_RESPONSE_HINT_DELAY_MS = 10_000;
+const READY_MESSAGE = 'AI가 답변을 준비하고 있어요';
+const SLOW_RESPONSE_HINT = '답을 만들고 있어요';
+
 export function ChatTypingIndicator() {
+  const [isSlow, setIsSlow] = useState(false);
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      setIsSlow(true);
+    }, SLOW_RESPONSE_HINT_DELAY_MS);
+    return () => window.clearTimeout(timerId);
+  }, []);
+
   return (
     <div className="flex flex-col items-start">
       <div
-        className="flex items-center gap-1.5 rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3.5"
+        className="flex flex-col gap-1.5 rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3.5"
         role="status"
       >
-        <span className="sr-only">AI가 답변을 준비하고 있어요</span>
         <span aria-hidden="true" className="flex items-center gap-1.5">
           {[0, 1, 2].map((index) => (
             <span
               key={index}
-              className="size-1.5 animate-[chat-typing-bounce_600ms_ease-in-out_infinite] rounded-full bg-ai-text-muted motion-reduce:animate-none"
-              style={{ animationDelay: `${String(index * 150)}ms` }}
+              className="size-1.5 animate-[chat-typing-bounce_900ms_ease-in-out_infinite] rounded-full bg-ai-text-muted motion-reduce:animate-none"
+              style={{ animationDelay: `${String(index * 180)}ms` }}
             />
           ))}
+        </span>
+        {/*
+          isSlow 가 false 인 동안은 sr-only 라 화면에는 안 보이면서도 첫 마운트
+          안내(READY_MESSAGE)를 스크린 리더에 실어 둔다. 10초가 지나면 같은
+          노드의 텍스트와 클래스가 함께 바뀌어 보이는 문구가 된다 — 위 헤더
+          코멘트가 설명하는 "노드 하나" 설계.
+        */}
+        <span
+          className={isSlow ? 'text-caption text-ai-text-muted' : 'sr-only'}
+        >
+          {isSlow ? SLOW_RESPONSE_HINT : READY_MESSAGE}
         </span>
       </div>
     </div>
