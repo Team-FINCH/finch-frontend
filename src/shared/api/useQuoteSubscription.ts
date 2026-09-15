@@ -38,16 +38,18 @@ import { useMarketStatus } from './useMarketStatus';
  *   쿼리 자체가 멈춰 이미 받아 둔 마지막 시세까지 화면에서 사라질 수 있다.
  *   `quotesLive` 를 아직 모르면(로딩 중) 원래 주기로 돈다 — 이 응답 없이 폴링해도
  *   틀리지 않으므로(§5.8) 모르는 동안 멈출 이유가 없다.
- * - **`quotesLive` 가 `true` → `false` 로 바뀌는 순간, 폴링을 멈추기 전에 한 번 더
- *   읽는다** (티켓 271 후속). React Query 는 `refetchInterval` 값이 바뀌었다는
- *   이유만으로 다시 읽지 않는다 — 타이머만 갈아 끼운다. 그 한 번을 놓치면 장이
- *   닫힌 뒤에도 마지막으로 받아 둔 `tradable: true` 가 화면에 남는다
- *   (`useOrderAvailable` 소비처). 감지를 소비처마다 따로 두지 않고 여기 한 곳에
- *   두는 이유는 목록·상세·주문이 전부 이 훅을 지나기 때문이다 — 한 곳만 고치면
- *   전부에 걸린다. **전환에서만 읽는다** — `quotesLive` 가 계속 `false` 인 동안은
- *   다시 읽지 않고, 앱을 장 밖에 처음 열어 `false` 로 시작하는 경우(전환이 아니다)도
- *   추가 요청을 만들지 않는다. `false → true`(장이 열림) 쪽은 폴링이 저절로
- *   재개되므로 따로 다루지 않는다.
+ * - **`quotesLive` 값이 바뀌는 순간(방향 무관), 한 번 더 읽는다** (티켓 271 후속).
+ *   React Query 는 `refetchInterval` 값이 바뀌었다는 이유만으로 다시 읽지 않는다 —
+ *   타이머만 갈아 끼운다. `true → false` 에서 그 한 번을 놓치면 장이 닫힌 뒤에도
+ *   마지막으로 받아 둔 `tradable: true` 가 화면에 남는다(`useOrderAvailable` 소비처).
+ *   `false → true` 에서 놓치면 반대로 장이 열렸는데도 폴링이 재개되기를 기다리는
+ *   동안 `tradable: false` 가 남아 주문 버튼이 잠긴 채로 보인다. 감지를 소비처마다
+ *   따로 두지 않고 여기 한 곳에 두는 이유는 목록·상세·주문이 전부 이 훅을 지나기
+ *   때문이다 — 한 곳만 고치면 전부에 걸린다. **값이 바뀔 때만 읽는다** — 계속 같은
+ *   값이 유지되는 동안은 다시 읽지 않는다. 양쪽이 모두 `undefined` 가 아니고 서로
+ *   다를 때만 전환으로 본다 — 마운트 직후 `undefined → true/false`(최초 로드)는
+ *   전환이 아니다. 그 시점엔 이미 `useQuery` 의 최초 1회 fetch 가 정확한 값을
+ *   가져와 있으므로 한 번 더 읽으면 낭비다.
  * - `staleTime: 0` — 폴링 값이라 항상 오래된 것으로 본다. 안 그러면 기본 `staleTime`
  *   30초가 주기를 삼킨다. 주기와 같은 값도 안 된다 — 타이머가 깨어나는 순간이 막 stale 이
  *   되는 경계라 한 주기를 통째로 건너뛸 수 있다.
@@ -147,12 +149,19 @@ export function useQuoteSubscription<TQuote>(
     refetchIntervalInBackground: false,
   });
 
-  // quotesLive 가 true → false 로 바뀌는 그 순간에만 한 번 더 읽는다. ref 의 초기값이
-  // 마운트 시점 값이라, 장 밖에 처음 열어 false 로 시작하는 경우는 전환으로 잡히지
-  // 않는다 — 그 갈래는 useQuery 의 최초 1회 fetch 가 이미 정확한 값을 가져왔다.
+  // quotesLive 가 바뀌는 그 순간에만 한 번 더 읽는다 — 방향을 따지지 않는다(티켓 271
+  // 후속). 양쪽이 모두 undefined 가 아니고 서로 다를 때만 전환으로 본다. 마운트 직후
+  // undefined → true/false 는 제외된다 — 그 갈래는 useQuery 의 최초 1회 fetch 가
+  // 이미 정확한 값을 가져왔으므로 한 번 더 읽으면 낭비다.
   const wasQuotesLiveRef = useRef(quotesLive);
   useEffect(() => {
-    if (enabled && wasQuotesLiveRef.current === true && quotesLive === false) {
+    const previous = wasQuotesLiveRef.current;
+    if (
+      enabled &&
+      previous !== undefined &&
+      quotesLive !== undefined &&
+      previous !== quotesLive
+    ) {
       void query.refetch();
     }
     wasQuotesLiveRef.current = quotesLive;
