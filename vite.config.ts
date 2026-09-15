@@ -29,6 +29,9 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        // MSW 의 개발 전용 서비스 워커를 프로덕션 프리캐시 목록에서 뺀다. public/
+        // 아래 있어 dist/ 로 그대로 복사되고 기본 globPatterns 가 잡아버린다.
+        globIgnores: ['**/mockServiceWorker.js'],
       },
       // 매니페스트는 플러그인이 생성하지 않는다. `public/manifest.webmanifest` 정적
       // 파일로 직접 쓴다 — `public/` 아래 파일은 Vite 가 그대로 `dist/` 루트에 복사한다.
