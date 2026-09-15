@@ -22,6 +22,25 @@ export const IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key';
 export const CURSOR_PAGE_DEFAULT_SIZE = 30;
 export const CURSOR_PAGE_MAX_SIZE = 100;
 
+/**
+ * 요청 기본 타임아웃 (FINCH-283).
+ *
+ * AI 서버는 LLM 응답을 30초에서 끊고 `504 LLM_TIMEOUT`을 낸다. 백엔드 중계는 AI가
+ * 먼저 그 504를 내도록 일부러 90초로 더 길게 잡아 뒀다(`application.yaml:294`).
+ * 프론트에 타임아웃이 없으면, 그 앞단(백엔드↔AI 사이 어딘가)이 멎은 경우 최악
+ * 90초를 점 세 개만 보며 기다리게 된다 — 답이 안 오는 게 아니라 기다리는 것이다.
+ *
+ * **30초보다 짧게 잡지 마라.** AI의 정상 실패(504)가 30초에 오므로, 그보다 짧으면
+ * 오고 있던 답을 우리가 먼저 버리게 된다. 끊어도 AI 서버는 계속 생성하던 것을
+ * 계속하고 크레딧은 그대로 나간다(GitLab #64) — 우리만 손해다. 35초는 정상 실패
+ * (30초)를 온전히 받고, 그 앞단이 멎은 경우만 걸러 내는 값이다.
+ *
+ * 이 값으로 끊긴 요청은 서버가 코드를 준 적 없는 네트워크성 실패와 같은 갈래로
+ * 다룬다 — 화면은 `HttpError`가 아닌 `AbortError`를 재시도 가능한 실패로 본다
+ * (`shared/api/httpClient.ts`).
+ */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 35_000;
+
 /** 다건 시세 조회 한 번에 최대 건수 (apiSpec §5.5 다건 현재가 조회 · contracts C41). */
 export const STOCK_PRICES_MAX_CODES = 50;
 

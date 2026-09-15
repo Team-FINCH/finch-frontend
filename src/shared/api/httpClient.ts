@@ -1,6 +1,9 @@
 import { type z } from 'zod';
 
-import { API_BASE_PATH } from '@/shared/config/apiContract';
+import {
+  API_BASE_PATH,
+  DEFAULT_REQUEST_TIMEOUT_MS,
+} from '@/shared/config/apiContract';
 import { API_BASE_URL } from '@/shared/config/env';
 import { parseErrorResponse } from '@/shared/types/error';
 import { AUTH_ERROR_CODES } from '@/shared/types/errorCodes';
@@ -94,6 +97,38 @@ async function toHttpError(response: Response): Promise<HttpError> {
   });
 }
 
+/**
+ * 기본 타임아웃(`DEFAULT_REQUEST_TIMEOUT_MS`, FINCH-283)을 호출부 신호와
+ * 합친다. **덮어쓰지 않는다** — 시세 폴링(`useQuoteSubscription`)의
+ * `fetchQuote(signal)`처럼 이미 자기 `AbortSignal`을 넘기는 자리가 있다. 그 신호는
+ * TanStack Query가 재요청·언마운트 때 이전 요청을 끊는 용도라, 타임아웃 신호로
+ * 갈아 끼우면 그 취소가 더는 동작하지 않는다. `AbortSignal.any`로 둘을 묶어
+ * **둘 중 하나만 울려도** 요청이 끊기게 한다.
+ *
+ * 시세 폴링은 3초 주기·TTL 30초라 35초 타임아웃에 걸릴 일이 자체가 없다 —
+ * TanStack Query가 3초마다 이전 요청을 먼저 끊으므로 이 타이머는 폴링에서는
+ * 사실상 발동하지 않는다.
+ *
+ * 타이머는 `clear`로 반드시 정리한다. 정리하지 않으면 요청이 이미 끝난 뒤에도
+ * 35초 뒤 예약된 `abort()`가 아무 의미 없이 실행된다(끊을 신호가 이미 없다).
+ */
+function withRequestTimeout(existingSignal: AbortSignal | undefined): {
+  signal: AbortSignal;
+  clear: () => void;
+} {
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => {
+    timeoutController.abort();
+  }, DEFAULT_REQUEST_TIMEOUT_MS);
+
+  const signal =
+    existingSignal === undefined
+      ? timeoutController.signal
+      : AbortSignal.any([existingSignal, timeoutController.signal]);
+
+  return { signal, clear: () => clearTimeout(timeoutId) };
+}
+
 /** 토큰은 보낼 때마다 새로 읽는다. 캡처해 두면 재발급 뒤 재시도에 옛 토큰이 실린다. */
 async function sendRequest(
   path: string,
@@ -122,10 +157,13 @@ async function sendRequest(
     }
   }
 
+  const { signal: requestSignal, clear: clearRequestTimeout } =
+    withRequestTimeout(signal);
+
   try {
     const response = await fetch(buildUrl(path), {
       method,
-      signal,
+      signal: requestSignal,
       // 기본값 same-origin 이면 교차 출처에서 Refresh 쿠키의 Set-Cookie 가 버려진다.
       // 로그인은 성공하는데 재발급만 조용히 실패한다 (apiSpec §1.2).
       credentials: 'include',
@@ -135,6 +173,10 @@ async function sendRequest(
     return { response, sentAccessToken };
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === 'AbortError') {
+      // 호출부가 준 신호로 끊긴 것과 타임아웃으로 끊긴 것을 구분하지 않는다 —
+      // 둘 다 AbortError 로 같이 던진다. 타임아웃 쪽은 `HttpError`가 아니므로
+      // 화면에서 code 없는 네트워크성 실패, 즉 재시도 가능한 실패로 떨어진다
+      // (`shared/lib/aiErrorRetry.ts` 를 거치지 않는 호출부의 기본 분기).
       throw cause;
     }
     // 상태 코드 0 은 "응답 자체가 없었다"는 뜻으로 쓴다.
@@ -142,6 +184,8 @@ async function sendRequest(
       status: 0,
       message: '네트워크에 연결할 수 없습니다',
     });
+  } finally {
+    clearRequestTimeout();
   }
 }
 
