@@ -1,5 +1,6 @@
 import { useTypewriter } from '@/features/chat/hooks/useTypewriter';
 import { type ChatMessage } from '@/features/chat/model/chatMessages';
+import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 
 /**
@@ -39,12 +40,11 @@ import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
  * 옮겨야 한다"를 지금 한 것이다 — `features/chat/model/chatMessages.ts` 의
  * `toRestoredMessage` 가 그 신호(`restored: true`)를 만든다.
  *
- * `isDone` 이 되기 전에는 `disclaimer` 줄과 `AiFeedbackRow` 를 내지 않는다
- * (task-F 완료 판정 "근거·피드백 행은 타자가 끝난 뒤"). `restored` 말풍선은
- * 타자가 걸리지 않아 마운트 즉시 `isDone` 이지만, `requestId`·`disclaimer` 가
- * 원래 `null` 이라(대화 이력 조회는 봉투가 없다, AI 명세 §4.1) 그 자리 자체가
- * 비어 있다 — **"근거 목록"(citations)** 도 채팅에는 애초에 렌더링 자리가 없다
- * (`AiCitationList` 는 종목 상세·포트폴리오 탭 전용).
+ * `isDone` 이 되기 전에는 근거 목록·`disclaimer`·`AiFeedbackRow` 를 내지 않는다.
+ * 뉴스 원인을 설명하면서 출처를 숨기면 관측 수치와 확인된 사건을 구별할 수 없으므로,
+ * 이번 턴 응답 envelope 의 `citations` 를 공용 `AiCitationList` 로 그대로 보여 준다.
+ * 복원된 이력에는 envelope 가 없어 `citations`와 `disclaimer`가 비어 있으므로 해당
+ * 영역만 생략한다.
  */
 type ChatBubbleProps = {
   message: ChatMessage;
@@ -113,13 +113,23 @@ export function ChatBubble({
   return (
     <div className="flex flex-col items-start">
       <div className="max-w-[80%] rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3">
-        <p className="text-body-2 text-pretty text-ai-text-primary">
+        <p className="text-body-2 text-pretty whitespace-pre-line text-ai-text-primary">
           {visibleText}
         </p>
-        {isDone && message.disclaimer !== null && (
-          <p className="mt-2 text-caption text-ai-text-muted">
-            {message.disclaimer}
-          </p>
+        {isDone && (
+          <>
+            <AiCitationList
+              citations={message.citations}
+              title="참고 뉴스 및 자료"
+              showPublisher
+              className="mt-4 border-t border-ai-text-muted/20 pt-3 [&_a]:text-ai-text-primary [&_h3]:text-ai-text-muted [&_span]:text-ai-text-muted"
+            />
+            {message.disclaimer !== null && (
+              <p className="mt-3 text-caption text-ai-text-muted">
+                {message.disclaimer}
+              </p>
+            )}
+          </>
         )}
       </div>
       {isDone && message.requestId !== null && (
