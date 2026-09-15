@@ -139,20 +139,20 @@ export const store: MockStore = {
     { stockCode: '035720', quantity: 20, avgBuyPrice: 45_000 },
     // 시세 없음(quoteState: 'missing') 픽스처. 보유 종목에서 이 갈래(평가 네 필드
     // null, 원가가 합계에서 함께 빠짐)가 화면에서 재현되는 자리다 (티켓 273).
-    { stockCode: '900140', quantity: 5, avgBuyPrice: 2_200 },
+    { stockCode: '058610', quantity: 5, avgBuyPrice: 20_000 },
   ],
   watchlist: [
     { stockCode: '005930', registeredAt: '2026-08-26T09:12:00+09:00' },
     { stockCode: '000660', registeredAt: '2026-08-27T10:41:00+09:00' },
-    { stockCode: '247540', registeredAt: '2026-08-31T13:05:00+09:00' },
+    { stockCode: '086520', registeredAt: '2026-08-31T13:05:00+09:00' },
     // 시세 없음(quoteState: 'missing') 픽스처. 관심 목록에서 이 상태가 화면에
     // 재현되는 유일한 자리다 (FINCH-265).
-    { stockCode: '900140', registeredAt: '2026-09-02T09:30:00+09:00' },
+    { stockCode: '058610', registeredAt: '2026-09-02T09:30:00+09:00' },
   ],
   recentStocks: [
     { stockCode: '000660', viewedAt: '2026-09-01T15:02:00+09:00' },
     { stockCode: '005930', viewedAt: '2026-09-01T14:48:00+09:00' },
-    { stockCode: '068270', viewedAt: '2026-08-31T11:20:00+09:00' },
+    { stockCode: '196170', viewedAt: '2026-08-31T11:20:00+09:00' },
   ],
   recentSearchKeywords: [
     { keywordId: 42, keyword: '삼성', searchedAt: '2026-09-01T15:01:00+09:00' },
@@ -188,13 +188,13 @@ export const store: MockStore = {
       transactionId: 305,
       type: 'SELL',
       occurredAt: '2026-09-01T13:22:10+09:00',
-      stockCode: '068270',
-      stockName: '셀트리온',
-      price: 178_400,
-      quantity: 2,
-      amount: 356_800,
-      realizedProfit: -11_600,
-      realizedProfitRate: -3.15,
+      stockCode: '196170',
+      stockName: '알테오젠',
+      price: 374_000,
+      quantity: 1,
+      amount: 374_000,
+      realizedProfit: -12_000,
+      realizedProfitRate: -3.11,
       paymentMethod: null,
     },
     {

@@ -44,9 +44,9 @@ import { currentPriceOf, profitRate } from '../lib/valuation';
  * | --- | --- |
  * | 카탈로그에 없는 종목코드 | `404 STOCK_NOT_FOUND` |
  * | `keyword` 2글자 미만 · `period`·`interval` 열거값 밖 · `stockCodes` 누락이나 50건 초과 | `400 INVALID_REQUEST` |
- * | `036570`(엔씨소프트) | `suspended: true` — 뱃지와 주문 차단 렌더 |
- * | `010950`(에스오일) | `stale: true` + 마지막 수신 값 유지 |
- * | `900140`(엘브이엠씨홀딩스) | `stale: true` + 가격 3필드와 `asOf` 가 전부 `null` |
+ * | `466100`(클로봇) | `suspended: true` — 뱃지와 주문 차단 렌더 |
+ * | `024060`(흥구석유) | `stale: true` + 마지막 수신 값 유지 |
+ * | `058610`(에스피지) | `stale: true` + 가격 3필드와 `asOf` 가 전부 `null` |
  * | `02826K`(삼성물산우B) | 영문자가 섞인 종목코드 — `StockCodeSchema` 회귀 픽스처 (FINCH-255) |
  *
  * 시세 없음은 에러가 아니다 (apiSpec §11.2) — 위 두 종목이 그 두 상태를 재현한다.

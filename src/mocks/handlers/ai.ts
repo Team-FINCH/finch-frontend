@@ -59,8 +59,8 @@ import { nowKstIso, toKstDateString } from '../lib/time';
  * | 분석 · 보유 중이고 활성 논지가 있는 종목(`005930`) | 섹션 **일곱 전부** |
  * | 분석 · 보유 중이고 논지가 없는 종목(`035720`) | `thesisCheck` 가 `null`. **`attention` 의 `title` 도 `null` 이다** — 제목 없는 섹션 |
  * | 분석 · 미보유 종목(`000660` 외) | `myImpact`·`thesisCheck` 둘 다 `null` (contracts C58 · ia.md §4) |
- * | 분석 · `900140` | **섹션 일곱이 전부 `null`** — 200 인데 그릴 본문이 없는 갈래 |
- * | 분석 · `010950` | `risks` 에서 필수 둘(`text`·`segments`)이 빠진 **계약 위반 응답** — 스키마가 거부하는 것을 화면에서 본다 |
+ * | 분석 · `058610` | **섹션 일곱이 전부 `null`** — 200 인데 그릴 본문이 없는 갈래 |
+ * | 분석 · `024060` | `risks` 에서 필수 둘(`text`·`segments`)이 빠진 **계약 위반 응답** — 스키마가 거부하는 것을 화면에서 본다 |
  * | 진단·원인 분석 · 보유 종목 0개 | `409 INSUFFICIENT_DATA` — 에러가 아니라 정상 거절이다 (contracts C12) |
  * | `GET /ai/briefing?date=` 에 오늘이 아닌 날짜 | `status: 'empty'` + 빈 `items` (200) |
  * | `POST /ai/orders/preview` 주문 금액이 예수금 초과 | `feasible: false` + `shortfall` — **200 응답의 본문이다** |
@@ -169,7 +169,7 @@ const ANALYSIS_TITLELESS_STOCK = '035720';
  * AI 근거가 하나도 모이지 않은 상태를 여기에 붙였다. **200 이고 에러가 아니다** —
  * 화면은 빈 상태 안내로 접는다.
  */
-const ANALYSIS_EMPTY_STOCK = '900140';
+const ANALYSIS_EMPTY_STOCK = '058610';
 
 /**
  * 필수 둘(`text`·`segments`)이 빠진 섹션을 내는 종목. **계약 위반 응답이다.**
@@ -179,7 +179,7 @@ const ANALYSIS_EMPTY_STOCK = '900140';
  * AI 탭이 에러 자리로 접히는 것이 정상 동작이다. 스키마를 느슨하게 고쳐 이 갈래를
  * 통과시키면 안 된다.
  */
-const ANALYSIS_CONTRACT_BREACH_STOCK = '010950';
+const ANALYSIS_CONTRACT_BREACH_STOCK = '024060';
 
 function analysisSections(stock: MockStock) {
   const holding = findHolding(stock.stockCode);

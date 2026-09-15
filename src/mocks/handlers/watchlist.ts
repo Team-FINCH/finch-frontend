@@ -30,7 +30,7 @@ import { nowKstIso } from '../lib/time';
  * | `sort` 열거값 밖 | `400 INVALID_REQUEST` |
  * | 카탈로그에 없는 종목코드 | `404 STOCK_NOT_FOUND` |
  * | 이미 등록된 종목 | `409 WATCHLIST_ALREADY_EXISTS` |
- * | `068270`(셀트리온) 추가 | `409 WATCHLIST_LIMIT_EXCEEDED` — 아래 이유 참고 |
+ * | `196170`(알테오젠) 추가 | `409 WATCHLIST_LIMIT_EXCEEDED` — 아래 이유 참고 |
  * | `DELETE /watchlist/{stockCode}` | 대상이 없어도 `204` (멱등) |
  *
  * 판정 순서는 apiSpec §11.2 다 — 종목 존재 → 중복 → 한도.
@@ -40,7 +40,7 @@ import { nowKstIso } from '../lib/time';
  */
 
 /** 이 종목을 추가하면 항상 `WATCHLIST_LIMIT_EXCEEDED` 다. 한도 문구 렌더 확인용이다. */
-const WATCHLIST_LIMIT_DEMO_STOCK_CODE = '068270';
+const WATCHLIST_LIMIT_DEMO_STOCK_CODE = '196170';
 
 const WATCHLIST_SORTS = ['REGISTERED', 'NAME', 'CHANGE_RATE'];
 
@@ -68,7 +68,7 @@ export const watchlistHandlers = [
      * 등록 행 자체는 지우지 않는다 — 재상장되면 목록과 한도에 함께 돌아온다.
      */
     // `quoteState: 'missing'` 이면 가격 셋이 `null` 이다 — `toStockSummary` 와 같은
-    // 규칙이고 근거도 같다 (apiSpec §5.4 셋째 행). `900140`(엘브이엠씨홀딩스)이 이
+    // 규칙이고 근거도 같다 (apiSpec §5.4 셋째 행). `058610`(에스피지)이 이
     // 상태의 유일한 픽스처라, 여기서 놓치면 관심 목록에서는 시세 없음 화면을
     // 한 번도 재현하지 못한다 (FINCH-265).
     const items = store.watchlist

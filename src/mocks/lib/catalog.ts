@@ -11,6 +11,24 @@ import { nowKstIso } from './time';
  *
  * `changeRate` 는 **백분율**이다 (`-1.21` = −1.21%). 0~1 소수가 아니다 (contracts C18).
  * 금액·수량은 원 단위 정수다.
+ *
+ * ## 서비스 30종목을 따른다 — 예외 둘은 일부러 밖에 둔다
+ *
+ * 정본은 `backend/src/main/resources/application.yaml` 의 `finch.universe.codes`
+ * (2026-09-14 확정, 30종목)다. 목이 그 밖의 종목을 들고 있으면 **개발에서는 멀쩡히
+ * 열리던 종목이 실서버에서 `STOCK_NOT_FOUND` 로 죽는다.** 그래서 평범한 종목
+ * 픽스처는 전부 30종목 안에서 고른다.
+ *
+ * **다만 두 개는 30종목 밖이어야 제 일을 한다.**
+ *
+ * | 종목 | 밖에 두는 이유 |
+ * | --- | --- |
+ * | `02826K`(삼성물산우B) | 영문자가 섞인 종목코드 회귀 픽스처(FINCH-255). **30종목은 전부 숫자라 유니버스 안에서는 이 갈래를 만들 수 없다** |
+ * | `037440`(희림) | 상장폐지(`active: false`) 픽스처. 폐지된 종목은 정의상 활성 유니버스에 없다 |
+ *
+ * 두 종목은 기업 로고도 없어(`shared/config/stockLogos.ts` 는 30종목뿐) 목록에서
+ * 이니셜 뱃지로 그려진다. **그것이 맞는 렌더고**, 덤으로 `StockLogo` 의 폴백 경로가
+ * 개발 중에 늘 눈에 보인다.
  */
 
 /** 시세 상태 (apiSpec §5.4 `stale` 규칙 · contracts C42). */
@@ -122,12 +140,12 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     orderRejection: null,
   },
   {
-    stockCode: '247540',
-    stockName: '에코프로비엠',
+    stockCode: '086520',
+    stockName: '에코프로',
     market: 'KOSDAQ',
     sector: '2차전지',
-    previousClose: 146500,
-    currentPrice: 158900,
+    previousClose: 68000,
+    currentPrice: 73800,
     suspended: false,
     suspendedReason: null,
     quoteState: 'live',
@@ -135,12 +153,12 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     orderRejection: null,
   },
   {
-    stockCode: '068270',
-    stockName: '셀트리온',
-    market: 'KOSPI',
+    stockCode: '196170',
+    stockName: '알테오젠',
+    market: 'KOSDAQ',
     sector: '바이오',
-    previousClose: 180000,
-    currentPrice: 176300,
+    previousClose: 380000,
+    currentPrice: 372200,
     suspended: false,
     suspendedReason: null,
     quoteState: 'live',
@@ -148,12 +166,12 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     orderRejection: null,
   },
   {
-    stockCode: '036570',
-    stockName: '엔씨소프트',
-    market: 'KOSPI',
-    sector: '게임',
-    previousClose: 189000,
-    currentPrice: 185000,
+    stockCode: '466100',
+    stockName: '클로봇',
+    market: 'KOSDAQ',
+    sector: '로봇',
+    previousClose: 18500,
+    currentPrice: 18100,
     suspended: true,
     suspendedReason: '조회공시 요구 (풍문 또는 보도)',
     quoteState: 'live',
@@ -161,12 +179,12 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     orderRejection: ORDER_ERROR_CODES.STOCK_SUSPENDED,
   },
   {
-    stockCode: '010950',
-    stockName: '에스오일',
+    stockCode: '024060',
+    stockName: '흥구석유',
     market: 'KOSPI',
-    sector: '정유',
-    previousClose: 62000,
-    currentPrice: 63500,
+    sector: '석유유통',
+    previousClose: 12400,
+    currentPrice: 12700,
     suspended: false,
     suspendedReason: null,
     quoteState: 'stale',
@@ -174,12 +192,12 @@ export const MOCK_STOCKS: readonly MockStock[] = [
     orderRejection: ORDER_ERROR_CODES.MARKET_CLOSED,
   },
   {
-    stockCode: '900140',
-    stockName: '엘브이엠씨홀딩스',
+    stockCode: '058610',
+    stockName: '에스피지',
     market: 'KOSDAQ',
-    sector: '유통',
-    previousClose: 2150,
-    currentPrice: 2100,
+    sector: '전동기',
+    previousClose: 21500,
+    currentPrice: 21000,
     suspended: false,
     suspendedReason: null,
     quoteState: 'missing',
@@ -243,7 +261,7 @@ export function changeRateOf(stock: MockStock): number {
  *
  * **`quoteState: 'missing'` 이면 가격 셋이 `null` 이다** — `toStockQuote` 와 같은 규칙이고
  * 근거도 같다 (apiSpec §5.4 셋째 행). 전에는 여기서 `quoteState` 를 보지 않아 시세 없는
- * 종목도 숫자를 내보냈다. 그래서 `900140`(엘브이엠씨홀딩스)이라는 「시세 없음」 픽스처가
+ * 종목도 숫자를 내보냈다. 그래서 `058610`(에스피지)이라는 「시세 없음」 픽스처가
  * 멀쩡히 있는데도 검색 결과로는 그 상태를 한 번도 재현하지 못했고, 프론트 스키마가
  * `null` 을 거부하던 것을 목으로는 잡을 수 없었다 (FINCH-255).
  */
