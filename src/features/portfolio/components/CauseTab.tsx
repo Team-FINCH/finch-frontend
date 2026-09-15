@@ -1,14 +1,17 @@
 import { useState } from 'react';
 
-import { isHttpError } from '@/shared/api';
-import { isRetryableAiErrorCode } from '@/shared/lib/aiErrorRetry';
+import {
+  isInsufficientDataErrorCode,
+  isRetryableAiErrorCode,
+  readAiErrorCode,
+  readAiErrorMessage,
+} from '@/shared/lib/aiErrorRetry';
 import { formatKstTime } from '@/shared/lib/formatDate';
 import {
   formatSignedPercent,
   getPriceDirection,
 } from '@/shared/lib/formatNumber';
 import { type AiAttributionRow } from '@/shared/types/ai/attribution';
-import { AI_SERVICE_ERROR_CODES } from '@/shared/types/errorCodes';
 import { AiCard } from '@/shared/ui/AiCard';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
@@ -73,12 +76,10 @@ export function CauseTab() {
   }
 
   if (isError) {
-    const code = isHttpError(error) ? (error.code ?? undefined) : undefined;
-    const message = isHttpError(error)
-      ? error.message
-      : '분석을 불러오지 못했어요';
+    const code = readAiErrorCode(error);
+    const message = readAiErrorMessage(error, '분석을 불러오지 못했어요');
 
-    if (code === AI_SERVICE_ERROR_CODES.INSUFFICIENT_DATA) {
+    if (isInsufficientDataErrorCode(code)) {
       // TODO(계약): 개인화가 열리는 최소 데이터 건수가 임시값이다 — 이슈 #26 3번,
       // PRD 자신이 "임시값"이라고 적었다(ia.md §7). 숫자를 하드코딩하지 않는다.
       //

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { isHttpError } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
+import { readAiErrorCode, readAiErrorMessage } from '@/shared/lib/aiErrorRetry';
 import { formatKstDate } from '@/shared/lib/formatDate';
 import { type WikiFact, type WikiThesis } from '@/shared/types/ai/wiki';
 import { AiStatus } from '@/shared/ui/AiStatus';
@@ -81,12 +81,11 @@ export function WikiTab() {
   }
 
   if (isError) {
-    const message = isHttpError(error)
-      ? error.message
-      : '투자 기준을 불러오지 못했어요';
+    const code = readAiErrorCode(error);
+    const message = readAiErrorMessage(error, '투자 기준을 불러오지 못했어요');
     return (
       <AiStatus
-        code={isHttpError(error) ? (error.code ?? undefined) : undefined}
+        code={code}
         title={message}
         description="잠시 후 다시 시도해 주세요."
         onRetry={() => void refetch()}
