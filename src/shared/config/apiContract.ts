@@ -178,6 +178,12 @@ export const API_PATHS = {
    */
   market: {
     indices: '/market/indices',
+    /**
+     * 시장 상태 (apiSpec §5.8 v0.8.14 · 이슈 #78). `open`·`quotesLive`·`session`·
+     * `nextChangeAt` 을 준다. 시간표(09:00·15:30 등)는 서버 판정이라 프론트에
+     * 상수로 두지 않는다 — `useMarketStatus` 가 이 값만 소비한다.
+     */
+    status: '/market/status',
   },
   orders: {
     create: '/orders',

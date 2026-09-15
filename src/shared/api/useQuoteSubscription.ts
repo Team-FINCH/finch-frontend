@@ -1,6 +1,9 @@
 import { useQuery, type QueryKey } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 
 import { QUOTE_POLLING_INTERVAL_MS } from '@/shared/config/apiContract';
+
+import { useMarketStatus } from './useMarketStatus';
 
 /**
  * 시세 구독 추상화 (apiSpec §5.6 · contracts C34).
@@ -29,6 +32,24 @@ import { QUOTE_POLLING_INTERVAL_MS } from '@/shared/config/apiContract';
  *   프론트 재량이다.** 서버가 보장하는 것은 티어 TTL 30초뿐이고 관계식
  *   (`TTL >= 주기 x 4~6`)만 지키면 된다(contracts C40). 숫자를 여기 박지 않고
  *   `shared/config` 상수를 쓴다(ia.md §7).
+ * - **`useMarketStatus` 의 `quotesLive` 가 `false` 면 `refetchInterval` 을 `false` 로
+ *   준다** (`GET /market/status`, apiSpec §5.8 · 티켓 271). 장 밖에는 다시 물어도
+ *   같은 값이 오므로 재요청만 멈춘다. **`enabled` 는 건드리지 않는다** — 껐다면
+ *   쿼리 자체가 멈춰 이미 받아 둔 마지막 시세까지 화면에서 사라질 수 있다.
+ *   `quotesLive` 를 아직 모르면(로딩 중) 원래 주기로 돈다 — 이 응답 없이 폴링해도
+ *   틀리지 않으므로(§5.8) 모르는 동안 멈출 이유가 없다.
+ * - **`quotesLive` 값이 바뀌는 순간(방향 무관), 한 번 더 읽는다** (티켓 271 후속).
+ *   React Query 는 `refetchInterval` 값이 바뀌었다는 이유만으로 다시 읽지 않는다 —
+ *   타이머만 갈아 끼운다. `true → false` 에서 그 한 번을 놓치면 장이 닫힌 뒤에도
+ *   마지막으로 받아 둔 `tradable: true` 가 화면에 남는다(`useOrderAvailable` 소비처).
+ *   `false → true` 에서 놓치면 반대로 장이 열렸는데도 폴링이 재개되기를 기다리는
+ *   동안 `tradable: false` 가 남아 주문 버튼이 잠긴 채로 보인다. 감지를 소비처마다
+ *   따로 두지 않고 여기 한 곳에 두는 이유는 목록·상세·주문이 전부 이 훅을 지나기
+ *   때문이다 — 한 곳만 고치면 전부에 걸린다. **값이 바뀔 때만 읽는다** — 계속 같은
+ *   값이 유지되는 동안은 다시 읽지 않는다. 양쪽이 모두 `undefined` 가 아니고 서로
+ *   다를 때만 전환으로 본다 — 마운트 직후 `undefined → true/false`(최초 로드)는
+ *   전환이 아니다. 그 시점엔 이미 `useQuery` 의 최초 1회 fetch 가 정확한 값을
+ *   가져와 있으므로 한 번 더 읽으면 낭비다.
  * - `staleTime: 0` — 폴링 값이라 항상 오래된 것으로 본다. 안 그러면 기본 `staleTime`
  *   30초가 주기를 삼킨다. 주기와 같은 값도 안 된다 — 타이머가 깨어나는 순간이 막 stale 이
  *   되는 경계라 한 주기를 통째로 건너뛸 수 있다.
@@ -111,15 +132,42 @@ export function useQuoteSubscription<TQuote>(
 ): QuoteSubscription<TQuote> {
   const { queryKey, fetchQuote, tier, enabled = true } = source;
 
+  // quotesLive 를 모르는 동안(로딩 중)은 원래 주기로 돈다 — 이 응답 없이 폴링해도
+  // 틀리지 않는다(apiSpec §5.8).
+  const { data: marketStatus } = useMarketStatus();
+  const quotesLive = marketStatus?.quotesLive;
+  const refetchInterval =
+    quotesLive === false ? false : QUOTE_POLLING_INTERVAL_MS[tier];
+
   const query = useQuery({
     queryKey,
     queryFn: ({ signal }) => fetchQuote(signal),
     enabled,
-    refetchInterval: QUOTE_POLLING_INTERVAL_MS[tier],
+    refetchInterval,
     // 폴링 값이라 항상 오래된 것으로 본다. 안 그러면 기본 staleTime 30초가 주기를 삼킨다.
     staleTime: 0,
     refetchIntervalInBackground: false,
   });
+
+  // quotesLive 가 바뀌는 그 순간에만 한 번 더 읽는다 — 방향을 따지지 않는다(티켓 271
+  // 후속). 양쪽이 모두 undefined 가 아니고 서로 다를 때만 전환으로 본다. 마운트 직후
+  // undefined → true/false 는 제외된다 — 그 갈래는 useQuery 의 최초 1회 fetch 가
+  // 이미 정확한 값을 가져왔으므로 한 번 더 읽으면 낭비다.
+  const wasQuotesLiveRef = useRef(quotesLive);
+  useEffect(() => {
+    const previous = wasQuotesLiveRef.current;
+    if (
+      enabled &&
+      previous !== undefined &&
+      quotesLive !== undefined &&
+      previous !== quotesLive
+    ) {
+      void query.refetch();
+    }
+    wasQuotesLiveRef.current = quotesLive;
+    // query.refetch 는 매 렌더 새 참조라 의존성에서 뺀다 — quotesLive 전환만 본다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, quotesLive]);
 
   // 재구독. 폴링 경로에서는 지금 한 번 다시 읽는 것이다. 결과는 상태로 돌아오므로
   // 프로미스를 밖에 내지 않는다.

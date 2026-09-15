@@ -8,9 +8,11 @@ export {
   isSchemaError,
   parseRetryAfterMs,
 } from './errors';
+export { getMarketStatus } from './getMarketStatus';
 export { request, requestNoContent } from './httpClient';
 export { postAiFeedback } from './postAiFeedback';
 export { createQueryClient } from './queryClient';
+export { useMarketStatus } from './useMarketStatus';
 export {
   useQuoteSubscription,
   type QuotePollingTier,
