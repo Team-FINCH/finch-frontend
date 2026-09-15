@@ -1,3 +1,4 @@
+import { ChatMarkdown } from '@/features/chat/components/ChatMarkdown';
 import { useTypewriter } from '@/features/chat/hooks/useTypewriter';
 import { type ChatMessage } from '@/features/chat/model/chatMessages';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
@@ -45,6 +46,14 @@ import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
  * 이번 턴 응답 envelope 의 `citations` 를 공용 `AiCitationList` 로 그대로 보여 준다.
  * 복원된 이력에는 envelope 가 없어 `citations`와 `disclaimer`가 비어 있으므로 해당
  * 영역만 생략한다.
+ *
+ * ## Markdown (GitLab #85)
+ *
+ * `isDone` 이 같은 시점에서 렌더 방식도 함께 갈린다. 찍는 동안은 지금까지처럼
+ * 평문(`whitespace-pre-line`)이고, 다 찍힌 뒤에만 `features/chat/components/
+ * ChatMarkdown` 으로 바꿔 그린다(이슈의 "타자 중 평문 → 완료 후 Markdown" A 안).
+ * `restored` 말풍선은 `useTypewriter` 가 처음부터 `isDone: true` 를 주므로 타자
+ * 없이 바로 Markdown 이 붙는다 — 이 갈래를 따로 두지 않아도 된다.
  */
 type ChatBubbleProps = {
   message: ChatMessage;
@@ -112,10 +121,21 @@ export function ChatBubble({
 
   return (
     <div className="flex flex-col items-start">
-      <div className="max-w-[80%] rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3">
-        <p className="text-body-2 text-pretty whitespace-pre-line text-ai-text-primary">
-          {visibleText}
-        </p>
+      <div className="max-w-[80%] min-w-0 rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3">
+        {isDone ? (
+          // 다 찍힌 뒤에만 Markdown 으로 그린다 (GitLab #85 A 안). 타자 중에
+          // 부분 문자열을 파싱하면 `**굵`처럼 반쯤 닫힌 문법이 그대로 튀어나와
+          // 깜빡인다 — 그래서 찍는 동안은 지금처럼 평문(`whitespace-pre-line`)
+          // 을 유지하고, `isDone` 이 된 순간에만 전문을 한 번에 Markdown 으로
+          // 바꿔 그린다.
+          <div className="text-body-2 text-pretty text-ai-text-primary [&_a]:text-ai-text-primary">
+            <ChatMarkdown text={visibleText} />
+          </div>
+        ) : (
+          <p className="text-body-2 text-pretty whitespace-pre-line text-ai-text-primary">
+            {visibleText}
+          </p>
+        )}
         {isDone && (
           <>
             <AiCitationList
