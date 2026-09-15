@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
@@ -54,6 +55,8 @@ type SubPageHeaderProps = {
    * 뒤로가기를 온 만큼 눌러야 했다. 뒤로가기가 **한 칸**이고 이것이 **끝까지**다.
    */
   showHome?: boolean;
+  /** 제목과 홈 버튼 사이에 놓을 화면 전용 동작. 헤더 흐름 안에서 폭을 차지한다. */
+  action?: ReactNode;
   className?: string;
 };
 
@@ -62,6 +65,7 @@ export function SubPageHeader({
   showBack = true,
   fallbackTo = ROUTES.home,
   showHome = true,
+  action,
   className = '',
 }: SubPageHeaderProps) {
   const navigate = useNavigate();
@@ -90,12 +94,15 @@ export function SubPageHeader({
         </button>
       ) : null}
       <h1
-        className={`flex-1 text-section-title text-text-primary ${
+        className={`min-w-0 flex-1 text-section-title text-text-primary ${
           showBack ? '' : 'pl-2.75'
         }`}
       >
         {title}
       </h1>
+      {action === undefined ? null : (
+        <div className="flex h-full flex-none items-center">{action}</div>
+      )}
       {/*
         홈으로 (FINCH-269). `showBack={false}` 인 결제 결과 화면에도 **그린다** —
         그 화면은 뒤로가기를 일부러 뺀 자리라(이중 확정 방지) 나갈 길이 본문 버튼
