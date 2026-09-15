@@ -58,9 +58,16 @@ const DEFAULT_CHAT_ERROR_MESSAGE = '메시지를 보내지 못했어요.';
  * API: `POST /api/v1/ai/chat`. **단발 요청/응답이다 — SSE 는 폐기됐다**(커밋 `34ed34a`).
  *
  * **답변 말풍선마다 `requestId` 가 다르고 말풍선마다 피드백 버튼이 붙는다**
- * (design.md §7.15·§9, 이슈 #26 5번). `context.screen` 은 첫 메시지에만 실어
- * 보낸다 — 대화가 시작된 뒤(`conversationId` 발급 후)에는 서버가 맥락을 이어가므로
- * 매 메시지마다 다시 보내지 않는다.
+ * (design.md §7.15·§9, 이슈 #26 5번). `context` 는 **매 메시지마다** 싣는다
+ * (FINCH-286). 전에는 첫 메시지에만 싣고 `conversationId` 발급 뒤로는
+ * 뺐다 — "서버가 대화를 이어가니 화면 맥락도 이어간다"고 본 것인데, 이 전제가
+ * 틀렸다. 서버가 이어가는 것은 **대화 이력**(최근 12개 메시지)이고 `context` 는
+ * **지금 어느 화면에 있나** 를 매번 말해 주는 값이라 서로 다르다. 한 종목에서
+ * 대화를 시작하고 며칠 뒤 다른 종목 상세에서 이어 들어오면, `context` 를 첫
+ * 메시지에만 실었을 때는 AI 가 여전히 처음 종목만 알고 지금 보고 있는 화면을
+ * 몰라 `이거 어때?` 가 엉뚱한 종목을 가리킨다
+ * (`_inbox/2026-09-15-안건-채팅-대화지속의-부작용.md` §3). 계약상 매번 실어도
+ * 되는 값이다(`ai/docs/api-spec.md` §"context" — 대명사 지시 대상 해소용).
  *
  * ## 상단 (FINCH-245)
  *
@@ -233,10 +240,8 @@ export function ChatPage() {
       {
         conversationId,
         message: text,
-        context:
-          conversationId === null
-            ? { screen: chatContext.screen, ticker: chatContext.ticker }
-            : undefined,
+        // 매 메시지마다 싣는다 (FINCH-286). 근거는 파일 머리 주석 참고.
+        context: { screen: chatContext.screen, ticker: chatContext.ticker },
       },
       {
         onSuccess: (data) => {
