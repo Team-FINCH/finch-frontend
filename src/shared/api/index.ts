@@ -9,6 +9,7 @@ export {
   parseRetryAfterMs,
 } from './errors';
 export { getMarketStatus } from './getMarketStatus';
+export { getStockQuotes } from './getStockQuotes';
 export { request, requestNoContent } from './httpClient';
 export { postAiFeedback } from './postAiFeedback';
 export { createQueryClient } from './queryClient';

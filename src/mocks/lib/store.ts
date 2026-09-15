@@ -137,6 +137,9 @@ export const store: MockStore = {
     { stockCode: '005930', quantity: 10, avgBuyPrice: 71_200 },
     { stockCode: '000660', quantity: 3, avgBuyPrice: 180_000 },
     { stockCode: '035720', quantity: 20, avgBuyPrice: 45_000 },
+    // 시세 없음(quoteState: 'missing') 픽스처. 보유 종목에서 이 갈래(평가 네 필드
+    // null, 원가가 합계에서 함께 빠짐)가 화면에서 재현되는 자리다 (티켓 273).
+    { stockCode: '900140', quantity: 5, avgBuyPrice: 2_200 },
   ],
   watchlist: [
     { stockCode: '005930', registeredAt: '2026-08-26T09:12:00+09:00' },

@@ -1,16 +1,17 @@
 import { useMemo } from 'react';
 
+import {
+  applyQuoteToHolding,
+  applyQuoteToWatchlistItem,
+  evaluationTotals as computeEvaluationTotals,
+  toQuoteMap,
+} from '@/shared/lib/applyQuotes';
 import type { WatchlistSort } from '@/shared/types/stock';
 
 import { useAccountSummary } from '../api/useAccountSummary';
 import { useHomePortfolio } from '../api/useHomePortfolio';
 import { useHomeStockQuotes } from '../api/useHomeStockQuotes';
 import { useHomeWatchlist } from '../api/useHomeWatchlist';
-import {
-  applyQuoteToHolding,
-  applyQuoteToWatchlistItem,
-  toQuoteMap,
-} from '../lib/applyQuotes';
 
 /**
  * 홈 화면이 쓰는 계좌·보유·관심 데이터를 한데 모은다.
@@ -64,21 +65,11 @@ export function useHomeData(watchSort: WatchlistSort) {
 
   // 시세를 모르는 종목은 합계에서 뺀다 — 분자와 분모를 함께 빼야 수익률이 왜곡되지 않는다
   // (apiSpec v0.8.2 · 계약 C93. 서버의 evaluationAmount 합계도 같은 규칙이다).
-  const evaluationTotals = useMemo(() => {
-    let profit = 0;
-    let cost = 0;
-    for (const holding of holdings) {
-      if (holding.evaluationProfit === null) {
-        continue;
-      }
-      profit += holding.evaluationProfit;
-      cost += holding.avgBuyPrice * holding.quantity;
-    }
-    return {
-      profit,
-      rate: cost === 0 ? 0 : (profit / cost) * 100,
-    };
-  }, [holdings]);
+  // 포트폴리오 화면도 같은 규칙을 같은 함수(`shared/lib/applyQuotes`)로 쓴다(티켓 273).
+  const evaluationTotals = useMemo(
+    () => computeEvaluationTotals(holdings),
+    [holdings],
+  );
 
   return {
     account,
