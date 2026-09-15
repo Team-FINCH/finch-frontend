@@ -172,26 +172,20 @@ export function ChatPage() {
 
   return (
     <PageMain className="flex min-h-[calc(100dvh-3rem)] flex-col pb-24">
-      {/*
-        `초기화` 를 `SubPageHeader` 안에 넣지 않고 겹쳐 놓는다. 그 컴포넌트는
-        `shared/ui` 라 이 티켓에서 고칠 수 없고(오른쪽 슬롯이 없다), 지금 화면
-        하나만 오른쪽 동작을 갖는다. 감싼 `div` 는 본문 여백(26px) 안쪽이고
-        `SubPageHeader` 는 `-mx-2.75` 로 15px 까지 나가 있으므로 버튼도
-        `-right-2.75` 로 같은 15px 선에 맞춘다.
-        오른쪽 동작이 둘째 화면에 생기면 그때 `SubPageHeader` 에 슬롯을 낸다.
-      */}
-      <div className="relative flex-none">
-        <SubPageHeader title="FINCH AI" />
-        {messages.length > 0 && (
-          <button
-            type="button"
-            onClick={resetConversation}
-            className="absolute top-0 -right-2.75 flex h-(--page-header-height) items-center rounded-12 px-2.5 text-body-2 font-medium text-text-muted transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
-          >
-            초기화
-          </button>
-        )}
-      </div>
+      <SubPageHeader
+        title="FINCH AI"
+        action={
+          messages.length > 0 ? (
+            <button
+              type="button"
+              onClick={resetConversation}
+              className="flex h-11 items-center rounded-12 px-2.5 text-body-2 font-medium text-text-muted transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
+            >
+              초기화
+            </button>
+          ) : undefined
+        }
+      />
 
       {messages.length === 0 ? (
         <ChatEmptyState
