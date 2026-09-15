@@ -127,6 +127,12 @@ export const queryKeys = {
       ] as const,
     /** `GET /ai/wiki`. */
     wiki: () => [...queryKeys.ai.all(), 'wiki'] as const,
+    /**
+     * 대화 이력 (FINCH-278). **계약 없음 — `apiContract.ts` 의
+     * `API_PATHS.ai.chatMessages` 주석 참고.**
+     */
+    chatHistory: (conversationId: string) =>
+      [...queryKeys.ai.all(), 'chat', 'history', conversationId] as const,
   },
   /**
    * 알림함 (FINCH-49). **API 계약 자체가 프론트 추정값이다**

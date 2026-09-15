@@ -22,28 +22,29 @@ import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
  * 옮긴다. 배치는 말풍선 **밖** 아래다. 프로토타입은 말풍선 안(검정 면)에 두지만 shared
  * 판의 색이 검정 면용이 아니라 안에 넣으면 대비가 깨진다 — 대조표 3차 판정 뒤 별건.
  *
- * ## 타자 효과 (FINCH-274, task-F)
+ * ## 타자 효과 (FINCH-274, task-F · FINCH-278, task-I)
  *
  * `assistant` 말풍선은 `useTypewriter` 로 `section.text` 를 앞에서부터 드러낸다.
  * **응답을 이미 다 받은 뒤의 화면 연출이다 — 스트리밍이 아니다.**
  *
- * **"이번 턴에 방금 받은 것"만 타자한다는 판정을 메시지 모델이 아니라 마운트
- * 시점으로 삼는다.** `ChatPage` 의 `messages` 는 세션 메모리에만 있고 리하이드레이션
- * 경로가 없다 — 화면을 나가면(컴포넌트 언마운트) 배열째 사라지고, 새로 들어오면
- * 늘 빈 배열로 시작한다. 그래서 이 배열에 실리는 `assistant` 메시지는 **항상**
- * 그 세션에서 방금 받은 응답이고, "말풍선이 처음 마운트되는 순간"과 "이번 턴에
- * 도착한 순간"이 항상 같다. 메시지 모델에 `justArrived` 같은 플래그를 둘 수도
- * 있었지만, 지금 그 값을 다르게 만들 경로가 하나도 없어 늘 참인 필드는 코드만
- * 늘리고 검증할 분기를 만들지 못한다. **나중에 대화 복원(새로고침 유지·서버
- * 히스토리 등)이 생기면 그때 복원된 메시지에 "이미 다 찍힘" 신호를 실어야 한다** —
- * 이 마운트-기준 판정은 그 전제(리하이드레이션 없음)가 깨지면 함께 재검토한다.
+ * **"이번 턴에 방금 받은 것"만 타자한다는 판정은 메시지 모델의 `restored` 신호로
+ * 한다.** `useTypewriter` 의 두 번째 인자(`enabled`)가 `message.role === 'assistant'
+ * && !message.restored` 다 — `restored` 가 참이면 타자를 아예 걸지 않고 전문이
+ * 바로 보인다.
+ *
+ * **전에는 이 판정이 "말풍선이 처음 마운트되는 시점"이었다.** 그 근거는 "복원
+ * 경로가 없으니 마운트 = 이번 턴 도착"(task-F, MR `!274`)이었는데, **이 티켓
+ * (FINCH-278)이 대화 복원을 들여오면서 그 전제가 깨졌다.** `!274` 본문이
+ * 미리 적어 둔 대로 "복원된 메시지에 '이미 다 찍힘' 신호를 실어 모델 쪽으로
+ * 옮겨야 한다"를 지금 한 것이다 — `features/chat/model/chatMessages.ts` 의
+ * `toRestoredMessage` 가 그 신호(`restored: true`)를 만든다.
  *
  * `isDone` 이 되기 전에는 `disclaimer` 줄과 `AiFeedbackRow` 를 내지 않는다
- * (task-F 완료 판정 "근거·피드백 행은 타자가 끝난 뒤"). **"근거 목록"(citations)
- * 자체는 이 말풍선에 렌더링 자리가 없다** — `AiCitationList` 는 종목 상세·포트폴리오
- * 탭에만 쓰이고 채팅에는 애초에 붙어 있지 않았다. 그래서 여기서 타자 뒤로 미루는
- * 것은 실제로 존재하는 두 요소(`disclaimer`, `AiFeedbackRow`)뿐이다 — 근거 목록을
- * 새로 붙이는 것은 이 티켓 범위(타이핑 표시·타자 효과) 밖이라 하지 않았다.
+ * (task-F 완료 판정 "근거·피드백 행은 타자가 끝난 뒤"). `restored` 말풍선은
+ * 타자가 걸리지 않아 마운트 즉시 `isDone` 이지만, `requestId`·`disclaimer` 가
+ * 원래 `null` 이라(대화 이력 조회는 봉투가 없다, AI 명세 §4.1) 그 자리 자체가
+ * 비어 있다 — **"근거 목록"(citations)** 도 채팅에는 애초에 렌더링 자리가 없다
+ * (`AiCitationList` 는 종목 상세·포트폴리오 탭 전용).
  */
 type ChatBubbleProps = {
   message: ChatMessage;
@@ -76,7 +77,7 @@ export function ChatBubble({
   // 말풍선에는 빈 문자열을 주고 꺼 둔다 — 그 갈래에서는 결과를 쓰지 않는다.
   const { visibleText, isDone } = useTypewriter(
     message.role === 'assistant' ? message.section.text : '',
-    message.role === 'assistant',
+    message.role === 'assistant' && !message.restored,
   );
 
   if (message.role === 'user') {
@@ -115,13 +116,13 @@ export function ChatBubble({
         <p className="text-body-2 text-pretty text-ai-text-primary">
           {visibleText}
         </p>
-        {isDone && (
+        {isDone && message.disclaimer !== null && (
           <p className="mt-2 text-caption text-ai-text-muted">
             {message.disclaimer}
           </p>
         )}
       </div>
-      {isDone && (
+      {isDone && message.requestId !== null && (
         <AiFeedbackRow
           requestId={message.requestId}
           className="mt-2 self-stretch"

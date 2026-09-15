@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { clearStoredConversationId } from '@/shared/lib/chatConversationId';
+
 import { useAuthSession } from '../model/useAuthSession';
 
 import { postLogout } from './postLogout';
@@ -30,6 +32,12 @@ export function useLogout() {
       // queryClient.clear() 가 아니다. 그쪽은 mutation 캐시까지 비우는데 지금 실행
       // 중인 이 로그아웃이 거기 들어 있다. 지울 대상은 쿼리 캐시뿐이다.
       queryClient.getQueryCache().clear();
+
+      // 채팅 대화 id 는 쿼리 캐시가 아니라 `localStorage` 에 있어 위 두 줄로는
+      // 지워지지 않는다 (FINCH-278). **만료를 두지 않기로 했으므로 지우는
+      // 자리는 여기 하나뿐이다** — 지우지 않으면 다음 로그인 사용자(같은 기기)의
+      // 채팅에 이전 사용자의 대화가 복원된다.
+      clearStoredConversationId();
     },
   });
 }

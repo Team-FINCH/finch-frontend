@@ -26,7 +26,7 @@ import {
   searchParam,
 } from '../lib/http';
 import { requireAuth } from '../lib/session';
-import { findHolding, store } from '../lib/store';
+import { appendChatHistory, findHolding, store } from '../lib/store';
 import { nowKstIso, toKstDateString } from '../lib/time';
 
 /**
@@ -34,6 +34,13 @@ import { nowKstIso, toKstDateString } from '../lib/time';
  *
  * **`POST /ai/feedback` 은 접수만 하는 일곱 번째 경로다** (contracts C3). 요청·응답 본문은
  * 이슈 #13 11:02 회신과 `ai/docs/openapi.json` 의 `FeedbackIn`·`FeedbackContent` 로 확정됐다.
+ *
+ * **`GET /ai/chat/conversations/{id}/messages` 는 여덟 번째다** (AI 명세 §4.1 ·
+ * FINCH-278). **계약 없음 — 경로는 프론트 추정값이다**
+ * (`shared/config/apiContract.ts` `API_PATHS.ai.chatMessages` 주석). `POST
+ * /ai/chat` 이 성공할 때마다 `appendChatHistory` 로 `store.chatConversations` 에
+ * 쌓아 뒀다가 그대로 돌려준다 — 실제로 나눈 대화를 복원해야 화면을 오가며
+ * 확인할 수 있어서다.
  *
  * **(나) `content` 키 유지** — 백엔드는 봉투 필드만 걷어내고 `content` 컨테이너를 그대로 남긴다
  * (GitLab 이슈 #22 회신, 2026-09-02). 각 핸들러는 `content` 본문만 만들고, 재포장 형태는
@@ -68,6 +75,7 @@ import { nowKstIso, toKstDateString } from '../lib/time';
  * | `POST /ai/feedback` `requestId` 누락 · `rating` 열거값 밖 · `reasons` 열거값 밖 · `comment` 1,000자 초과 | `400 INVALID_REQUEST` |
  * | `POST /ai/feedback` 정상 | `content: {recorded: true}` — 같은 `requestId` 로 다시 보내면 앞의 평가를 덮어쓴다 |
  * | `POST /ai/feedback` 모르는 `requestId` | **갈래를 만들지 않았다.** 정상 접수로 답한다 — 아래 참고 |
+ * | `GET /ai/chat/conversations/{id}/messages` 모르는(또는 아직 대화한 적 없는) id | 빈 `messages` — 에러가 아니다 (§4.1) |
  *
  * `requestId` 유무가 피드백 슬롯을 붙일 수 있는지를 가른다 (contracts C14). 목이 그 두 갈래를
  * 모두 낸다.
@@ -447,26 +455,33 @@ export const aiHandlers = [
       );
     }
 
+    const conversationId =
+      typeof body?.conversationId === 'string' && body.conversationId !== ''
+        ? body.conversationId
+        : 'conv_mock_0001';
+    const answerText =
+      '보유 중인 삼성전자는 어제보다 1.21% 내렸어요. 반도체 비중이 62.4%로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.';
+
+    /**
+     * 대화 이력 조회(§4.1 · `GET /ai/chat/conversations/{id}/messages` 아래
+     * 핸들러)가 읽을 자리에 남긴다. **성공 갈래에서만 부른다** — 위의 에러
+     * 반환문들은 이 줄에 닿지 않으므로 "생성 실패·가드레일 차단은 이력에 안
+     * 남는다"(§4.1)가 그대로 지켜진다.
+     */
+    appendChatHistory(conversationId, message, answerText);
+
     return HttpResponse.json(
       aiResponse(
         {
-          conversationId:
-            typeof body?.conversationId === 'string' &&
-            body.conversationId !== ''
-              ? body.conversationId
-              : 'conv_mock_0001',
+          conversationId,
           // answer.title 은 항상 null 이다. 말풍선 제목은 프론트가 정한다 (contracts C53).
-          answer: section(
-            null,
-            '보유 중인 삼성전자는 어제보다 1.21% 내렸어요. 반도체 비중이 62.4%로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.',
-            [
-              textSegment('보유 중인 삼성전자는 어제보다 '),
-              metricSegment('1.21%', -0.0121, 'ratio', 'price', 'down'),
-              textSegment(' 내렸어요. 반도체 비중이 '),
-              metricSegment('62.4%', 0.624, 'ratio', 'portfolio_engine', 'up'),
-              textSegment('로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.'),
-            ],
-          ),
+          answer: section(null, answerText, [
+            textSegment('보유 중인 삼성전자는 어제보다 '),
+            metricSegment('1.21%', -0.0121, 'ratio', 'price', 'down'),
+            textSegment(' 내렸어요. 반도체 비중이 '),
+            metricSegment('62.4%', 0.624, 'ratio', 'portfolio_engine', 'up'),
+            textSegment('로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.'),
+          ]),
           toolsUsed: ['get_quote', 'get_portfolio'],
         },
         requestId,
@@ -474,6 +489,36 @@ export const aiHandlers = [
       ),
     );
   }),
+
+  /**
+   * 대화 이력 조회 (AI 명세 §4.1 · FINCH-278). **계약 없음 — 경로는 프론트
+   * 추정값이다** (`API_PATHS.ai.chatMessages` 주석). 백엔드 중계가 열리면 이
+   * 핸들러만 지운다.
+   *
+   * **봉투가 없다.** 다른 여섯 종과 달리 `aiResponse()` 로 감싸지 않는다 —
+   * `content`·`requestId`·`dataAsOf`·`citations`·`disclaimer` 를 두르지 않는
+   * 조회라서다(`shared/types/ai/chat.ts` `AiChatHistorySchema` 주석).
+   *
+   * **모르는 `conversationId` 는 빈 `messages` 를 낸다.** 에러가 아니다 —
+   * 존재하지 않거나 다른 사용자의 id 를 구분하지 않는 것도 §4.1 그대로다("소유권
+   * 격리는 AI 쪽에서 끝난다"). 목은 로그인한 사용자 하나뿐이라 그 구분 자체가
+   * 재현되지 않는다.
+   */
+  http.get(
+    mockPath(API_PATHS.ai.chatMessages(':conversationId')),
+    ({ request, params }) => {
+      const unauthorized = requireAuth(request);
+      if (unauthorized !== null) {
+        return unauthorized;
+      }
+
+      const conversationId = String(params.conversationId);
+      return HttpResponse.json({
+        conversationId,
+        messages: store.chatConversations[conversationId] ?? [],
+      });
+    },
+  ),
 
   http.post(mockPath(API_PATHS.ai.diagnosis), ({ request }) => {
     const unauthorized = requireAuth(request);

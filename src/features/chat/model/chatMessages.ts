@@ -1,3 +1,4 @@
+import { type AiChatHistoryMessage } from '@/shared/types/ai/chat';
 import { type AiSection } from '@/shared/types/ai/envelope';
 
 /**
@@ -5,18 +6,31 @@ import { type AiSection } from '@/shared/types/ai/envelope';
  * 화면이 쓸 모양으로 정규화한 것이다 — 사용자 말풍선·정상 응답·실패를 한 배열에서
  * 다루려면 판별 유니언이 필요하다.
  *
- * **`requestId` 는 응답 말풍선에만 있다.** 피드백 슬롯은 `requestId` 가 있는
- * 응답에만 붙는다(contracts C14·C70) — `AI_UPSTREAM_UNAVAILABLE`·`AI_UPSTREAM_TIMEOUT`
- * 은 백엔드 자체 에러라 `requestId` 가 없다.
+ * **`requestId`·`disclaimer` 는 이번 턴 응답에만 있다.** 피드백 슬롯은 `requestId`
+ * 가 있는 응답에만 붙는다(contracts C14·C70) — `AI_UPSTREAM_UNAVAILABLE`·
+ * `AI_UPSTREAM_TIMEOUT` 은 백엔드 자체 에러라 `requestId` 가 없고, **복원된
+ * 말풍선도 없다**(FINCH-278) — 대화 이력 조회(AI 명세 §4.1)는 봉투가 없어
+ * `requestId` 도 `disclaimer` 도 함께 오지 않는다. `disclaimer` 를 하드코딩해
+ * 채우지 않는 이유는 `StockAiTab.tsx` 의 같은 주석과 같다 — 규제 문구가 바뀌면
+ * 서버만 고치게 하기 위해서라, 서버가 실제로 준 적 없는 문구를 복원 자리에서
+ * 지어내지 않는다. 둘 다 `null` 이면 `ChatBubble` 이 그 자리를 생략한다.
  */
 export type ChatMessage =
   | { id: string; role: 'user'; text: string }
   | {
       id: string;
       role: 'assistant';
-      requestId: string;
+      requestId: string | null;
       section: AiSection;
-      disclaimer: string;
+      disclaimer: string | null;
+      /**
+       * 복원된 말풍선인가. `true` 면 `ChatBubble` 이 타자 효과 없이 전문을
+       * 바로 그린다 (FINCH-278, task-I — MR `!274` 가 남긴 "복원이 없다"
+       * 전제가 이 티켓으로 깨졌다). `requestId`·`disclaimer` 가 `null` 인 것과
+       * 항상 같이 다닌다 — 셋 다 "이번 턴에 새로 받은 응답이 아니다"라는 같은
+       * 사실에서 나온 값이라 신호를 따로 셋 두지 않았다.
+       */
+      restored: boolean;
     }
   | {
       id: string;
@@ -67,4 +81,36 @@ export function findRetryTargetId(messages: ChatMessage[]): string | null {
     return null;
   }
   return tail.retryable ? tail.id : null;
+}
+
+/**
+ * 대화 이력 한 줄을 말풍선으로 바꾼다 (FINCH-278). **`assistant-error` 갈래로
+ * 오는 일이 없다** — AI 명세 §4.1 "성공한 질문과 최종 답변만 저장한다. 생성
+ * 실패·가드레일 차단은 이력에 안 남는다"가 그 근거다. 그래서 `findRetryTargetId`
+ * 가 복원된 대화 끝에서 재시도 버튼을 잘못 켜는 일도 없다 — 실패가 애초에 이
+ * 함수를 거치지 않는다.
+ *
+ * `content` 는 평문이라 `section` 은 `segments` 없이 `text` 하나만 채운
+ * 최소 모양이다(`ChatBubble` 이 `segments` 를 순회하지 않고 `text` 만 그리는
+ * 기본 렌더링 경로를 그대로 쓴다). `requestId`·`disclaimer` 는 `null`, `restored`
+ * 는 `true` 다 — 타자 효과를 끄고 피드백 슬롯·문구를 생략하는 신호다.
+ */
+export function toRestoredMessage(entry: AiChatHistoryMessage): ChatMessage {
+  if (entry.role === 'user') {
+    return { id: createMessageId(), role: 'user', text: entry.content };
+  }
+  return {
+    id: createMessageId(),
+    role: 'assistant',
+    requestId: null,
+    section: {
+      title: null,
+      text: entry.content,
+      segments: [],
+      cached: false,
+      cachedAt: null,
+    },
+    disclaimer: null,
+    restored: true,
+  };
 }

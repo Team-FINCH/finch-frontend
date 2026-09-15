@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import { useChatHistoryQuery } from '@/features/chat/api/useChatHistoryQuery';
 import { useChatMutation } from '@/features/chat/api/useChatMutation';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
@@ -11,12 +12,18 @@ import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
   createMessageId,
   findRetryTargetId,
+  toRestoredMessage,
   type ChatMessage,
 } from '@/features/chat/model/chatMessages';
 import { isHttpError } from '@/shared/api';
 import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
 import { showToast } from '@/shared/hooks/useToastStore';
 import { isRetryableAiErrorCode } from '@/shared/lib/aiErrorRetry';
+import {
+  clearStoredConversationId,
+  getStoredConversationId,
+  storeConversationId,
+} from '@/shared/lib/chatConversationId';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
@@ -62,6 +69,20 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  * 훅이 어차피 `null` 을 돌려준다. 성공할 수 없는 캐시 조회를 남겨 두면, 나중에
  * 이름 없이 보내는 진입이 생겼을 때 **캐시가 더울 때만 이름이 나오고 식으면 안 나오는**
  * 화면이 된다 — 그때는 늘 `이 종목` 으로 떨어지는 편이 고장을 빨리 드러낸다.
+ *
+ * ## 대화 복원 (FINCH-278)
+ *
+ * `messages`·`conversationId` 는 여전히 `useState` 다 — 화면 메모리에만 있고
+ * 화면을 나가면 사라진다. 대신 `conversationId` **하나만** `localStorage` 에도
+ * 남겨(`shared/lib/chatConversationId`), 다시 들어올 때 그 id 로
+ * `GET /ai/chat/conversations/{id}/messages`(AI 명세 §4.1)를 불러 배열을 채운다
+ * (`useChatHistoryQuery`). 대화 전체를 스토리지에 그대로 두지 않는 이유는 —
+ * id 만 있으면 서버가 언제든 같은 배열을 다시 만들어 주고, 두 군데(로컬·서버)에
+ * 같은 내용을 들고 있으면 둘이 어긋났을 때 어느 쪽이 맞는지 다투게 된다.
+ *
+ * 복원은 `appliedHistoryData` 참조 비교로 한 번만 반영한다 — 세션 안에서 이미
+ * 대화가 쌓인 뒤에 이력 조회가 다시 실행되면(쿼리 재요청 등) 그 결과로 화면을
+ * 덮어쓰지 않기 위해서다.
  */
 export function ChatPage() {
   const [searchParams] = useSearchParams();
@@ -76,6 +97,56 @@ export function ChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const chatMutation = useChatMutation();
 
+  /**
+   * 대화 이력 복원 (FINCH-278, task-I). `localStorage` 읽기는 동기라
+   * `useState` 초기값으로 한 번만 계산한다 — 매 렌더 다시 읽을 이유가 없다.
+   * `useChatHistoryQuery` 는 이 값이 `null` 이면 아예 호출하지 않는다.
+   */
+  const [storedConversationId] = useState(() => getStoredConversationId());
+  const historyQuery = useChatHistoryQuery(storedConversationId);
+
+  /**
+   * 이력을 **렌더 중에** 반영한다. `useEffect` 로 하면 `historyQuery.data` 가
+   * 도착한 렌더에서 `setConversationId`·`setMessages` 를 동기로 부르는 모양이
+   * 되어 `react-hooks/set-state-in-effect` 가 막는다(`ThesisRecordSheet.tsx` 의
+   * `wasOpen` 과 같은, "리액트가 권하는 prop 변화 대응" 패턴 — react.dev "You
+   * Might Not Need an Effect").
+   *
+   * `appliedHistoryData` 가 "지금까지 반영한 데이터"를 들고 있다가 `historyQuery.data`
+   * 참조가 그것과 달라진 순간(=새 데이터가 도착한 순간) 딱 한 번만 반영한다 —
+   * 매 렌더 반영하면 그사이 쌓인 이번 세션의 대화를 덮어쓴다.
+   */
+  const [appliedHistoryData, setAppliedHistoryData] =
+    useState<typeof historyQuery.data>(undefined);
+
+  if (
+    historyQuery.data !== undefined &&
+    historyQuery.data !== appliedHistoryData
+  ) {
+    setAppliedHistoryData(historyQuery.data);
+    if (historyQuery.data.messages.length > 0) {
+      setConversationId(historyQuery.data.conversationId);
+      setMessages(historyQuery.data.messages.map(toRestoredMessage));
+    }
+    // 조회 실패는 여기서 다루지 않는다 — `messages` 초기값이 이미 빈 배열이라
+    // "불러오기 실패는 빈 상태로 떨어뜨린다"가 아무 것도 안 하는 것으로 충족된다.
+  }
+
+  /**
+   * `localStorage` 를 지우는 것은 부수효과라 렌더 중에 부르지 않는다
+   * (`features/auth/lib/oauthState.ts` 의 읽기·지우기 분리와 같은 규칙). 위
+   * 렌더 중 분기와 같은 조건을 다시 보되, `setState` 가 없어 `react-hooks/
+   * set-state-in-effect` 에 걸리지 않는다.
+   */
+  useEffect(() => {
+    if (historyQuery.data?.messages.length === 0) {
+      // 저장된 id 가 가리키는 대화에 메시지가 없다. 매번 빈 조회를 반복하지
+      // 않게 지운다 — 이 id 로 화면이 얻을 수 있는 것이 앞으로도 없다(정하고
+      // 근거를 남긴다, task-I 완료 판정).
+      clearStoredConversationId();
+    }
+  }, [historyQuery.data]);
+
   // 종목 맥락으로 들어왔으면 빈 상태 문구에 종목명이 들어간다. 쿼리에 이름이 없으면
   // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다 — 위 머리 주석 참고.
   const emptyCopy = chatEmptyCopy(
@@ -88,6 +159,9 @@ export function ChatPage() {
   function resetConversation() {
     setMessages([]);
     setConversationId(null);
+    // 저장된 id 도 함께 지운다. 지우지 않으면 초기화 뒤 새 메시지를 보내기 전에
+    // 화면을 나갔다 돌아왔을 때 복원 경로가 방금 초기화한 대화를 도로 그린다.
+    clearStoredConversationId();
     // 말풍선이 사라지는 것만으로는 초기화가 된 것인지 화면이 비어 버린 것인지
     // 구분되지 않는다. 서버를 부르지 않는 로컬 초기화라 성공 콜백이 따로 없다.
     showToast('대화를 초기화했어요.');
@@ -137,6 +211,9 @@ export function ChatPage() {
       {
         onSuccess: (data) => {
           setConversationId(data.content.conversationId);
+          // 다음 진입에서 이 대화를 복원할 수 있게 화면 밖에도 남긴다
+          // (FINCH-278). 실패해도(스토리지 접근 불가) 화면은 그대로 진행한다.
+          storeConversationId(data.content.conversationId);
           setMessages((prev) => [
             ...prev,
             {
@@ -145,6 +222,8 @@ export function ChatPage() {
               requestId: data.requestId,
               section: data.content.answer,
               disclaimer: data.disclaimer,
+              // 방금 도착한 응답이다. 타자 효과를 그대로 건다.
+              restored: false,
             },
           ]);
         },

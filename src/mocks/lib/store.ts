@@ -107,6 +107,16 @@ export interface MockAiFeedback {
   submittedAt: string;
 }
 
+/**
+ * 대화 이력 한 줄 (AI 명세 §4.1 · FINCH-278). `content` 는 평문이다 —
+ * `POST /ai/chat` 의 `answer` 처럼 `segments` 로 쪼개지 않는다.
+ */
+export interface MockChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+}
+
 interface MockStore {
   cashBalance: number;
   /** 계정 전체 누적 충전액. 되돌릴 경로가 없다 (apiSpec §4.1) */
@@ -119,6 +129,12 @@ interface MockStore {
   nextSearchKeywordId: number;
   /** `requestId` → 마지막 평가. 누적하지 않고 덮어쓴다 (contracts C66) */
   aiFeedback: Record<string, MockAiFeedback>;
+  /**
+   * `conversationId` → 입력 순서 그대로의 대화 이력 (AI 명세 §4.1 · FINCH-278).
+   * **생성 실패·가드레일 차단은 남기지 않는다** — `appendChatHistory` 를 `POST
+   * /ai/chat` 성공 갈래에서만 부른다.
+   */
+  chatConversations: Record<string, MockChatMessage[]>;
   /** 최신순이다. `GET /transactions` 는 이 순서를 그대로 쓴다 */
   transactions: MockTransaction[];
   nextTransactionId: number;
@@ -169,6 +185,7 @@ export const store: MockStore = {
   ],
   nextSearchKeywordId: 43,
   aiFeedback: {},
+  chatConversations: {},
   transactions: [
     {
       transactionId: 306,
@@ -414,4 +431,22 @@ export function touchRecentSearchKeyword(keyword: string): void {
     ...store.recentSearchKeywords,
   ].slice(0, RECENT_SEARCH_KEYWORDS_MAX_COUNT);
   store.nextSearchKeywordId += 1;
+}
+
+/**
+ * 대화 이력에 질문·답변 한 쌍을 남긴다 (AI 명세 §4.1 · FINCH-278).
+ * **`POST /ai/chat` 이 성공 응답을 낼 때만 부른다** — 생성 실패·가드레일 차단은
+ * 이력에 남기지 않는다는 계약을 목도 지킨다.
+ */
+export function appendChatHistory(
+  conversationId: string,
+  userMessage: string,
+  assistantMessage: string,
+): void {
+  const existing = store.chatConversations[conversationId] ?? [];
+  store.chatConversations[conversationId] = [
+    ...existing,
+    { role: 'user', content: userMessage, createdAt: nowKstIso() },
+    { role: 'assistant', content: assistantMessage, createdAt: nowKstIso() },
+  ];
 }

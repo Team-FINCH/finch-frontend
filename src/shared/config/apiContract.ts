@@ -194,6 +194,19 @@ export const API_PATHS = {
   ai: {
     analysis: (stockCode: string) => `/ai/stocks/${stockCode}/analysis`,
     chat: '/ai/chat',
+    /**
+     * 대화 이력 조회 — **계약 없음. 이 경로는 프론트 추정값이다**
+     * (FINCH-278, `ai/docs/api-spec.md` §4.1 · GitLab 이슈 #79 회신 대기).
+     * 백엔드 중계가 아직 없다(`AiRoute.java` 에 없음). AI 서버 경로
+     * (`GET /api/ai/v1/chat/conversations/{conversation_id}/messages`)에서
+     * 접두만 `/ai` 로 갈아 끼웠다 — 지금 있는 열한 경로가 전부 그 규칙(경로
+     * 변수 이름만 프론트 쪽으로 바꾸고 나머지는 그대로)이라서다.
+     *
+     * 실제 경로가 열리면 이 줄과 `mocks/handlers/ai.ts` 의 GET 핸들러만 갈아
+     * 끼운다 — 위키 `맞아요`(FINCH-246)와 같은 방식이다.
+     */
+    chatMessages: (conversationId: string) =>
+      `/ai/chat/conversations/${conversationId}/messages`,
     diagnosis: '/ai/portfolio/diagnosis',
     attribution: '/ai/portfolio/attribution',
     orderPreview: '/ai/orders/preview',

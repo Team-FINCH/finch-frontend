@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { StockCodeSchema } from '@/shared/types/primitives';
+import { IsoDateTimeSchema, StockCodeSchema } from '@/shared/types/primitives';
 
 import { AiSectionSchema, createAiResponseSchema } from './envelope';
 
@@ -72,3 +72,33 @@ export type AiChatContent = z.infer<typeof AiChatContentSchema>;
 /** POST /ai/chat 응답. 본문에 보존 필드가 함께 실린다 (apiSpec §10.3). */
 export const AiChatResponseSchema = createAiResponseSchema(AiChatContentSchema);
 export type AiChatResponse = z.infer<typeof AiChatResponseSchema>;
+
+/**
+ * 대화 이력 한 줄 (AI 명세 §4.1). `content` 는 평문이다 — 조회 응답이라
+ * `AiSection` 처럼 `segments` 로 쪼개지 않는다. 백엔드 중계가 재귀로 snake →
+ * camel 을 바꾸므로 `createdAt` 이다(`CaseConverter.java`, apiSpec §10.3).
+ */
+export const AiChatHistoryMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+  createdAt: IsoDateTimeSchema,
+});
+export type AiChatHistoryMessage = z.infer<typeof AiChatHistoryMessageSchema>;
+
+/**
+ * `GET /ai/chat/conversations/{conversationId}/messages` 응답 (AI 명세 §4.1).
+ *
+ * **봉투가 없다.** 다른 여섯 종과 달리 `content`·`requestId`·`dataAsOf`·
+ * `citations`·`disclaimer` 로 감싸지 않고 본문을 그대로 준다 — AI 명세 §4.1의
+ * 예시는 "Response — content" 절 밖에 있다(§4 의 `POST /chat` 예시와 비교하면
+ * 그 절 표시가 있고 없고가 갈린다). 저장된 값을 그대로 돌려주는 조회라
+ * `dataAsOf`·`citations`·`disclaimer` 를 새로 지어낼 근거가 없다.
+ *
+ * **존재하지 않거나 남의 `conversationId` 는 빈 `messages` 를 돌려준다.**
+ * 에러가 아니다 — 소유권 격리는 AI 쪽에서 끝난다(§4.1).
+ */
+export const AiChatHistorySchema = z.object({
+  conversationId: z.string(),
+  messages: z.array(AiChatHistoryMessageSchema),
+});
+export type AiChatHistory = z.infer<typeof AiChatHistorySchema>;
