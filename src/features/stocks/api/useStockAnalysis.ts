@@ -17,9 +17,10 @@ const ANALYSIS_STALE_TIME_MS = 5 * 60_000;
  * 뮤테이션이 아니라 쿼리인 이유는 `postStockAnalysis` 주석에 있다 — `POST` 지만 읽기다.
  * 쿼리로 두면 재시도 버튼이 `refetch()` 하나로 끝나고, 탭을 오갈 때 캐시가 산다.
  *
- * 실패 재시도는 기본 정책을 그대로 쓴다 — AI 에러는 대부분 4xx(409·422)라
- * `createQueryClient` 가 이미 재시도하지 않는다. 화면에 재시도 버튼을 낼지는
- * 코드로 갈린다 (`isRetryableAiErrorCode`, ia.md §4).
+ * `retry: false` — 다른 AI 슬롯과 같은 이유다 (`usePortfolioDiagnosis.ts`).
+ * 이 분석은 요청 한 번이 LLM 호출 최대 7회다. 전역 기본 정책(5xx 지수 백오프
+ * 최대 2회)에 맡기면 504 한 번에 같은 요청이 두 번 더 나가고, GMS 는 타임아웃된
+ * 호출도 과금한다(GitLab #89). 실패 표시와 재시도는 `AiStatus` 의 명시적 버튼이 맡는다.
  */
 export function useStockAnalysis(stockCode: string, enabled: boolean) {
   return useQuery({
@@ -28,5 +29,6 @@ export function useStockAnalysis(stockCode: string, enabled: boolean) {
     enabled,
     staleTime: ANALYSIS_STALE_TIME_MS,
     gcTime: AI_GC_TIME_MS,
+    retry: false,
   });
 }
