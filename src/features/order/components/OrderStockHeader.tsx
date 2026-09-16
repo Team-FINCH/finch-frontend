@@ -1,6 +1,6 @@
 import { formatAmount, formatSignedRate } from '@/shared/lib/formatNumber';
 import { Skeleton } from '@/shared/ui/Skeleton';
-import { StockInitialBadge } from '@/shared/ui/StockInitialBadge';
+import { StockLogo } from '@/shared/ui/StockLogo';
 
 /**
  * 주문 화면 맨 위의 종목 한 줄 — 이니셜 뱃지 · 종목명 · `시장가 · {현재가}원` ·
@@ -114,7 +114,7 @@ export function OrderStockHeader({
 
   return (
     <div className="mt-4 flex items-center gap-3">
-      <StockInitialBadge stockCode={stockCode} stockName={stockName} />
+      <StockLogo stockCode={stockCode} stockName={stockName} />
 
       <span className="flex min-w-0 flex-1 flex-col gap-0.75">
         {isDetailPending ? (

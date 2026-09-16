@@ -44,9 +44,9 @@ import {
  * | `side` 가 `BUY`·`SELL` 밖 | `400 INVALID_REQUEST` |
  * | `quantity <= 0` | `400 ORDER_QUANTITY_INVALID` |
  * | 카탈로그에 없는 종목코드 | `404 STOCK_NOT_FOUND` |
- * | `010950`(에스오일) | `409 ORDER_MARKET_CLOSED` |
- * | `036570`(엔씨소프트) | `409 ORDER_STOCK_SUSPENDED` |
- * | `900140`(엘브이엠씨홀딩스) | `503 ORDER_PRICE_UNAVAILABLE` |
+ * | `024060`(흥구석유) | `409 ORDER_MARKET_CLOSED` |
+ * | `466100`(클로봇) | `409 ORDER_STOCK_SUSPENDED` |
+ * | `058610`(에스피지) | `503 ORDER_PRICE_UNAVAILABLE` |
  * | 예수금보다 큰 매수 | `409 ORDER_INSUFFICIENT_CASH` (`detail.required`·`detail.available`) |
  * | 보유 수량보다 큰 매도 | `409 ORDER_INSUFFICIENT_QUANTITY` |
  *

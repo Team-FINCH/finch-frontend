@@ -1,6 +1,16 @@
 /**
  * 종목 이니셜 뱃지 (FINCH-261). 종목명 첫 글자를 종목마다 다른 색 사각형에
- * 넣는다. 프로토타입 `.th` 이고 홈 · 포트폴리오 · 브리핑 · 주문이 같은 것을 쓴다.
+ * 넣는다. 프로토타입 `.th` 다.
+ *
+ * ## 지금은 폴백이다 — 화면이 직접 쓰지 않는다
+ *
+ * 서비스 종목이 30개로 닫히면서 종목 자리에는 기업 로고가 들어간다. 화면은
+ * `StockLogo` 를 쓰고, 이 뱃지는 **로고가 없는 종목에만** 나온다 — 보유·거래내역에
+ * 남은 목록 밖 코드이거나, 로고 파일을 못 불러왔을 때다. 자세한 사정은
+ * `StockLogo` 와 `shared/config/stockLogos.ts` 주석에 있다.
+ *
+ * 아래 해시·틴트 이야기는 그 폴백에 그대로 유효하다. 목록 밖 종목이 여럿 섞여도
+ * 서로 구분되어야 하고, 그 자리엔 여전히 업종 정보가 없다.
  *
  * ## 왜 공용으로 모았나
  *
@@ -33,6 +43,8 @@
  * `styles/index.css` 의 틴트 블록 주석에 실측 대비와 함께 적어 두었다.
  */
 
+import { STOCK_BADGE_BOX_CLASS, type StockBadgeSize } from './stockBadgeSize';
+
 /**
  * 틴트 다섯 쌍. 값은 `styles/index.css` 에 있고 여기는 유틸리티 이름만 늘어놓는다.
  *
@@ -58,12 +70,15 @@ const NEUTRAL_CLASS = 'bg-surface-soft text-text-secondary';
  * - `sm` — 브리핑 행 머리의 22x22. 한 줄 안에 이름·등락률과 나란히 서는 자리라
  *   목록 행 것을 줄여 쓸 수 없다
  */
+/**
+ * 뱃지에만 있는 것 — 모서리와 글자 크기. 자리 크기는 `stockBadgeSize` 가 갖는다
+ * (로고와 나눠 쓰는 값이라 컴포넌트 밖에 있다). 로고는 SVG 가 이미 원형이라
+ * 모서리를 줄 일이 없다.
+ */
 const SIZE_CLASS = {
-  md: 'size-11 rounded-md text-body-1',
-  sm: 'size-5.5 rounded-xs text-[11px]',
+  md: 'rounded-md text-body-1',
+  sm: 'rounded-xs text-[11px]',
 } as const;
-
-export type StockInitialBadgeSize = keyof typeof SIZE_CLASS;
 
 /**
  * 종목코드를 0~4 로 접는다. FNV-1a 32비트다.
@@ -98,7 +113,7 @@ type StockInitialBadgeProps = {
    * 목록이 밀리지 않는다.
    */
   stockName: string | null;
-  size?: StockInitialBadgeSize;
+  size?: StockBadgeSize;
   className?: string;
 };
 
@@ -114,7 +129,7 @@ export function StockInitialBadge({
   return (
     <span
       aria-hidden="true"
-      className={`flex flex-none items-center justify-center font-bold ${SIZE_CLASS[size]} ${toneClass} ${className}`}
+      className={`flex flex-none items-center justify-center font-bold ${STOCK_BADGE_BOX_CLASS[size]} ${SIZE_CLASS[size]} ${toneClass} ${className}`}
     >
       {(stockName ?? stockCode).slice(0, 1)}
     </span>
