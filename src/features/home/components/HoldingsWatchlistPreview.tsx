@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { HOME_LIST_TAB_PARAM, ROUTES } from '@/shared/config/routes';
 import { formatKrw, formatSignedRate } from '@/shared/lib/formatNumber';
+import { formatMarketLabel } from '@/shared/lib/marketLabel';
 import type { AiBriefingItem } from '@/shared/types/ai/briefing';
 import type { PortfolioSort } from '@/shared/types/portfolio';
 import type { WatchlistSort } from '@/shared/types/stock';
@@ -70,17 +71,17 @@ function toWatchNewsMap(
 /**
  * 관심 종목 행의 보조 두 줄 (프로토타입 `watchPreview` — `sub` 와 `hint`).
  *
- * **첫 줄에 시장을 적지 않는다.** 프로토타입은 `{종목코드} · {시장}` 인데
- * `GET /watchlist` 응답에 `market` 이 없다 (GitLab #67 로 요청해 뒀다).
- * 자리를 비워 두면 `005930 · ` 처럼 구분점만 남으므로 조각째 뺐다 — 값이 오면
- * 종목코드 뒤에 끼워 넣기만 하면 된다.
+ * **종목코드는 이 줄에 적지 않는다** (2026-09-16 결정). 검색 결과와 달리 관심
+ * 목록은 코드로 찾아 들어오는 경로가 아니라서 코드를 다시 보여줄 이유가 없다.
+ * 첫 줄은 시장이다 — `GET /watchlist` 가 `market` 을 보내기 시작했다(백엔드
+ * 확인, 2026-09-16). 아직 안 오는 경로가 있을 수 있어(`WatchlistItemSchema`
+ * 주석 참고) `market` 이 `undefined` 면 첫 줄 자체를 그리지 않는다 — 빈 자리에
+ * 구분점만 남기지 않는다.
  *
- * **`보유 중` 은 남긴다.** 프로토타입에는 없지만 이미 보여 주던 사실이고,
- * 관심 목록에서 이 종목을 이미 들고 있는지는 여기서만 알 수 있다. 빈 시장 자리를
- * 메우려고 넣은 것이 아니라 뒤에 덧붙인 것이라, `market` 이 와도 자리가 겹치지
- * 않는다.
+ * **`보유 중` 은 이 줄에서 뺐다.** 이제 종목명 옆 칩(`StockRow` 의 `held`
+ * prop)이 그린다 — 두 자리에서 같은 사실을 말하지 않는다.
  *
- * **거래정지 태그는 없다.** 응답에 `suspended` 가 없다 (같은 #67). 그래서
+ * **거래정지 태그는 없다.** 응답에 `suspended` 가 없다 (GitLab #67). 그래서
  * 프로토타입이 거래정지일 때 힌트를 지우는 분기도 만들지 못한다.
  *
  * 두 줄 모두 `StockRow` 가 감싸는 `--color-text-secondary` 를 그대로 쓴다.
@@ -88,13 +89,12 @@ function toWatchNewsMap(
  * 이 레포가 읽어야 하는 정보에는 쓰지 않기로 했다 (`StockRow` 의 `rank` 주석).
  */
 function WatchRowSub({
-  stockCode,
-  held,
+  market,
   news,
   changeRate,
 }: {
-  stockCode: string;
-  held: boolean;
+  /** `undefined` 면 시장 줄을 그리지 않는다(`WatchlistItemSchema` 주석) */
+  market: string | undefined;
   news: WatchRowNews | undefined;
   /** `null` 이면 시세 없음(apiSpec §5.4) — 등락률 폴백 힌트를 만들지 못한다 */
   changeRate: number | null;
@@ -108,9 +108,9 @@ function WatchRowSub({
 
   return (
     <span className="flex min-w-0 flex-col gap-0.75">
-      <span className="truncate">
-        {held ? `${stockCode} · 보유 중` : stockCode}
-      </span>
+      {market === undefined ? null : (
+        <span className="truncate">{formatMarketLabel(market)}</span>
+      )}
       <span className="truncate">{hint}</span>
     </span>
   );
@@ -450,10 +450,10 @@ function WatchlistPanel({
           stockCode={item.stockCode}
           stockName={item.stockName}
           to={ROUTES.stockDetail(item.stockCode)}
+          held={item.held}
           sub={
             <WatchRowSub
-              stockCode={item.stockCode}
-              held={item.held}
+              market={item.market}
               news={news.get(item.stockCode)}
               changeRate={item.changeRate}
             />

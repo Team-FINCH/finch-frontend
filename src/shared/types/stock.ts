@@ -234,6 +234,19 @@ export const WatchlistItemSchema = z.object({
   stockCode: StockCodeSchema,
   stockName: z.string(),
   /**
+   * 시장 구분 (백엔드 확인, 2026-09-16). `apiSpec §6.3` 예시에는 아직 없다 —
+   * 계약 문서가 뒤처진 상태다.
+   *
+   * **`.catch(undefined)` 로 방어한다.** 아직 안 보내는 경로가 남아 있을 수 있고
+   * (필드 자체가 없음), 서버가 모르는 값을 보낼 수도 있다(열거값 밖 문자열).
+   * 둘 다 그냥 `MarketSchema` 로 받으면 그 종목 하나의 파싱이 실패하는데, zod
+   * 배열 스키마는 원소 하나만 어긋나도 배열 전체를 버려서 관심 목록이 통째로
+   * 빈다 — 검색에서 실제로 났던 사고와 같은 모양이다(FINCH-255, MR !258).
+   * `.catch` 는 그 종목의 `market` 만 `undefined` 로 내리고 나머지는 그대로
+   * 살린다. 화면은 `undefined` 면 시장 줄을 그리지 않는다.
+   */
+  market: MarketSchema.optional().catch(undefined),
+  /**
    * **시세 셋은 `null` 일 수 있다.** `GET /watchlist` 가 실제로 `null` 을 주는지는
    * 아직 확인되지 않았다 — 오늘 이슈 #67 로 물어 뒀고 회신 전이라 방어적으로
    * 넓혀 둔다. `apiSpec §6.3` 의 예시는 값이 채워져 있지만, 같은 시세 캐시를

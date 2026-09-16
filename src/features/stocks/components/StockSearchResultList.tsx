@@ -1,4 +1,5 @@
 import { ROUTES } from '@/shared/config/routes';
+import { formatMarketLabel } from '@/shared/lib/marketLabel';
 import { type StockSummary } from '@/shared/types/stock';
 import { StockRow } from '@/shared/ui/StockRow';
 
@@ -16,11 +17,6 @@ import { StockRow } from '@/shared/ui/StockRow';
  * 행 사이 구분선은 프로토타입이 각 행 **뒤**에 두고 왼쪽 56px 을 비운다
  * (뱃지 44px + 간격 12px). 마지막 행 뒤에도 선이 있다 (proto L1615).
  */
-const MARKET_LABEL: Record<string, string> = {
-  KOSPI: '코스피',
-  KOSDAQ: '코스닥',
-};
-
 type StockSearchResultListProps = {
   results: readonly StockSummary[];
 };
@@ -34,7 +30,7 @@ export function StockSearchResultList({ results }: StockSearchResultListProps) {
             stockCode={stock.stockCode}
             stockName={stock.stockName}
             suspended={stock.suspended}
-            sub={`${stock.stockCode} · ${MARKET_LABEL[stock.market] ?? stock.market}`}
+            sub={`${stock.stockCode} · ${formatMarketLabel(stock.market)}`}
             figures={{
               kind: 'quote',
               currentPrice: stock.currentPrice,

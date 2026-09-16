@@ -81,6 +81,9 @@ export const watchlistHandlers = [
         return {
           stockCode: stock.stockCode,
           stockName: stock.stockName,
+          // 백엔드가 2026-09-16에 내려주기 시작한 필드다(apiSpec §6.3 아직 미반영,
+          // FINCH-307). 목도 같이 보내야 화면에서 재현해 볼 수 있다.
+          market: stock.market,
           currentPrice: missing ? null : stock.currentPrice,
           changeAmount: missing ? null : changeAmountOf(stock),
           changeRate: missing ? null : changeRateOf(stock),
