@@ -135,6 +135,15 @@ export const queryKeys = {
      */
     chatHistory: (conversationId: string) =>
       [...queryKeys.ai.all(), 'chat', 'history', conversationId] as const,
+    /**
+     * AI 채팅 비동기 작업 (FINCH-290). **계약 없음 — `apiContract.ts` 의
+     * `API_PATHS.ai.chatJobs` 주석 참고.**
+     *
+     * `jobId` 가 키에 들어간다 — 접수할 때마다 다른 job 이고, 앞 job 의 결과가
+     * 다음 질문의 대기 화면에 그대로 나오면 안 된다.
+     */
+    chatJob: (jobId: string) =>
+      [...queryKeys.ai.all(), 'chat', 'job', jobId] as const,
   },
   /**
    * 알림함 (FINCH-49). **API 계약 자체가 프론트 추정값이다**

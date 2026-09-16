@@ -1,5 +1,6 @@
 import { type AiChatHistoryMessage } from '@/shared/types/ai/chat';
 import { type AiCitation, type AiSection } from '@/shared/types/ai/envelope';
+import { type IdempotencyKey } from '@/shared/types/primitives';
 
 /**
  * 채팅 화면의 말풍선 하나. 서버 응답(`AiChatContent`)을 그대로 두지 않고
@@ -57,6 +58,21 @@ export type ChatMessage =
        * 은 애초에 버튼이 없어 이 값이 의미가 없다 — 항상 `0` 으로 둔다.
        */
       retryCount: number;
+      /**
+       * 재시도가 **다시 써야 할** 멱등성 키 (FINCH-290). `null` 이면 재시도가
+       * 새 키를 만든다.
+       *
+       * **job 생성 요청 자체가 실패했을 때만 키가 실린다.** 그때는 서버가 job 을
+       * 만들었는지 못 만들었는지 우리가 모른다 — 답이 오기 전에 끊긴 요청이라,
+       * 같은 키로 다시 보내면 이미 만들어진 job 의 `jobId` 를 그대로 되받고 AI
+       * 생성 비용이 두 번 나가지 않는다. 이것이 apiSpec §1.4 가 말하는 "같은 버튼
+       * 클릭의 재시도는 같은 키"다.
+       *
+       * 반대로 **job 이 `failed` 로 끝난 실패에는 키를 싣지 않는다.** 생성은 이미
+       * 끝났고 결과가 실패인 것이라, 재시도는 같은 클릭의 재전송이 아니라 새 생성
+       * 요청이다. 같은 키를 다시 쓰면 서버가 저장해 둔 실패를 그대로 되돌려 준다.
+       */
+      retryIdempotencyKey: IdempotencyKey | null;
     };
 
 /**
@@ -138,4 +154,76 @@ export function toRestoredMessage(entry: AiChatHistoryMessage): ChatMessage {
     disclaimer: null,
     restored: true,
   };
+}
+
+/**
+ * 답을 기다리는 job 의 질문 말풍선을 되살린다 (FINCH-290).
+ *
+ * 화면을 나갔다 돌아오면 `messages` 는 이력 조회로 다시 채워지는데, **아직 끝나지
+ * 않은 질문은 그 이력에 없다** — AI 명세 §4.1 이 "성공한 질문과 최종 답변만
+ * 저장한다" 로 못 박는다. 그래서 스토리지에 적어 둔 원문(`chatPendingJob`)으로
+ * 질문 자리를 대신 만든다.
+ *
+ * **이미 같은 질문이 끝에 있으면 배열을 그대로 돌려준다.** 폴링이 같은 `pending`
+ * 을 반복해 주더라도 말풍선이 쌓이지 않게 하는 안전장치이고, 참조가 같으므로
+ * `setMessages` 가 리렌더 없이 빠져나간다.
+ */
+export function appendPendingQuestion(
+  messages: ChatMessage[],
+  question: string,
+): ChatMessage[] {
+  const last = messages.at(-1);
+  if (last !== undefined && last.role === 'user' && last.text === question) {
+    return messages;
+  }
+  return [...messages, { id: createMessageId(), role: 'user', text: question }];
+}
+
+/**
+ * 완료된 job 의 턴을 대화에 **한 번만** 붙인다 (FINCH-290).
+ *
+ * **이 함수가 이 티켓에서 가장 틀리기 쉬운 자리다.** 같은 답을 들고 올 수 있는
+ * 경로가 둘이라서다 — 대화 이력 조회(`GET /ai/chat/conversations/{id}/messages`)와
+ * job 결과 조회(`GET /ai/chat/jobs/{id}`). 화면을 옮겨 둔 사이에 job 이 끝나면 그
+ * 턴이 이력에도 이미 들어가 있고, 그것을 보지 않고 job 결과를 덧붙이면 질문과
+ * 답변이 두 번씩 그려진다.
+ *
+ * 판정은 **대화의 끝만 본다.** 지금 막 끝난 job 의 턴은 언제나 대화의 마지막이라
+ * 앞쪽을 뒤질 이유가 없고, 앞쪽까지 뒤지면 같은 질문을 두 번 물은 사용자의 옛 턴을
+ * 지금 것으로 오인한다. 세 갈래다.
+ *
+ * - 끝이 `질문 + 답변` 이고 질문이 이 job 의 원문이면 — **이력이 이미 들고 왔다.**
+ *   아무것도 하지 않는다. 그 말풍선은 복원본이라 타자 효과와 피드백 슬롯이 없는데,
+ *   대신 넣겠다고 지우고 다시 그리면 이력 순서가 흔들린다
+ * - 끝이 이 job 의 질문이면 — 질문만 있다. 답변만 붙인다. 이 마운트에서 보냈거나
+ *   `appendPendingQuestion` 이 되살려 둔 경우다
+ * - 그 밖 — 질문과 답변을 함께 붙인다. 화면 밖에서 끝난 job 인데 이력이 아직 그
+ *   턴을 싣지 않은 경우(저장이 완료 통지보다 늦는 경우)가 여기로 온다
+ */
+export function appendJobAnswer(
+  messages: ChatMessage[],
+  question: string,
+  answer: ChatMessage,
+): ChatMessage[] {
+  const last = messages.at(-1);
+  if (last !== undefined && last.role === 'user' && last.text === question) {
+    return [...messages, answer];
+  }
+
+  const beforeLast = messages.at(-2);
+  if (
+    last !== undefined &&
+    last.role === 'assistant' &&
+    beforeLast !== undefined &&
+    beforeLast.role === 'user' &&
+    beforeLast.text === question
+  ) {
+    return messages;
+  }
+
+  return [
+    ...messages,
+    { id: createMessageId(), role: 'user', text: question },
+    answer,
+  ];
 }

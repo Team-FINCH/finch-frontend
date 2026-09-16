@@ -25,6 +25,7 @@ import {
   readJsonBody,
   searchParam,
 } from '../lib/http';
+import { checkIdempotency } from '../lib/idempotency';
 import { requireAuth } from '../lib/session';
 import { appendChatHistory, findHolding, store } from '../lib/store';
 import { nowKstIso, toKstDateString } from '../lib/time';
@@ -41,6 +42,11 @@ import { nowKstIso, toKstDateString } from '../lib/time';
  * /ai/chat` 이 성공할 때마다 `appendChatHistory` 로 `store.chatConversations` 에
  * 쌓아 뒀다가 그대로 돌려준다 — 실제로 나눈 대화를 복원해야 화면을 오가며
  * 확인할 수 있어서다.
+ *
+ * **`POST /ai/chat/jobs` 와 `GET /ai/chat/jobs/{jobId}` 는 아홉·열 번째다**
+ * (GitLab 이슈 #84 · FINCH-290). **계약 없음 — 잠정 확정이다**
+ * (`frontend/docs/contracts.md` T4 · P40). 갈래 표는 아래 `chatJobs` 블록
+ * 주석에 따로 두었다 — 이 표가 이미 길어서다.
  *
  * **(나) `content` 키 유지** — 백엔드는 봉투 필드만 걷어내고 `content` 컨테이너를 그대로 남긴다
  * (GitLab 이슈 #22 회신, 2026-09-02). 각 핸들러는 `content` 본문만 만들고, 재포장 형태는
@@ -293,6 +299,133 @@ function analysisSections(stock: MockStock) {
   };
 }
 
+/**
+ * 답변 픽스처. **동기 경로(`POST /ai/chat`)와 비동기 job 이 같은 것을 쓴다** —
+ * 둘이 다른 답을 내면 화면에서 무엇이 바뀐 것인지가 경로 차이인지 본문 차이인지
+ * 구분되지 않는다 (FINCH-290).
+ */
+const CHAT_ANSWER_TEXT =
+  '보유 중인 삼성전자는 어제보다 1.21% 내렸어요. 반도체 비중이 62.4%로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.';
+
+function chatAnswerContent(conversationId: string) {
+  return {
+    conversationId,
+    // answer.title 은 항상 null 이다. 말풍선 제목은 프론트가 정한다 (contracts C53).
+    answer: section(null, CHAT_ANSWER_TEXT, [
+      textSegment('보유 중인 삼성전자는 어제보다 '),
+      metricSegment('1.21%', -0.0121, 'ratio', 'price', 'down'),
+      textSegment(' 내렸어요. 반도체 비중이 '),
+      metricSegment('62.4%', 0.624, 'ratio', 'portfolio_engine', 'up'),
+      textSegment('로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.'),
+    ]),
+    toolsUsed: ['get_quote', 'get_portfolio'],
+  };
+}
+
+/**
+ * ## AI 채팅 비동기 작업 (FINCH-290, GitLab 이슈 #84)
+ *
+ * **계약이 잠정 확정이라 이 목이 그 계약의 유일한 구현이다** (`contracts.md`
+ * T4 · P40). 백엔드가 다르게 확정하면 여기와 `features/chat/model/chatJob.ts`
+ * 둘만 고친다.
+ *
+ * **상태 유지 범위** — 접수한 job 을 모듈 변수에 담는다. 새로고침하면 사라진다
+ * (`lib/idempotency.ts` 와 같은 방식이고 같은 이유다). 그래서 새로고침 복원을
+ * 목으로 확인하려면 job 이 도는 동안 새로고침해야 하고, 그때 프론트는 적어 둔
+ * `jobId` 로 조회했다가 404 를 받아 "조회 불가" 갈래로 떨어진다 — 그 갈래도
+ * 화면에서 봐야 하는 것이라 일부러 흉내 내지 않는다.
+ *
+ * **상태는 시각으로 계산한다.** 접수 후 1.5초까지 `queued`, 6초까지 `running`,
+ * 그 뒤 `completed`(또는 `failed`)다. **곧바로 `completed` 를 주면 이 기능이 푸는
+ * 문제를 재현할 수 없다** — 6초는 답을 기다리다 홈이나 종목 상세로 갔다가 돌아올
+ * 수 있는 길이다.
+ *
+ * | 입력 | 응답 |
+ * | --- | --- |
+ * | `POST /ai/chat/jobs` `Idempotency-Key` 헤더 없음 | `400 IDEMPOTENCY_KEY_REQUIRED` — job 을 만들지 않는다 |
+ * | `POST /ai/chat/jobs` 키가 `a` 로 시작하는 첫 요청 | `409 IDEMPOTENCY_IN_PROGRESS`. 같은 키로 다시 보내면 접수된다 |
+ * | `POST /ai/chat/jobs` 이미 처리된 키 + 같은 본문 | 최초의 `202` 와 **같은 `jobId`** — 접수 실패 뒤 재시도가 job 을 둘 만들지 않는 것을 여기서 본다 |
+ * | `POST /ai/chat/jobs` `message` 가 `reject` 로 시작 | `503 AI_UPSTREAM_UNAVAILABLE` — **접수 자체가 실패하는 갈래** |
+ * | `POST /ai/chat/jobs` 빈 `message` 나 2,000자 초과 | `400 INVALID_REQUEST` |
+ * | `POST /ai/chat/jobs` 그 밖 | `202` + `jobId` |
+ * | `GET /ai/chat/jobs/{id}` 접수 1.5초 이내 | `queued` |
+ * | `GET /ai/chat/jobs/{id}` 6초 이내 | `running` |
+ * | `GET /ai/chat/jobs/{id}` 6초 뒤, `message` 가 `upstream`·`timeout`·`guardrail`·`ratelimit`·`budget` 으로 시작 | `failed` + 그 코드. **200 응답의 본문이다** |
+ * | `GET /ai/chat/jobs/{id}` 6초 뒤, 그 밖 | `completed` + 동기 경로와 같은 봉투 |
+ * | `GET /ai/chat/jobs/{id}` 모르는 `jobId` | `404 CHAT_JOB_NOT_FOUND` — 다섯 번 연속이면 화면이 기다림을 끝낸다 |
+ *
+ * **생성 실패는 이력에 남지 않는다** — `failed` 로 끝나는 job 은
+ * `appendChatHistory` 를 부르지 않는다(AI 명세 §4.1, 동기 경로와 같은 규칙).
+ * 이력 적재는 **`completed` 를 처음 관측한 때**에 한다. 그래야 "답을 기다리다
+ * 나갔고 완료된 뒤에 돌아왔다" 는 경우에 이력이 그 턴을 이미 들고 있는 상태가
+ * 재현되고, 프론트가 답을 두 번 그리지 않는지 확인할 수 있다.
+ */
+const CHAT_JOB_QUEUED_MS = 1_500;
+const CHAT_JOB_DURATION_MS = 6_000;
+
+/** 접수 자체를 실패시키는 접두사. 생성 실패(아래 다섯)와 문이 다르다. */
+const CHAT_JOB_REJECT_PREFIX = 'reject';
+
+/** 모르는 `jobId`. apiSpec 에 없는 코드라 목이 이름을 지었다 — 계약이 아니다. */
+const CHAT_JOB_NOT_FOUND_CODE = 'CHAT_JOB_NOT_FOUND';
+
+interface MockChatJob {
+  conversationId: string;
+  question: string;
+  acceptedAt: number;
+  /** 끝났을 때 실패로 낼 본문. `null` 이면 성공으로 끝난다. */
+  failure: {
+    code: string;
+    message: string;
+    detail?: Record<string, unknown>;
+  } | null;
+  /** 이력에 이미 적었나. `completed` 를 처음 관측한 때 한 번만 적는다. */
+  historyRecorded: boolean;
+}
+
+const chatJobs = new Map<string, MockChatJob>();
+let nextChatJobSequence = 0;
+
+/**
+ * 생성이 끝났을 때 낼 실패. **동기 경로의 갈래를 그대로 옮긴 것**이라 접두사도
+ * 같다 — 화면이 같은 코드를 두 경로에서 같게 다루는지 비교할 수 있어야 한다.
+ */
+function chatJobFailureFor(message: string): MockChatJob['failure'] {
+  if (message.startsWith(CHAT_UPSTREAM_UNAVAILABLE_PREFIX)) {
+    return {
+      code: AI_RELAY_ERROR_CODES.UPSTREAM_UNAVAILABLE,
+      message: 'AI 응답을 불러오지 못했어요',
+    };
+  }
+  if (message.startsWith(CHAT_UPSTREAM_TIMEOUT_PREFIX)) {
+    return {
+      code: AI_RELAY_ERROR_CODES.UPSTREAM_TIMEOUT,
+      message: 'AI 응답이 지연되고 있어요',
+    };
+  }
+  if (message.startsWith(CHAT_GUARDRAIL_PREFIX)) {
+    return {
+      code: AI_SERVICE_ERROR_CODES.GUARDRAIL_BLOCKED,
+      message: '투자 권유나 가격 예측에는 답할 수 없어요',
+    };
+  }
+  if (message.startsWith(CHAT_RATE_LIMIT_PREFIX)) {
+    return {
+      code: AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED,
+      message: CHAT_RATE_LIMIT_MESSAGE,
+      detail: { reason: 'request_rate_limit' },
+    };
+  }
+  if (message.startsWith(CHAT_BUDGET_PREFIX)) {
+    return {
+      code: AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED,
+      message: CHAT_BUDGET_MESSAGE,
+      detail: { reason: 'daily_token_budget' },
+    };
+  }
+  return null;
+}
+
 export const aiHandlers = [
   http.post(
     mockPath(API_PATHS.ai.analysis(':stockCode')),
@@ -459,8 +592,6 @@ export const aiHandlers = [
       typeof body?.conversationId === 'string' && body.conversationId !== ''
         ? body.conversationId
         : 'conv_mock_0001';
-    const answerText =
-      '보유 중인 삼성전자는 어제보다 1.21% 내렸어요. 반도체 비중이 62.4%로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.';
 
     /**
      * 대화 이력 조회(§4.1 · `GET /ai/chat/conversations/{id}/messages` 아래
@@ -468,25 +599,13 @@ export const aiHandlers = [
      * 반환문들은 이 줄에 닿지 않으므로 "생성 실패·가드레일 차단은 이력에 안
      * 남는다"(§4.1)가 그대로 지켜진다.
      */
-    appendChatHistory(conversationId, message, answerText);
+    appendChatHistory(conversationId, message, CHAT_ANSWER_TEXT);
 
     return HttpResponse.json(
-      aiResponse(
-        {
-          conversationId,
-          // answer.title 은 항상 null 이다. 말풍선 제목은 프론트가 정한다 (contracts C53).
-          answer: section(null, answerText, [
-            textSegment('보유 중인 삼성전자는 어제보다 '),
-            metricSegment('1.21%', -0.0121, 'ratio', 'price', 'down'),
-            textSegment(' 내렸어요. 반도체 비중이 '),
-            metricSegment('62.4%', 0.624, 'ratio', 'portfolio_engine', 'up'),
-            textSegment('로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.'),
-          ]),
-          toolsUsed: ['get_quote', 'get_portfolio'],
-        },
-        requestId,
-        { price: nowKstIso(), portfolio: nowKstIso() },
-      ),
+      aiResponse(chatAnswerContent(conversationId), requestId, {
+        price: nowKstIso(),
+        portfolio: nowKstIso(),
+      }),
     );
   }),
 
@@ -529,6 +648,144 @@ export const aiHandlers = [
       );
     },
   ),
+
+  /**
+   * AI 채팅 job 접수 (`POST /ai/chat/jobs` → `202` + `jobId`, GitLab 이슈 #84 ·
+   * FINCH-290). **계약은 잠정 확정이다** — 위 `chatJobs` 블록 주석 참고.
+   *
+   * **멱등성 판정이 본문 검증보다 앞선다** (apiSpec §1.4). 키가 없으면 본문이
+   * 틀려도 `IDEMPOTENCY_KEY_REQUIRED` 다 — 주문·출금과 같은 순서다.
+   *
+   * 백엔드가 이 경로를 `finch.idempotency.paths` 에 태울지는 **아직 미확정**이라
+   * (`contracts.md` P41) 목은 태운 쪽을 흉내 낸다. 태우지 않기로 하면 이 핸들러의
+   * `checkIdempotency` 한 줄만 빠진다.
+   */
+  http.post(mockPath(API_PATHS.ai.chatJobs), async ({ request }) => {
+    const unauthorized = requireAuth(request);
+    if (unauthorized !== null) {
+      return unauthorized;
+    }
+
+    const body = await readJsonBody(request);
+
+    const idempotency = checkIdempotency(request, body);
+    if (idempotency.blocked) {
+      return idempotency.response;
+    }
+
+    const message =
+      typeof body?.message === 'string' ? body.message.trim() : '';
+
+    if (message === '' || message.length > 2000) {
+      return errorResponse(
+        AI_SERVICE_ERROR_CODES.INVALID_REQUEST,
+        '질문을 확인해 주세요',
+        400,
+        { message: '1자 이상 2,000자 이하여야 합니다' },
+      );
+    }
+
+    /**
+     * **접수 자체가 실패하는 갈래.** 생성 실패(아래 `chatJobFailureFor`)와 문이
+     * 달라서 화면이 다르게 다룬다 — 이쪽 실패만 재시도가 같은 멱등성 키를 다시
+     * 쓴다(`ChatMessage.retryIdempotencyKey`). 목이 두 문을 다 내지 않으면 그
+     * 차이를 화면에서 확인할 수 없다.
+     */
+    if (message.startsWith(CHAT_JOB_REJECT_PREFIX)) {
+      return errorResponse(
+        AI_RELAY_ERROR_CODES.UPSTREAM_UNAVAILABLE,
+        'AI 요청을 접수하지 못했어요',
+        503,
+      );
+    }
+
+    const conversationId =
+      typeof body?.conversationId === 'string' && body.conversationId !== ''
+        ? body.conversationId
+        : 'conv_mock_0001';
+
+    nextChatJobSequence += 1;
+    const jobId = `job_mock_${String(nextChatJobSequence).padStart(4, '0')}`;
+    chatJobs.set(jobId, {
+      conversationId,
+      question: message,
+      acceptedAt: Date.now(),
+      failure: chatJobFailureFor(message),
+      historyRecorded: false,
+    });
+
+    // 같은 키로 다시 오면 이 202 가 그대로 재생된다 — 같은 `jobId` 를 되받으므로
+    // 접수 실패 뒤 재시도가 job 을 둘 만들지 않는다.
+    return idempotency.commit(202, { jobId });
+  }),
+
+  /**
+   * AI 채팅 job 조회 (`GET /ai/chat/jobs/{jobId}`, GitLab 이슈 #84 ·
+   * FINCH-290). **계약은 잠정 확정이다.**
+   *
+   * 상태를 저장하지 않고 **접수 시각에서 계산한다** — 타이머를 돌리면 목이 실제
+   * 서버보다 똑똑해져서, 탭을 오래 두고 돌아왔을 때의 동작이 달라진다.
+   */
+  http.get(mockPath(API_PATHS.ai.chatJob(':jobId')), ({ request, params }) => {
+    const unauthorized = requireAuth(request);
+    if (unauthorized !== null) {
+      return unauthorized;
+    }
+
+    const jobId = String(params.jobId);
+    const job = chatJobs.get(jobId);
+
+    if (job === undefined) {
+      /**
+       * 모르는 `jobId`. **새로고침하면 이 목의 job 이 전부 사라지므로 여기로
+       * 온다.** 화면은 조회 실패가 다섯 번 연속되면 기다림을 끝내고 재시도
+       * 가능한 실패로 떨어뜨린다(`CHAT_JOB_POLL_FAILURE_LIMIT`) — 그 갈래를
+       * 눈으로 보는 자리이기도 하다.
+       */
+      return errorResponse(
+        CHAT_JOB_NOT_FOUND_CODE,
+        '요청을 찾을 수 없어요',
+        404,
+      );
+    }
+
+    const elapsed = Date.now() - job.acceptedAt;
+
+    if (elapsed < CHAT_JOB_QUEUED_MS) {
+      return HttpResponse.json({ jobId, status: 'queued' });
+    }
+
+    if (elapsed < CHAT_JOB_DURATION_MS) {
+      return HttpResponse.json({ jobId, status: 'running' });
+    }
+
+    if (job.failure !== null) {
+      // 생성 실패는 이력에 남지 않는다 (AI 명세 §4.1). `appendChatHistory` 를
+      // 부르지 않는 것이 그 규칙의 전부다.
+      return HttpResponse.json({ jobId, status: 'failed', error: job.failure });
+    }
+
+    if (!job.historyRecorded) {
+      job.historyRecorded = true;
+      /**
+       * **`completed` 를 처음 관측한 때 이력에 적는다.** 그래야 "답을 기다리다
+       * 나갔고 완료된 뒤에 돌아왔다" 는 경우에 이력 조회가 그 턴을 이미 들고
+       * 있는 상태가 재현된다 — 프론트가 답을 두 번 그리지 않는지 확인하는
+       * 자리가 그곳이다(`appendJobAnswer`).
+       */
+      appendChatHistory(job.conversationId, job.question, CHAT_ANSWER_TEXT);
+    }
+
+    return HttpResponse.json({
+      jobId,
+      status: 'completed',
+      result: aiResponse(
+        chatAnswerContent(job.conversationId),
+        nextAiRequestId(),
+        { price: nowKstIso(), portfolio: nowKstIso() },
+      ),
+    });
+  }),
 
   http.post(mockPath(API_PATHS.ai.diagnosis), ({ request }) => {
     const unauthorized = requireAuth(request);

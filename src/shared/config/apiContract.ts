@@ -139,6 +139,21 @@ export const QUOTE_POLLING_INTERVAL_MS = {
 export const MARKET_INDICES_POLLING_INTERVAL_MS = 15_000;
 
 /**
+ * AI 채팅 job 폴링 주기 (FINCH-290, GitLab 이슈 #84).
+ *
+ * **계약이 아니라 프론트 재량이다.** 서버가 보장하는 주기가 없다 — 시세(3초)·지수
+ * (15초)처럼 "서버가 값을 바꾸는 주기"에 맞출 대상이 job 에는 없어서, **최장 대기
+ * 시간**에서 잡았다. AI 서버가 30초에 `504` 를 내므로(`DEFAULT_REQUEST_TIMEOUT_MS`
+ * 주석) 답이든 실패든 30초대 안에 끝난다.
+ *
+ * 2초면 완료를 알아채는 지연이 최대 2초라 사람이 느끼지 못하고, 30초를 꽉 채워도
+ * 요청이 15건 안쪽이다. **5초로 늘리면** 요청은 6건으로 줄지만 3초 만에 끝난 답을
+ * 5초 동안 못 보는 구간이 생겨 "비동기로 바꿨더니 더 느려 보인다" 가 된다 — 이
+ * 티켓이 없애려던 체감과 정반대다.
+ */
+export const CHAT_JOB_POLLING_INTERVAL_MS = 2_000;
+
+/**
  * STOMP 하트비트 (apiSpec §5.6 웹소켓 · contracts C39).
  * 3회 미수신(30초)이면 서버가 연결을 닫고 슬롯을 회수한다.
  * 웹소켓 전환 시점 자체는 미확정이다 (contracts P9).
@@ -226,6 +241,22 @@ export const API_PATHS = {
      */
     chatMessages: (conversationId: string) =>
       `/ai/chat/conversations/${conversationId}/messages`,
+    /**
+     * AI 채팅 비동기 작업 — **계약 없음. 잠정 확정이다**
+     * (FINCH-290, GitLab 이슈 #84 · `frontend/docs/contracts.md` T4 · P40).
+     *
+     * 이슈 #84 가 제안한 경로를 그대로 옮긴 것이고 백엔드가 확정하지 않았다.
+     * 긴 동기 요청이 열려 있는 동안 화면을 옮기면 AI 생성 비용은 나가는데 답이
+     * 사용자에게 닿지 않아서, 회신을 기다리지 않고 이 값으로 먼저 만들었다
+     * (2026-09-16 사용자 결정).
+     *
+     * **경로가 다르게 확정되면 이 두 줄과 `mocks/handlers/ai.ts` 의 두 핸들러만
+     * 갈아 끼운다** — 응답 모양까지 바뀌어도 `features/chat/model/chatJob.ts` 가
+     * 하나 더 붙을 뿐이고 화면은 그대로다. 위키 `맞아요`(FINCH-246)·대화 이력
+     * 조회(FINCH-278)와 같은 방식이다.
+     */
+    chatJobs: '/ai/chat/jobs',
+    chatJob: (jobId: string) => `/ai/chat/jobs/${jobId}`,
     diagnosis: '/ai/portfolio/diagnosis',
     attribution: '/ai/portfolio/attribution',
     orderPreview: '/ai/orders/preview',
