@@ -17,6 +17,37 @@ import {
  * 말을 거는 안내라 아래에 붙는 것보다 가운데 떠 있는 편이 맞다. 그리는 것은
  * `shared/ui/Modal` 이고 치수 근거는 그 파일 주석에 있다.
  *
+ * ## 모양 — 아이콘 없는 구분선 리스트 (FINCH-305)
+ *
+ * 전에는 🕘 🔍 ✨ 를 9×9 회색 원에 담아 항목마다 앞에 세웠다. **금융 안내에서 그
+ * 블록이 장난스럽게 읽혔다.** 아이콘을 통째로 빼고 글자 위계와 여백만 남겼다.
+ *
+ * **숫자 배지도 넣지 않았다.** 세 항목(시세·종목·브리핑)은 차례로 밟는 단계가
+ * 아니라 나란한 항목이라, 번호를 붙이면 없는 순서를 있다고 말하게 된다.
+ *
+ * **옅은 카드 세 장으로 가르는 안을 버렸다.** 이 레포에서 `bg-surface-soft` 는 칩 ·
+ * 세그먼티드 · 아이콘 면에만 쓰고 정보 블록 배경으로 쓴 곳이 없다. 흰 카드 안에
+ * 회색 카드를 겹치면 면이 둘로 싸운다. 대신 `--color-divider` 로 갈랐다 — 그 토큰
+ * 주석이 "카드 안에서 내용 덩어리를 가르는 1px 수평선" 이라고 용도를 적어 뒀고 이
+ * 모달이 바로 그 카드다. **첫 소비처라 선례가 없는 것이 맞다.**
+ *
+ * 값은 전부 있는 것에서 끌어왔다. 새로 만든 수치가 없다.
+ *
+ * | 자리 | 값 | 어디서 |
+ * | --- | --- | --- |
+ * | 모달 제목 | `text-title-2` | `OnboardingPage` 의 `h1`. 온보딩은 이 모달의 형제 화면이다 |
+ * | 제목 아래 설명 | `text-body-2` · secondary | 같은 화면의 설명줄 |
+ * | 항목 제목 | `text-body-2 font-semibold` | design.md §11 `.acell` 의 "제목 15px / 600" |
+ * | 항목 본문 | `text-caption leading-[19px]` | `WikiGuessCarousel` · `LoginPage` · `WithdrawPage` |
+ * | 보조 액션 | `text-label` · muted · 밑줄 없음 | `OnboardingPage` 의 `건너뛰기` |
+ *
+ * **`확인` 버튼 높이는 내리지 않았다.** design.md §11 Primary 가 52~56px 이고 공용
+ * `Button` 이 54px 이다. "버튼이 커서 답답하다" 의 원인은 높이가 아니라 위아래 여백과
+ * 밑줄 친 보조 액션이었다 — 그 둘만 고쳤다. 공용 `Button` 은 건드리지 않는다.
+ *
+ * **닫기(X) 를 달지 않았다.** 이 레포의 모달·시트 어디에도 없다. 스크림 · ESC ·
+ * `확인` 셋으로 닫는다. 혼자 X 를 달면 패턴이 갈린다.
+ *
  * ## 왜 필요한가
  *
  * **장이 닫힌 시간에 들어온 사람은 값이 멈춘 것을 고장으로 읽는다.** 시세가 언제
@@ -109,20 +140,22 @@ import {
  * 붙이면 거짓이 된다.** 캐시가 없는 것은 대화(`/chat`) 뿐이다.
  */
 
-/** 안내 한 줄. 글리프는 장식이라 `aria-hidden` 이고 뜻은 글자가 나른다. */
+/**
+ * 안내 한 줄. 제목과 본문뿐이고 앞에 세우는 것이 없다 — 위 "모양" 절을 보라.
+ *
+ * 문장은 FINCH-303 에서 정한 그대로다. **줄바꿈을 박지 않는다** —
+ * `text-pretty break-keep` 에 맡긴다. 320px 과 430px 에서 끊기는 자리가 다르다.
+ */
 const NOTICE_ITEMS = [
   {
-    glyph: '🕘',
     title: '시세는 거래 시간에 맞춰 움직여요',
     body: '평일 09:00~15:30, 16:00~20:00에는 실시간 시세가 반영돼요. 그 밖의 시간에는 마지막 시세를 보여드려요.',
   },
   {
-    glyph: '🔍',
     title: '30개 종목의 실시간 시세를 제공해요',
     body: 'FINCH에서 지원하는 주요 종목의 시세를 실시간으로 확인하고 분석할 수 있어요.',
   },
   {
-    glyph: '✨',
     title: '브리핑은 하루 한 번 새로 정리해드려요',
     body: '보유·관심 종목의 공시와 뉴스를 모아 핵심만 정리해드려요. 종목 분석과 AI 대화는 언제든 이용할 수 있어요.',
   },
@@ -168,49 +201,45 @@ export function UpdateNoticeModal() {
     <Modal
       open={open}
       onOpenChange={setOpen}
+      /* `hideTitle` 을 쓰지 않는다. 보이는 이 제목이 곧 `Dialog.Title` 이다 —
+         전에는 숨긴 제목과 보이는 `<p>` 가 따로 있어 스크린리더가 두 번 읽었다. */
       title="FINCH 이용 전에 알려드릴게요"
-      /* 같은 제목이 아래에 시각적으로 있다. Radix 가 `aria-labelledby` 로 쓰는
-         제목은 남기고 화면에서만 숨긴다 (`Modal` 주석 · `OrderResultSheet` 가
-         같은 모양이다). 빼면 같은 문장이 두 번 보인다. */
-      hideTitle
+      titleClassName="text-title-2 text-pretty break-keep text-text-primary"
     >
-      <p className="text-title-3 font-bold text-text-primary">
-        FINCH 이용 전에 알려드릴게요
-      </p>
-      <p className="mt-1.5 text-body-2 text-text-secondary">
+      <p className="mt-2.5 text-body-2 text-pretty break-keep text-text-secondary">
         시세와 브리핑이 제공되는 기준을 확인해보세요.
       </p>
 
-      <ul className="mt-5 flex flex-col gap-4">
+      {/* `divide-y` 는 항목 사이에만 선을 넣는다. 머리글과 첫 항목 사이, 마지막
+          항목과 버튼 사이는 선이 아니라 여백이 가른다 — 선을 더 그으면 안내가
+          표처럼 굳는다. 그래서 첫 항목의 위 여백과 마지막 항목의 아래 여백을
+          지우고 바깥 `mt-6`·`mt-7` 에 맡긴다. */}
+      <ul className="mt-6 divide-y divide-divider">
         {NOTICE_ITEMS.map((item) => (
-          <li key={item.title} className="flex gap-3">
-            <span
-              aria-hidden="true"
-              className="flex size-9 flex-none items-center justify-center rounded-md bg-surface-soft text-body-2"
-            >
-              {item.glyph}
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="text-body-2 font-medium text-text-primary">
-                {item.title}
-              </span>
-              <span className="text-caption text-pretty break-keep text-text-secondary">
-                {item.body}
-              </span>
-            </span>
+          <li key={item.title} className="py-4 first:pt-0 last:pb-0">
+            <p className="text-body-2 font-semibold text-pretty break-keep text-text-primary">
+              {item.title}
+            </p>
+            <p className="mt-1.5 text-caption leading-[19px] text-pretty break-keep text-text-secondary">
+              {item.body}
+            </p>
           </li>
         ))}
       </ul>
 
-      <div className="mt-6 flex flex-col gap-2">
+      <div className="mt-7">
         <Button onClick={() => setOpen(false)}>확인</Button>
         {/* `Button` 의 secondary 를 쓰지 않는다. 두 버튼이 같은 무게로 서면
             "오늘 하루 보지 않기" 가 기본 동작처럼 읽히는데, 이 모달의 기본은
-            읽고 닫는 것이다. */}
+            읽고 닫는 것이다.
+
+            밑줄을 뺐다. 밑줄은 링크의 표시라 버튼에 붙으면 어디로 떠나는 것처럼
+            읽힌다. 대신 `min-h-11`(44px, design.md §256 최소 터치 영역)로 누를
+            자리를 확보하고 muted 로 내려 주 CTA 와 무게를 갈랐다. */}
         <button
           type="button"
           onClick={dismissForToday}
-          className="py-2 text-label font-medium text-text-secondary underline underline-offset-3"
+          className="mt-1 flex min-h-11 w-full items-center justify-center text-label font-medium text-text-muted transition-colors duration-(--motion-fast) ease-standard active:text-text-secondary"
         >
           오늘 하루 보지 않기
         </button>
