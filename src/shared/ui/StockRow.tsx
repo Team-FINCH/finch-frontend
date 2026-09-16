@@ -76,6 +76,13 @@ type StockRowProps = {
    */
   suspended?: boolean;
   /**
+   * `true` 면 종목명 옆에 `보유` 칩을 붙인다 (2026-09-16 결정, 관심 목록의
+   * `WatchlistItem.held`). **선택 prop이라 기존 호출부는 영향이 없다.**
+   * 등락색·종목 틴트를 쓰지 않는 중립 칩이다 — `SuspendedBadge` 와 같은 치수를
+   * 공유한다(아래 `RowBadge`).
+   */
+  held?: boolean;
+  /**
    * 종목명 아래 보조 한 줄. 부르는 쪽이 만들어 넘긴다 —
    * 보유 목록은 `수량 · 평단`, 검색 결과는 `종목코드 · 시장`, 관심 목록은 힌트 문장이라
    * 행이 알 수 없다. 포맷은 `shared/lib/formatNumber` 를 쓴다.
@@ -94,20 +101,37 @@ type StockRowProps = {
 };
 
 /**
- * 거래정지 뱃지. 프로토타입 `.tag` 치수(높이 24px · 좌우 8px)를 쓰되 색은 중립이다.
- * 프로토타입은 이 뱃지에 상승 적색을 쓰는데, 컨벤션 §11 이 등락색을 등락 표시 밖에서
- * 쓰지 못하게 한다 — 떨어진 종목에 적색 뱃지가 붙으면 오독된다.
+ * 종목명 옆 중립 칩의 공용 치수. 프로토타입 `.tag` 치수(높이 24px · 좌우 8px)다.
+ * 거래정지·보유가 이 치수를 함께 쓴다 — 새로 만들지 않고 이미 있던 자리를 읽었다.
  *
  * 면색은 `--color-surface-soft` 다. `--color-primary-soft` 와 값이 거의 같지만
- * 그쪽은 "선택된" 상태 하나에 쓰는 색이고(토큰 파일 주석), 거래정지는 선택이
- * 아니라 종목이 놓인 상태다. 같은 회색으로 보여도 역할이 다르면 토큰도 다르다.
+ * 그쪽은 "선택된" 상태 하나에 쓰는 색이고(토큰 파일 주석), 이 칩들은 선택이
+ * 아니라 종목이 놓인 상태를 알린다. 같은 회색으로 보여도 역할이 다르면 토큰도 다르다.
  */
-function SuspendedBadge() {
+function RowBadge({ children }: { children: ReactNode }) {
   return (
     <span className="inline-flex h-6 flex-none items-center rounded-tag bg-surface-soft px-2 text-caption font-medium text-text-secondary">
-      거래정지
+      {children}
     </span>
   );
+}
+
+/**
+ * 거래정지 뱃지. 프로토타입은 이 뱃지에 상승 적색을 쓰는데, 컨벤션 §11 이 등락색을
+ * 등락 표시 밖에서 쓰지 못하게 한다 — 떨어진 종목에 적색 뱃지가 붙으면 오독된다.
+ */
+function SuspendedBadge() {
+  return <RowBadge>거래정지</RowBadge>;
+}
+
+/**
+ * 보유 칩 (2026-09-16 결정). 관심 목록에서 이미 보유한 종목을 표시한다 —
+ * 전에는 보조 줄에 `{종목코드} · 보유 중` 문자열로 붙어 있었다.
+ * 등락색·종목 틴트를 쓰지 않는다 — 등락색은 숫자 영역 전용이고(컨벤션 §11),
+ * 종목 틴트는 "이 종목" 을 뜻하는 색이라 상태 칩에 쓰면 뜻이 겹친다.
+ */
+function HeldBadge() {
+  return <RowBadge>보유</RowBadge>;
 }
 
 /** 값이 없는 자리. 색만으로 알리지 않으려고 화면 낭독용 문구를 함께 둔다. */
@@ -149,6 +173,7 @@ export function StockRow({
   stockName,
   figures,
   suspended = false,
+  held = false,
   sub,
   rank,
   to,
@@ -184,6 +209,7 @@ export function StockRow({
             {stockName}
           </span>
           {suspended ? <SuspendedBadge /> : null}
+          {held ? <HeldBadge /> : null}
         </span>
         {sub === undefined ? null : (
           <span className="truncate text-caption text-text-secondary">
