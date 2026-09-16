@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useDepositConfirm } from '@/features/deposit/api/useDepositConfirm';
@@ -58,6 +58,23 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  */
 type ConfirmPhase = 'pending' | 'success' | 'error';
 
+/**
+ * 결제 결과 네 갈래가 같은 껍데기와 같은 헤더를 쓴다 (FINCH-297).
+ * 앱 셸(`h-dvh flex-col overflow-hidden`)이 없으면 `PageMain` 의
+ * `flex-1 overflow-y-auto` 가 아무것도 자르지 않아 문서가 통째로 굴러간다 —
+ * 근거는 `shared/ui/PageMain` 머리 주석이다. 갈래마다 네 번 적는 대신 여기 모은다.
+ */
+function PaymentResultShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <PageMain>
+        <SubPageHeader title="결제 결과" showBack={false} />
+        {children}
+      </PageMain>
+    </div>
+  );
+}
+
 export function DepositCompletePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -116,28 +133,26 @@ export function DepositCompletePage() {
 
   if (paymentId === null || paymentKey === null || amount === null) {
     return (
-      <PageMain>
-        <SubPageHeader title="결제 결과" showBack={false} />
+      <PaymentResultShell>
         <DepositResultScreen
           variant="error"
           errorMessage="결제 정보를 확인할 수 없어요."
           primaryLabel="홈으로"
           onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
         />
-      </PageMain>
+      </PaymentResultShell>
     );
   }
 
   if (phase === 'pending') {
     return (
-      <PageMain>
-        <SubPageHeader title="결제 결과" showBack={false} />
+      <PaymentResultShell>
         <DepositResultScreen
           variant="pending"
           primaryLabel=""
           onPrimaryAction={() => {}}
         />
-      </PageMain>
+      </PaymentResultShell>
     );
   }
 
@@ -155,8 +170,7 @@ export function DepositCompletePage() {
      */
     const retryable = isRetryableDepositConfirmError(error);
     return (
-      <PageMain>
-        <SubPageHeader title="결제 결과" showBack={false} />
+      <PaymentResultShell>
         {retryable ? (
           <DepositResultScreen
             variant="error"
@@ -183,7 +197,7 @@ export function DepositCompletePage() {
             onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
           />
         )}
-      </PageMain>
+      </PaymentResultShell>
     );
   }
 
@@ -205,8 +219,7 @@ export function DepositCompletePage() {
     return null;
   }
   return (
-    <PageMain>
-      <SubPageHeader title="결제 결과" showBack={false} />
+    <PaymentResultShell>
       <DepositResultScreen
         variant="success"
         amount={result.amount}
@@ -216,6 +229,6 @@ export function DepositCompletePage() {
         secondaryLabel="홈으로"
         onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
       />
-    </PageMain>
+    </PaymentResultShell>
   );
 }

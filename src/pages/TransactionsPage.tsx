@@ -38,25 +38,28 @@ export function TransactionsPage() {
   } = useTransactions(type);
 
   return (
-    <PageMain>
-      <SubPageHeader
-        title="매매 내역"
-        fallbackTo={ROUTES.my}
-        className="mb-4"
-      />
+    <div className="flex h-dvh flex-col overflow-hidden">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      <PageMain>
+        <SubPageHeader
+          title="매매 내역"
+          fallbackTo={ROUTES.my}
+          className="mb-4"
+        />
 
-      <TransactionFilterChips type={type} onChange={setType} />
+        <TransactionFilterChips type={type} onChange={setType} />
 
-      <TransactionList
-        type={type}
-        pages={data?.pages ?? []}
-        isPending={isPending}
-        isError={isError}
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        onFetchNextPage={() => void fetchNextPage()}
-        onRetry={() => void refetch()}
-      />
-    </PageMain>
+        <TransactionList
+          type={type}
+          pages={data?.pages ?? []}
+          isPending={isPending}
+          isError={isError}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onFetchNextPage={() => void fetchNextPage()}
+          onRetry={() => void refetch()}
+        />
+      </PageMain>
+    </div>
   );
 }

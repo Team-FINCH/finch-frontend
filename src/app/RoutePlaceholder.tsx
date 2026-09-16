@@ -21,14 +21,17 @@ export function RoutePlaceholder({ screen }: RoutePlaceholderProps) {
   const location = useLocation();
 
   return (
-    <PageMain className="pt-6">
-      <h1 className="text-lg font-semibold text-text-primary">{screen}</h1>
-      <p className="mt-1 text-sm text-text-secondary">
-        아직 구현되지 않은 화면입니다. 라우트 자리만 잡혀 있습니다.
-      </p>
-      <p className="mt-4 text-xs text-text-muted">
-        <code>{`${location.pathname}${location.search}`}</code>
-      </p>
-    </PageMain>
+    <div className="flex h-dvh flex-col overflow-hidden">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      <PageMain className="pt-6">
+        <h1 className="text-lg font-semibold text-text-primary">{screen}</h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          아직 구현되지 않은 화면입니다. 라우트 자리만 잡혀 있습니다.
+        </p>
+        <p className="mt-4 text-xs text-text-muted">
+          <code>{`${location.pathname}${location.search}`}</code>
+        </p>
+      </PageMain>
+    </div>
   );
 }

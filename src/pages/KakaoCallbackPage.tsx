@@ -32,8 +32,11 @@ function resolveDestination({
 /** 카카오 콘솔에 등록한 redirect URI 와 같은 경로여야 한다 (ia.md §1). */
 export function KakaoCallbackPage() {
   return (
-    <PageMain className="pt-6">
-      <KakaoCallback resolveDestination={resolveDestination} />
-    </PageMain>
+    <div className="flex h-dvh flex-col overflow-hidden">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      <PageMain className="pt-6">
+        <KakaoCallback resolveDestination={resolveDestination} />
+      </PageMain>
+    </div>
   );
 }

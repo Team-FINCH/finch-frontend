@@ -199,33 +199,39 @@ export function OrderPage() {
 
   if (available.isConnecting) {
     return (
-      <PageMain className="pt-6">
-        <Skeleton className="h-11 w-1/2" />
-        <Skeleton className="mt-8 h-11 w-full" />
-        <Skeleton className="mt-8 h-24 w-full" />
-      </PageMain>
+      <div className="flex h-dvh flex-col overflow-hidden">
+        {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+        <PageMain className="pt-6">
+          <Skeleton className="h-11 w-1/2" />
+          <Skeleton className="mt-8 h-11 w-full" />
+          <Skeleton className="mt-8 h-24 w-full" />
+        </PageMain>
+      </div>
     );
   }
 
   if (available.isDisconnected) {
     return (
-      <PageMain className="pt-6">
-        <div className="pt-10 text-center">
-          <p className="text-title-3 text-text-primary">
-            주문 정보를 불러오지 못했어요
-          </p>
-          <p className="mt-2 text-body-2 text-text-secondary">
-            {available.failure.message}
-          </p>
-          <button
-            type="button"
-            onClick={available.reconnect}
-            className="mt-5 text-label font-medium text-text-secondary underline underline-offset-[3px]"
-          >
-            다시 시도
-          </button>
-        </div>
-      </PageMain>
+      <div className="flex h-dvh flex-col overflow-hidden">
+        {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+        <PageMain className="pt-6">
+          <div className="pt-10 text-center">
+            <p className="text-title-3 text-text-primary">
+              주문 정보를 불러오지 못했어요
+            </p>
+            <p className="mt-2 text-body-2 text-text-secondary">
+              {available.failure.message}
+            </p>
+            <button
+              type="button"
+              onClick={available.reconnect}
+              className="mt-5 text-label font-medium text-text-secondary underline underline-offset-[3px]"
+            >
+              다시 시도
+            </button>
+          </div>
+        </PageMain>
+      </div>
     );
   }
 
@@ -233,12 +239,14 @@ export function OrderPage() {
   const submitError = createOrder.error;
 
   return (
-    <>
+    <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:8rem]">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
       {/* ActionBar 가 fixed 라 마지막 내용이 그 밑에 깔린다. 바 높이만큼 띄운다
           (`ActionBar` 주석: "이 바를 쓰는 화면은 본문 아래에 바 높이만큼 여백을 둔다").
           바 높이 6.5rem 에 1.5rem 을 더 얹은 것은 AI 점검 슬롯이 제출 버튼에 붙지 않게
-          하려는 것이다 (ia.md §4:538 — 주문 확인 단계에서 오탭하면 주문이 나간다). */}
-      <PageMain className="pb-[calc(8rem+env(safe-area-inset-bottom))]">
+          하려는 것이다 (ia.md §4:538 — 주문 확인 단계에서 오탭하면 주문이 나간다).
+          safe-area 는 `PageMain` 이 한 번만 더한다. */}
+      <PageMain>
         <SubPageHeader
           title={sideLabel}
           fallbackTo={ROUTES.stockDetail(stockCode)}
@@ -355,6 +363,6 @@ export function OrderPage() {
           }
         }}
       />
-    </>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useDepositConfirm } from '@/features/deposit/api/useDepositConfirm';
@@ -60,6 +60,23 @@ const SECTION_TITLE_CLASS =
   'text-title-3 font-bold tracking-[-.01em] text-text-primary';
 
 type Phase = 'select' | 'processing' | 'success' | 'error';
+
+/**
+ * 결제 결과 네 갈래가 같은 껍데기와 같은 헤더를 쓴다 (FINCH-297).
+ * 앱 셸(`h-dvh flex-col overflow-hidden`)이 없으면 `PageMain` 의
+ * `flex-1 overflow-y-auto` 가 아무것도 자르지 않아 문서가 통째로 굴러간다 —
+ * 근거는 `shared/ui/PageMain` 머리 주석이다. 갈래마다 네 번 적는 대신 여기 모은다.
+ */
+function PaymentResultShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <PageMain>
+        <SubPageHeader title="결제 결과" showBack={false} />
+        {children}
+      </PageMain>
+    </div>
+  );
+}
 
 export function DepositTransferPage() {
   const [searchParams] = useSearchParams();
@@ -135,35 +152,32 @@ export function DepositTransferPage() {
 
   if (paymentId === null) {
     return (
-      <PageMain>
-        <SubPageHeader title="결제 결과" showBack={false} />
+      <PaymentResultShell>
         <DepositResultScreen
           variant="error"
           errorMessage="이체할 결제를 찾을 수 없어요."
           primaryLabel="입금으로"
           onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
         />
-      </PageMain>
+      </PaymentResultShell>
     );
   }
 
   if (phase === 'processing') {
     return (
-      <PageMain>
-        <SubPageHeader title="결제 결과" showBack={false} />
+      <PaymentResultShell>
         <DepositResultScreen
           variant="pending"
           primaryLabel=""
           onPrimaryAction={() => {}}
         />
-      </PageMain>
+      </PaymentResultShell>
     );
   }
 
   if (phase === 'success' && result !== undefined) {
     return (
-      <PageMain>
-        <SubPageHeader title="결제 결과" showBack={false} />
+      <PaymentResultShell>
         <DepositResultScreen
           variant="success"
           amount={result.amount}
@@ -173,7 +187,7 @@ export function DepositTransferPage() {
           secondaryLabel="홈으로"
           onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
         />
-      </PageMain>
+      </PaymentResultShell>
     );
   }
 
@@ -185,8 +199,7 @@ export function DepositTransferPage() {
      */
     const retryable = isRetryableDepositConfirmError(error);
     return (
-      <PageMain>
-        <SubPageHeader title="결제 결과" showBack={false} />
+      <PaymentResultShell>
         {retryable ? (
           <DepositResultScreen
             variant="error"
@@ -204,7 +217,7 @@ export function DepositTransferPage() {
             onPrimaryAction={() => navigate(ROUTES.deposit, { replace: true })}
           />
         )}
-      </PageMain>
+      </PaymentResultShell>
     );
   }
 
@@ -216,115 +229,122 @@ export function DepositTransferPage() {
    * 다시 볼 필요가 없는 글이라 아래가 맞다.
    */
   return (
-    <PageMain className="pb-32">
-      {/*
-       * 제목은 프로토타입 `isMock` 의 `.navt`(L2683)를 그대로 쓴다 — 사용자가 읽을 말은
-       * `계좌이체 승인` 이고 `모의 이체` 는 내부 용어다(prototype-diff.md B절). 뒤로가기의
-       * 되돌아갈 곳이 없으면 입금 화면으로 보낸다. 승인 뒤의 결과 화면들은 프로토타입
-       * `isPayReturn`(L2714)처럼 제목 `결제 결과` 만 두고 뒤로가기를 빼 이중 확정을 막는다.
-       */}
-      <SubPageHeader title="계좌이체 승인" fallbackTo={ROUTES.deposit} />
-
-      {/* 섹션 간격 32px 은 프로토타입 `.sec{margin-top:32px}` 실측값이다. */}
-      <div className="mt-8 flex flex-col gap-8">
+    <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:8rem]">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      {/* 8rem 은 이 화면이 `pb-32` 로 들고 있던 값 그대로다. */}
+      <PageMain>
         {/*
-         * 승인 대상 카드. 줄 둘의 모양이 서로 달라 `DepositSummaryRow` 를 쓰지
-         * 않았다 — 그쪽은 "큰 값 = 구분선 아래 합계" 를 전제하는데, 여기서는 큰
-         * 값(입금 금액)이 **첫 줄**이고 구분선 아래 줄(결제 건)이 오히려 작다
-         * (프로토타입 L2727-2729).
+         * 제목은 프로토타입 `isMock` 의 `.navt`(L2683)를 그대로 쓴다 — 사용자가 읽을 말은
+         * `계좌이체 승인` 이고 `모의 이체` 는 내부 용어다(prototype-diff.md B절). 뒤로가기의
+         * 되돌아갈 곳이 없으면 입금 화면으로 보낸다. 승인 뒤의 결과 화면들은 프로토타입
+         * `isPayReturn`(L2714)처럼 제목 `결제 결과` 만 두고 뒤로가기를 빼 이중 확정을 막는다.
          */}
-        <Card>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-body-2 text-text-secondary">입금 금액</span>
-            <span className="text-[19px] font-bold tracking-[-0.01em] text-text-primary tabular-nums">
-              {amount === null ? '—' : formatKrw(amount)}
-            </span>
-          </div>
+        <SubPageHeader title="계좌이체 승인" fallbackTo={ROUTES.deposit} />
+
+        {/* 섹션 간격 32px 은 프로토타입 `.sec{margin-top:32px}` 실측값이다. */}
+        <div className="mt-8 flex flex-col gap-8">
           {/*
-           * 프로토타입은 `PAY-20260908-0417` 같은 결제 참조번호를 보여주는데 우리가
-           * 가진 값은 서버 채번 `paymentId`(숫자) 하나다(apiSpec §4.2). 문자열을
-           * 지어내지 않고 그 값을 그대로 적는다 — 문의할 때 대는 번호라 화면에 보이는
-           * 것과 서버가 아는 것이 같아야 한다.
+           * 승인 대상 카드. 줄 둘의 모양이 서로 달라 `DepositSummaryRow` 를 쓰지
+           * 않았다 — 그쪽은 "큰 값 = 구분선 아래 합계" 를 전제하는데, 여기서는 큰
+           * 값(입금 금액)이 **첫 줄**이고 구분선 아래 줄(결제 건)이 오히려 작다
+           * (프로토타입 L2727-2729).
            */}
-          <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
-            <span className="text-body-2 text-text-secondary">결제 건</span>
-            <span className="text-body-2 text-text-secondary tabular-nums">
-              {paymentId}
-            </span>
-          </div>
-        </Card>
+          <Card>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-body-2 text-text-secondary">입금 금액</span>
+              <span className="text-[19px] font-bold tracking-[-0.01em] text-text-primary tabular-nums">
+                {amount === null ? '—' : formatKrw(amount)}
+              </span>
+            </div>
+            {/*
+             * 프로토타입은 `PAY-20260908-0417` 같은 결제 참조번호를 보여주는데 우리가
+             * 가진 값은 서버 채번 `paymentId`(숫자) 하나다(apiSpec §4.2). 문자열을
+             * 지어내지 않고 그 값을 그대로 적는다 — 문의할 때 대는 번호라 화면에 보이는
+             * 것과 서버가 아는 것이 같아야 한다.
+             */}
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+              <span className="text-body-2 text-text-secondary">결제 건</span>
+              <span className="text-body-2 text-text-secondary tabular-nums">
+                {paymentId}
+              </span>
+            </div>
+          </Card>
 
-        <section>
-          {/* `.sh` 실측 — baseline 정렬 · 양끝 배치 · 아래 여백 14px.
+          <section>
+            {/* `.sh` 실측 — baseline 정렬 · 양끝 배치 · 아래 여백 14px.
               우측 보조 라벨은 `.cp`(13px `--t3`)다. */}
-          <div className="mb-3.5 flex items-baseline justify-between gap-3">
-            <h2 className={SECTION_TITLE_CLASS}>응답 시나리오</h2>
-            <span className="flex-none text-caption text-text-muted">
-              시연용
-            </span>
-          </div>
+            <div className="mb-3.5 flex items-baseline justify-between gap-3">
+              <h2 className={SECTION_TITLE_CLASS}>응답 시나리오</h2>
+              <span className="flex-none text-caption text-text-muted">
+                시연용
+              </span>
+            </div>
 
-          <div
-            className="flex flex-col gap-2.5"
-            role="radiogroup"
-            aria-label="응답 시나리오"
-          >
-            {DEPOSIT_MOCK_APPROVE_SCENARIOS.map((option) => {
-              const selected = scenario === option;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => setScenario(option)}
-                  /* 카드 모양은 프로토타입 `.card.d`(반경 12px · 안쪽 16px)이고
+            <div
+              className="flex flex-col gap-2.5"
+              role="radiogroup"
+              aria-label="응답 시나리오"
+            >
+              {DEPOSIT_MOCK_APPROVE_SCENARIOS.map((option) => {
+                const selected = scenario === option;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setScenario(option)}
+                    /* 카드 모양은 프로토타입 `.card.d`(반경 12px · 안쪽 16px)이고
                      고른 것만 테두리가 진해진다. 면색은 바꾸지 않는다 — 프로토타입이
                      테두리 하나로만 표시한다. */
-                  className={`flex w-full items-center gap-3 rounded-card border bg-surface p-4 text-left transition-colors duration-(--motion-fast) ${
-                    selected ? 'border-text-primary' : 'border-border'
-                  }`}
-                >
-                  {/*
-                   * 라디오 원은 알림함 기록 시트(`features/inbox/components/RecordSheet`)
-                   * 와 같은 모양이다 — 19px 원 · 테두리 1.5px · 안쪽 점 9px. 프로토타입은
-                   * 20px 원에 `border:6px solid` 로 가운데를 채우는 방식인데, 같은 앱을
-                   * 두 가지 라디오로 그리지 않으려고 팀이 이미 쓰는 쪽을 따랐다.
-                   */}
-                  <span
-                    aria-hidden="true"
-                    className={`flex size-[19px] flex-none items-center justify-center rounded-full border-[1.5px] ${
-                      selected ? 'border-text-primary' : 'border-border-strong'
+                    className={`flex w-full items-center gap-3 rounded-card border bg-surface p-4 text-left transition-colors duration-(--motion-fast) ${
+                      selected ? 'border-text-primary' : 'border-border'
                     }`}
                   >
-                    {selected && (
-                      <span className="size-[9px] rounded-full bg-text-primary" />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1 text-body-1 font-medium text-text-primary">
-                    {SCENARIO_LABELS[option]}
-                  </span>
-                </button>
-              );
-            })}
+                    {/*
+                     * 라디오 원은 알림함 기록 시트(`features/inbox/components/RecordSheet`)
+                     * 와 같은 모양이다 — 19px 원 · 테두리 1.5px · 안쪽 점 9px. 프로토타입은
+                     * 20px 원에 `border:6px solid` 로 가운데를 채우는 방식인데, 같은 앱을
+                     * 두 가지 라디오로 그리지 않으려고 팀이 이미 쓰는 쪽을 따랐다.
+                     */}
+                    <span
+                      aria-hidden="true"
+                      className={`flex size-[19px] flex-none items-center justify-center rounded-full border-[1.5px] ${
+                        selected
+                          ? 'border-text-primary'
+                          : 'border-border-strong'
+                      }`}
+                    >
+                      {selected && (
+                        <span className="size-[9px] rounded-full bg-text-primary" />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1 text-body-1 font-medium text-text-primary">
+                      {SCENARIO_LABELS[option]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/*
+           * 모의 화면이라는 안내. 문구는 프로토타입 원문(L2746)이다. 면과 테두리는
+           * 안내 카드 전용 토큰을 쓰고 `Card` 를 쓰지 않는다 — 이유는 `DepositPage`
+           * 의 같은 카드 주석에 적었다(같은 특이도 클래스가 둘이 되는 문제).
+           */}
+          <div className="rounded-card border border-note-border bg-note-surface p-5">
+            <p className="text-body-2 leading-[22px] text-text-secondary">
+              은행 이체 승인을 흉내 내는 화면이에요. 실제 이체는 일어나지
+              않아요.
+            </p>
           </div>
-        </section>
-
-        {/*
-         * 모의 화면이라는 안내. 문구는 프로토타입 원문(L2746)이다. 면과 테두리는
-         * 안내 카드 전용 토큰을 쓰고 `Card` 를 쓰지 않는다 — 이유는 `DepositPage`
-         * 의 같은 카드 주석에 적었다(같은 특이도 클래스가 둘이 되는 문제).
-         */}
-        <div className="rounded-card border border-note-border bg-note-surface p-5">
-          <p className="text-body-2 leading-[22px] text-text-secondary">
-            은행 이체 승인을 흉내 내는 화면이에요. 실제 이체는 일어나지 않아요.
-          </p>
         </div>
-      </div>
 
-      <ActionBar>
-        <Button onClick={handleApprove}>승인하기</Button>
-      </ActionBar>
-    </PageMain>
+        <ActionBar>
+          <Button onClick={handleApprove}>승인하기</Button>
+        </ActionBar>
+      </PageMain>
+    </div>
   );
 }

@@ -197,125 +197,133 @@ export function DepositPage() {
 
   return (
     /* ActionBar 가 fixed 라 마지막 내용이 그 밑에 깔린다. 바 높이만큼 띄운다
-       (`ActionBar` 주석: "이 바를 쓰는 화면은 본문 아래에 바 높이만큼 여백을 둔다"). */
-    <PageMain className="pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
-      {/*
-       * 제목·뒤로가기는 프로토타입 `.nav` 묶음(L2623 `충전` — 용어 통일 뒤 `입금`)이다.
-       * 진입점이 마이페이지라(ia.md §1) 새 탭에서 바로 열었을 때는 그쪽으로 보낸다.
-       */}
-      <SubPageHeader title="입금" fallbackTo={ROUTES.my} />
+       (`ActionBar` 주석: "이 바를 쓰는 화면은 본문 아래에 바 높이만큼 여백을 둔다").
+       값은 껍데기의 `--page-bottom-space` 로 내려 준다 — safe-area 는 `PageMain` 이
+       한 번만 더한다. */
+    <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:6.5rem]">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      <PageMain>
+        {/*
+         * 제목·뒤로가기는 프로토타입 `.nav` 묶음(L2623 `충전` — 용어 통일 뒤 `입금`)이다.
+         * 진입점이 마이페이지라(ia.md §1) 새 탭에서 바로 열었을 때는 그쪽으로 보낸다.
+         */}
+        <SubPageHeader title="입금" fallbackTo={ROUTES.my} />
 
-      {/* 섹션 간격 32px 은 프로토타입 `.sec{margin-top:32px}` 실측값이다. */}
-      <div className="mt-8 flex flex-col gap-8">
-        <AmountInput
-          label="입금 금액"
-          value={amount}
-          onChange={setAmount}
-          presets={DEPOSIT_PRESETS}
-          errorMessage={amountError}
-        />
-
-        {/* 세 줄·구분선·조회 중·실패는 전부 `DepositLimitBox` 안에 있다. */}
-        <DepositLimitBox
-          limit={limit}
-          isPending={limitQuery.isPending}
-          isError={limitQuery.isError}
-          isRetrying={limitQuery.isError && limitQuery.isFetching}
-          onRetry={() => void limitQuery.refetch()}
-        />
-
-        {/* 필드 라벨이 아니라 섹션 제목이다 (프로토타입 L2650 `.sh`>`.sht`). */}
-        <section>
-          <h2 className={SECTION_TITLE_CLASS}>결제 수단</h2>
-          <PaymentMethodPicker
-            value={paymentMethod}
-            onChange={setPaymentMethod}
+        {/* 섹션 간격 32px 은 프로토타입 `.sec{margin-top:32px}` 실측값이다. */}
+        <div className="mt-8 flex flex-col gap-8">
+          <AmountInput
+            label="입금 금액"
+            value={amount}
+            onChange={setAmount}
+            presets={DEPOSIT_PRESETS}
+            errorMessage={amountError}
           />
-        </section>
 
-        {/*
-         * `확인` 은 프로토타입에 있던 섹션이다(L2662). 위저드를 없애면서 사라질
-         * 자리가 아니다 — 금액·수단을 고른 결과를 같은 화면에서 되짚는 요약이고,
-         * `ia.md:84` 가 "확인 화면은 그대로 남는다. 결제 수단·충전 금액·충전 후
-         * 예수금을 보여주고 최종 확인을 받는다" 고 적었다.
-         *
-         * 아직 고르지 않은 값은 `—` 로 둔다. 프로토타입은 금액·수단에 초기값이
-         * 있어(`depAmt:500000` · `depMethod:"kakao"`) 빈 자리가 없다.
-         */}
-        <section>
-          <h2 className={SECTION_TITLE_CLASS}>확인</h2>
-          {/*
-           * **`입금 후 예수금` 만 크다** (프로토타입 L2704 — 19px/700/-.01em ·
-           * baseline 정렬 · 위 12px 구분선). 앞 두 줄은 `.b1`/500 이고 구분선이
-           * 없다. 전에는 셋을 `SoftBoxRow` 로 똑같이 그려서 이 화면에서 제일
-           * 중요한 숫자가 나머지에 묻혔다. 줄 컴포넌트를 가른 이유는
-           * `DepositSummaryRow` 머리 주석에 적었다.
-           */}
-          <Card>
-            <DepositSummaryRow label="결제 수단" value={methodLabel} />
-            <DepositSummaryRow
-              label="입금 금액"
-              value={amount === null ? NO_VALUE : formatKrw(amount)}
+          {/* 세 줄·구분선·조회 중·실패는 전부 `DepositLimitBox` 안에 있다. */}
+          <DepositLimitBox
+            limit={limit}
+            isPending={limitQuery.isPending}
+            isError={limitQuery.isError}
+            isRetrying={limitQuery.isError && limitQuery.isFetching}
+            onRetry={() => void limitQuery.refetch()}
+          />
+
+          {/* 필드 라벨이 아니라 섹션 제목이다 (프로토타입 L2650 `.sh`>`.sht`). */}
+          <section>
+            <h2 className={SECTION_TITLE_CLASS}>결제 수단</h2>
+            <PaymentMethodPicker
+              value={paymentMethod}
+              onChange={setPaymentMethod}
             />
-            {accountQuery.data !== undefined && (
-              <DepositSummaryRow
-                label="입금 후 예수금"
-                value={formatKrw(accountQuery.data.cashBalance + (amount ?? 0))}
-                total
-              />
-            )}
-            {/*
-             * 취소 불가는 카드 밖 독립 단락이 아니라 카드 안 구분선 아래 캡션이다
-             * (프로토타입 L2667). 문장은 해요체다 — 프로토타입과 `design.md:948`
-             * 이 해요체이고 `design.md` §13 Tone 이 그것을 요구한다. `ia.md:84` 만
-             * 합니다체("충전은 취소할 수 없습니다")인데 그쪽이 낡았다.
-             */}
-            <p className="mt-3.5 border-t border-border pt-3.5 text-caption leading-5 text-text-muted">
-              입금은 취소할 수 없어요.
-            </p>
-          </Card>
-        </section>
+          </section>
 
-        {/*
-         * 모의 결제라는 사실을 알리는 안내 카드 (프로토타입 L2671-2675). 문구는
-         * 프로토타입 원문이다 — 이 문장에는 바꿀 용어가 없다.
-         *
-         * 면과 테두리는 안내 카드 전용 토큰이다 — `note-surface`(프로토타입
-         * `--note`) + `note-border`(`--note-b`). `design.md:151-152` 가 그 둘을
-         * "안내 카드" 토큰으로 적었고 `styles/index.css` 가 그 이름으로 들고 있다.
-         * 근사값(`surface-soft` + `divider`)으로 그렸던 것을 제 값으로 바꿨다.
-         *
-         * `Card` 를 쓰지 않은 이유 — 면색·테두리를 `className` 으로 덮으면 같은
-         * 특이도의 클래스가 둘이 되어 어느 쪽이 이길지 스타일시트 순서에 달린다.
-         * `OrderPage` 의 사유 카드도 같은 이유로 인라인 클래스를 쓴다.
-         */}
-        <div className="rounded-card border border-note-border bg-note-surface p-5">
-          <p className="text-body-2 text-text-secondary">
-            프로토타입이라 실제 결제는 일어나지 않아요. 금액만 계좌에 반영돼요.
-          </p>
+          {/*
+           * `확인` 은 프로토타입에 있던 섹션이다(L2662). 위저드를 없애면서 사라질
+           * 자리가 아니다 — 금액·수단을 고른 결과를 같은 화면에서 되짚는 요약이고,
+           * `ia.md:84` 가 "확인 화면은 그대로 남는다. 결제 수단·충전 금액·충전 후
+           * 예수금을 보여주고 최종 확인을 받는다" 고 적었다.
+           *
+           * 아직 고르지 않은 값은 `—` 로 둔다. 프로토타입은 금액·수단에 초기값이
+           * 있어(`depAmt:500000` · `depMethod:"kakao"`) 빈 자리가 없다.
+           */}
+          <section>
+            <h2 className={SECTION_TITLE_CLASS}>확인</h2>
+            {/*
+             * **`입금 후 예수금` 만 크다** (프로토타입 L2704 — 19px/700/-.01em ·
+             * baseline 정렬 · 위 12px 구분선). 앞 두 줄은 `.b1`/500 이고 구분선이
+             * 없다. 전에는 셋을 `SoftBoxRow` 로 똑같이 그려서 이 화면에서 제일
+             * 중요한 숫자가 나머지에 묻혔다. 줄 컴포넌트를 가른 이유는
+             * `DepositSummaryRow` 머리 주석에 적었다.
+             */}
+            <Card>
+              <DepositSummaryRow label="결제 수단" value={methodLabel} />
+              <DepositSummaryRow
+                label="입금 금액"
+                value={amount === null ? NO_VALUE : formatKrw(amount)}
+              />
+              {accountQuery.data !== undefined && (
+                <DepositSummaryRow
+                  label="입금 후 예수금"
+                  value={formatKrw(
+                    accountQuery.data.cashBalance + (amount ?? 0),
+                  )}
+                  total
+                />
+              )}
+              {/*
+               * 취소 불가는 카드 밖 독립 단락이 아니라 카드 안 구분선 아래 캡션이다
+               * (프로토타입 L2667). 문장은 해요체다 — 프로토타입과 `design.md:948`
+               * 이 해요체이고 `design.md` §13 Tone 이 그것을 요구한다. `ia.md:84` 만
+               * 합니다체("충전은 취소할 수 없습니다")인데 그쪽이 낡았다.
+               */}
+              <p className="mt-3.5 border-t border-border pt-3.5 text-caption leading-5 text-text-muted">
+                입금은 취소할 수 없어요.
+              </p>
+            </Card>
+          </section>
+
+          {/*
+           * 모의 결제라는 사실을 알리는 안내 카드 (프로토타입 L2671-2675). 문구는
+           * 프로토타입 원문이다 — 이 문장에는 바꿀 용어가 없다.
+           *
+           * 면과 테두리는 안내 카드 전용 토큰이다 — `note-surface`(프로토타입
+           * `--note`) + `note-border`(`--note-b`). `design.md:151-152` 가 그 둘을
+           * "안내 카드" 토큰으로 적었고 `styles/index.css` 가 그 이름으로 들고 있다.
+           * 근사값(`surface-soft` + `divider`)으로 그렸던 것을 제 값으로 바꿨다.
+           *
+           * `Card` 를 쓰지 않은 이유 — 면색·테두리를 `className` 으로 덮으면 같은
+           * 특이도의 클래스가 둘이 되어 어느 쪽이 이길지 스타일시트 순서에 달린다.
+           * `OrderPage` 의 사유 카드도 같은 이유로 인라인 클래스를 쓴다.
+           */}
+          <div className="rounded-card border border-note-border bg-note-surface p-5">
+            <p className="text-body-2 text-text-secondary">
+              프로토타입이라 실제 결제는 일어나지 않아요. 금액만 계좌에
+              반영돼요.
+            </p>
+          </div>
+
+          {readyMutation.error !== null && (
+            <p className="text-caption text-danger">
+              {readyErrorMessage(readyMutation.error)}
+            </p>
+          )}
         </div>
 
-        {readyMutation.error !== null && (
-          <p className="text-caption text-danger">
-            {readyErrorMessage(readyMutation.error)}
-          </p>
-        )}
-      </div>
-
-      {/*
-       * CTA 는 하나다 (프로토타입 L2678). 위저드의 `다음` 과 단계 되돌리기
-       * (`금액·수단 다시 선택`)는 단계가 없어져 함께 사라졌다.
-       *
-       * 잠금은 남긴다 — `isPending` 동안 눌리지 않아야 `ready` 가 두 번 나가지
-       * 않는다(contracts C92).
-       */}
-      <ActionBar>
-        <Button disabled={!canSubmit} onClick={handleReady}>
-          {readyMutation.isPending
-            ? '확인하고 있어요'
-            : depositCtaLabel(amount, exceedsLimit)}
-        </Button>
-      </ActionBar>
-    </PageMain>
+        {/*
+         * CTA 는 하나다 (프로토타입 L2678). 위저드의 `다음` 과 단계 되돌리기
+         * (`금액·수단 다시 선택`)는 단계가 없어져 함께 사라졌다.
+         *
+         * 잠금은 남긴다 — `isPending` 동안 눌리지 않아야 `ready` 가 두 번 나가지
+         * 않는다(contracts C92).
+         */}
+        <ActionBar>
+          <Button disabled={!canSubmit} onClick={handleReady}>
+            {readyMutation.isPending
+              ? '확인하고 있어요'
+              : depositCtaLabel(amount, exceedsLimit)}
+          </Button>
+        </ActionBar>
+      </PageMain>
+    </div>
   );
 }

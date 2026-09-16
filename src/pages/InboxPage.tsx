@@ -34,17 +34,20 @@ export function InboxPage() {
   const createThesis = useCreateWikiThesis();
 
   return (
-    <PageMain>
-      <SubPageHeader title="알림함" className="pb-1" />
-      <InboxList
-        recordSubmit={{
-          mutate: createThesis.mutate,
-          isPending: createThesis.isPending,
-          isError: createThesis.isError,
-          error: createThesis.error,
-          reset: createThesis.reset,
-        }}
-      />
-    </PageMain>
+    <div className="flex h-dvh flex-col overflow-hidden">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      <PageMain>
+        <SubPageHeader title="알림함" className="pb-1" />
+        <InboxList
+          recordSubmit={{
+            mutate: createThesis.mutate,
+            isPending: createThesis.isPending,
+            isError: createThesis.isError,
+            error: createThesis.error,
+            reset: createThesis.reset,
+          }}
+        />
+      </PageMain>
+    </div>
   );
 }

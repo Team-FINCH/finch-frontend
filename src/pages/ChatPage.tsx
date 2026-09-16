@@ -508,91 +508,98 @@ export function ChatPage() {
   }
 
   return (
-    <PageMain className="flex min-h-[calc(100dvh-3rem)] flex-col pb-24">
-      <SubPageHeader
-        title="FINCH AI"
-        action={
-          messages.length > 0 ? (
-            <button
-              type="button"
-              onClick={resetConversation}
-              className="flex h-11 items-center rounded-12 px-2.5 text-body-2 font-medium text-text-muted transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
-            >
-              초기화
-            </button>
-          ) : undefined
-        }
-      />
-
-      {showEmptyState ? (
-        <ChatEmptyState
-          subCopy={emptyCopy.subCopy}
-          suggestions={emptyCopy.suggestions}
-          onAsk={handleSend}
+    <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:6rem]">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      {/* 6rem 은 이 화면이 `pb-24` 로 들고 있던 값 그대로다 — 입력 바가 `fixed` 라
+        마지막 말풍선이 그 밑에 깔린다. `min-h-[calc(100dvh-3rem)]` 은 함께 걷었다:
+        껍데기가 높이를 주기 전에 본문이 화면을 채우게 하려던 임시값이라, 이제는
+        그 값 때문에 내용이 짧아도 스크롤이 생긴다. */}
+      <PageMain className="flex flex-col">
+        <SubPageHeader
+          title="FINCH AI"
+          action={
+            messages.length > 0 ? (
+              <button
+                type="button"
+                onClick={resetConversation}
+                className="flex h-11 items-center rounded-12 px-2.5 text-body-2 font-medium text-text-muted transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
+              >
+                초기화
+              </button>
+            ) : undefined
+          }
         />
-      ) : (
-        <div className="mt-4 flex flex-col gap-4">
-          {messages.map((message) => {
-            // 다음 재시도가 몇 번째인지는 이 말풍선의 retryCount + 1 이다
-            // (FINCH-283). `assistant-error` 가 아니면(=retryTargetId 가
-            // 이 id 일 수 없다) 쓰이지 않는 값이라 0 으로 둔다.
-            const nextRetryCount =
-              message.role === 'assistant-error' ? message.retryCount + 1 : 0;
-            // 접수 실패에서 온 말풍선만 키를 들고 있다 (FINCH-290).
-            const retryIdempotencyKey =
-              message.role === 'assistant-error'
-                ? message.retryIdempotencyKey
-                : null;
-            return (
-              <ChatBubble
-                key={message.id}
-                message={message}
-                // `다시 시도` 는 대화 끝의 실패 하나만 갖는다 (FINCH-249).
-                // 판정과 그 이유는 `findRetryTargetId` 주석에 있다. 핸들러를 주지
-                // 않는 것이 곧 버튼을 내지 않는 것이라, "보이는데 누르면 딴 것을
-                // 보내는" 상태가 만들어지지 않는다.
-                onRetry={
-                  message.id === retryTargetId
-                    ? (retryText) =>
-                        handleSend(
-                          retryText,
-                          nextRetryCount,
-                          retryIdempotencyKey,
-                        )
-                    : undefined
-                }
-                retryDisabled={isAwaitingAnswer}
-              />
-            );
-          })}
-          {/*
+
+        {showEmptyState ? (
+          <ChatEmptyState
+            subCopy={emptyCopy.subCopy}
+            suggestions={emptyCopy.suggestions}
+            onAsk={handleSend}
+          />
+        ) : (
+          <div className="mt-4 flex flex-col gap-4">
+            {messages.map((message) => {
+              // 다음 재시도가 몇 번째인지는 이 말풍선의 retryCount + 1 이다
+              // (FINCH-283). `assistant-error` 가 아니면(=retryTargetId 가
+              // 이 id 일 수 없다) 쓰이지 않는 값이라 0 으로 둔다.
+              const nextRetryCount =
+                message.role === 'assistant-error' ? message.retryCount + 1 : 0;
+              // 접수 실패에서 온 말풍선만 키를 들고 있다 (FINCH-290).
+              const retryIdempotencyKey =
+                message.role === 'assistant-error'
+                  ? message.retryIdempotencyKey
+                  : null;
+              return (
+                <ChatBubble
+                  key={message.id}
+                  message={message}
+                  // `다시 시도` 는 대화 끝의 실패 하나만 갖는다 (FINCH-249).
+                  // 판정과 그 이유는 `findRetryTargetId` 주석에 있다. 핸들러를 주지
+                  // 않는 것이 곧 버튼을 내지 않는 것이라, "보이는데 누르면 딴 것을
+                  // 보내는" 상태가 만들어지지 않는다.
+                  onRetry={
+                    message.id === retryTargetId
+                      ? (retryText) =>
+                          handleSend(
+                            retryText,
+                            nextRetryCount,
+                            retryIdempotencyKey,
+                          )
+                      : undefined
+                  }
+                  retryDisabled={isAwaitingAnswer}
+                />
+              );
+            })}
+            {/*
             답을 기다리는 동안 점 세 개 (FINCH-274). 접수 요청이 나가 있는
             동안과 job 이 도는 동안 둘 다 뜬다 — 사용자에게는 같은 "기다리는 중"
             이라 둘을 나눠 보여 줄 이유가 없다. **화면을 옮겼다 돌아왔을 때 이
             자리가 그대로 되살아나는 것**이 티켓 290 의 복원 요건이다.
           */}
-          {isAwaitingAnswer && <ChatTypingIndicator />}
-        </div>
-      )}
+            {isAwaitingAnswer && <ChatTypingIndicator />}
+          </div>
+        )}
 
-      <div
-        ref={bottomFixedRef}
-        className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-border bg-surface px-6.5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
-      >
-        {/*
+        <div
+          ref={bottomFixedRef}
+          className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-border bg-surface px-6.5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+        >
+          {/*
           칩 줄도 이 바 안에 둔다 — `useRegisterBottomFixedSpace` 가 이 div 를
           `ResizeObserver` 로 재기 때문에, 칩이 나타나거나 사라져 바 높이가
           바뀌면 토스트 자리도 같은 렌더에서 함께 갱신된다(FINCH-286).
         */}
-        {showContextChips && (
-          <ChatContextSuggestionChips
-            suggestions={emptyCopy.suggestions.slice(0, 2)}
-            disabled={isAwaitingAnswer}
-            onPick={handleSend}
-          />
-        )}
-        <ChatComposer disabled={isAwaitingAnswer} onSend={handleSend} />
-      </div>
-    </PageMain>
+          {showContextChips && (
+            <ChatContextSuggestionChips
+              suggestions={emptyCopy.suggestions.slice(0, 2)}
+              disabled={isAwaitingAnswer}
+              onPick={handleSend}
+            />
+          )}
+          <ChatComposer disabled={isAwaitingAnswer} onSend={handleSend} />
+        </div>
+      </PageMain>
+    </div>
   );
 }

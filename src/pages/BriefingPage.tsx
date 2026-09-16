@@ -22,9 +22,16 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  */
 export function BriefingPage() {
   return (
-    <PageMain>
-      <SubPageHeader title="데일리 브리핑" className="pb-1" />
-      <BriefingFullList />
-    </PageMain>
+    <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:96px]">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      {/* 96px 은 프로토타입 `.hasfab .sc{padding-bottom:96px}` 다 — `브리핑 물어보기`
+          플로팅 버튼(`app/layouts/AiFloatingOverlay`)이 이 화면에만 떠 있어서
+          그만큼 비워 두지 않으면 마지막 항목이 버튼 밑에 깔린다. 종목 상세가 쓰는
+          값과 같다(`pages/StockDetailPage` 머리 주석). */}
+      <PageMain>
+        <SubPageHeader title="데일리 브리핑" className="pb-1" />
+        <BriefingFullList />
+      </PageMain>
+    </div>
   );
 }
