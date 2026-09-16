@@ -76,10 +76,10 @@ const WATCHLIST_SORT = 'REGISTERED';
 
 /**
  * 보유 목록 정렬. 같은 이유로 홈의 기본값(`HomePage` 의 `holdingsSort` 초깃값,
- * 티켓 FINCH-292)과 맞춘다 — `PROFIT_RATE` 가 아니면 홈에서 들어와도
+ * 티켓 FINCH-293)과 맞춘다 — `EVALUATION` 이 아니면 홈에서 들어와도
  * `/portfolio` 를 다시 부른다.
  */
-const PORTFOLIO_SORT: PortfolioSort = 'PROFIT_RATE';
+const PORTFOLIO_SORT: PortfolioSort = 'EVALUATION';
 
 /**
  * 브리핑 항목들이 가리키는 종목의 이름과 등락률을 모아 종목코드로 찾게 해 준다.

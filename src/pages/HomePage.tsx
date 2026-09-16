@@ -46,13 +46,14 @@ export function HomePage() {
    * 내 종목·관심 종목 정렬. 버튼은 목록 안에 있지만 쿼리는 `useHomeData` 가 갖고
    * 있어 상태를 여기까지 올렸다 — 두 곳이 다른 정렬값을 보면 목록과 버튼이 어긋난다.
    *
-   * **내 종목 기본값은 `PROFIT_RATE` 다** (사용자 결정, 2026-09-16). apiSpec §8.1의
-   * 계약 기본값은 `EVALUATION` 이지만 그건 `sort` 파라미터를 아예 안 보냈을 때
-   * 서버가 고르는 값이다 — 화면 기본을 지키려면 `useHomePortfolio` 가 이 값을 항상
-   * 명시적으로 실어야 한다(`getHomePortfolio` 주석 참고).
+   * **내 종목 기본값은 `EVALUATION` 이다** — 정렬 칩의 맨 앞 항목을 기본으로 한다는
+   * 원칙이다(사용자 결정, 2026-09-16). 공교롭게 apiSpec §8.1 의 계약 기본값과 같은
+   * 값이지만, `sort` 를 생략해 서버 기본값에 얹혀가는 것이 아니다 — 사용자가 칩을
+   * 눌러 정렬을 바꿀 수 있으므로 `useHomePortfolio` 는 이 상태값을 항상 명시적으로
+   * 실어 보낸다(`getHomePortfolio` 주석 참고). 값이 우연히 같을 뿐 생략 가능하다는
+   * 뜻은 아니다.
    */
-  const [holdingsSort, setHoldingsSort] =
-    useState<PortfolioSort>('PROFIT_RATE');
+  const [holdingsSort, setHoldingsSort] = useState<PortfolioSort>('EVALUATION');
   const [watchSort, setWatchSort] = useState<WatchlistSort>('REGISTERED');
   const {
     account,
