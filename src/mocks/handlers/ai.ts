@@ -8,6 +8,7 @@ import {
 import {
   AI_RELAY_ERROR_CODES,
   AI_SERVICE_ERROR_CODES,
+  COMMON_ERROR_CODES,
 } from '@/shared/types/errorCodes';
 
 import {
@@ -28,7 +29,7 @@ import {
 import { checkIdempotency } from '../lib/idempotency';
 import { requireAuth } from '../lib/session';
 import { appendChatHistory, findHolding, store } from '../lib/store';
-import { nowKstIso, toKstDateString } from '../lib/time';
+import { nowKstIso, toKstDateString, toKstIsoString } from '../lib/time';
 
 /**
  * AI 중계 6종 (apiSpec §10 · AI 명세 §3~§8). **`briefing` 만 GET 이다** (contracts C3).
@@ -44,8 +45,10 @@ import { nowKstIso, toKstDateString } from '../lib/time';
  * 확인할 수 있어서다.
  *
  * **`POST /ai/chat/jobs` 와 `GET /ai/chat/jobs/{jobId}` 는 아홉·열 번째다**
- * (GitLab 이슈 #84 · FINCH-290). **계약 없음 — 잠정 확정이다**
- * (`frontend/docs/contracts.md` T4 · P40). 갈래 표는 아래 `chatJobs` 블록
+ * (GitLab 이슈 #84 · #90 · FINCH-290 → 298). **응답 모양이 확정됐다**
+ * (`frontend/docs/contracts.md` T4). **이 둘도 다른 여덟과 같은 봉투를 쓴다** —
+ * 290 판은 봉투 없이 `{jobId, status, result}` 를 주었는데 실제 AI 구현은
+ * `aiResponse()` 와 같은 봉투를 유지한다. 갈래 표는 아래 `chatJobs` 블록
  * 주석에 따로 두었다 — 이 표가 이미 길어서다.
  *
  * **(나) `content` 키 유지** — 백엔드는 봉투 필드만 걷어내고 `content` 컨테이너를 그대로 남긴다
@@ -323,11 +326,13 @@ function chatAnswerContent(conversationId: string) {
 }
 
 /**
- * ## AI 채팅 비동기 작업 (FINCH-290, GitLab 이슈 #84)
+ * ## AI 채팅 비동기 작업 (FINCH-290 → 298, GitLab 이슈 #84 · #90)
  *
- * **계약이 잠정 확정이라 이 목이 그 계약의 유일한 구현이다** (`contracts.md`
- * T4 · P40). 백엔드가 다르게 확정하면 여기와 `features/chat/model/chatJob.ts`
- * 둘만 고친다.
+ * **응답 모양은 확정됐지만 백엔드 중계가 아직 없어서, 이 목이 여전히 그 계약의
+ * 유일한 구현이다** (`contracts.md` T4). `AiRoute.java` 에 이 두 경로가 없어
+ * AI 가 준비돼도 프론트는 닿지 못한다 — 목이 어긋나 있으면 확인할 방법이 없다.
+ * 그래서 **AI 구현(`ai/app/api/routes/chat.py` `_job_envelope`)이 내보내는
+ * 모양을 그대로 따른다.**
  *
  * **상태 유지 범위** — 접수한 job 을 모듈 변수에 담는다. 새로고침하면 사라진다
  * (`lib/idempotency.ts` 와 같은 방식이고 같은 이유다). 그래서 새로고침 복원을
@@ -347,12 +352,13 @@ function chatAnswerContent(conversationId: string) {
  * | `POST /ai/chat/jobs` 이미 처리된 키 + 같은 본문 | 최초의 `202` 와 **같은 `jobId`** — 접수 실패 뒤 재시도가 job 을 둘 만들지 않는 것을 여기서 본다 |
  * | `POST /ai/chat/jobs` `message` 가 `reject` 로 시작 | `503 AI_UPSTREAM_UNAVAILABLE` — **접수 자체가 실패하는 갈래** |
  * | `POST /ai/chat/jobs` 빈 `message` 나 2,000자 초과 | `400 INVALID_REQUEST` |
- * | `POST /ai/chat/jobs` 그 밖 | `202` + `jobId` |
+ * | `POST /ai/chat/jobs` 그 밖 | `202` + 봉투 `content` 에 `jobId`·`status: 'queued'`·`conversationId` |
  * | `GET /ai/chat/jobs/{id}` 접수 1.5초 이내 | `queued` |
  * | `GET /ai/chat/jobs/{id}` 6초 이내 | `running` |
- * | `GET /ai/chat/jobs/{id}` 6초 뒤, `message` 가 `upstream`·`timeout`·`guardrail`·`ratelimit`·`budget` 으로 시작 | `failed` + 그 코드. **200 응답의 본문이다** |
- * | `GET /ai/chat/jobs/{id}` 6초 뒤, 그 밖 | `completed` + 동기 경로와 같은 봉투 |
- * | `GET /ai/chat/jobs/{id}` 모르는 `jobId` | `404 CHAT_JOB_NOT_FOUND` — 다섯 번 연속이면 화면이 기다림을 끝낸다 |
+ * | `GET /ai/chat/jobs/{id}` 6초 뒤, `message` 가 `upstream`·`timeout`·`guardrail`·`ratelimit`·`budget` 으로 시작 | `failed` + `content.error` 에 `code`·`message`·`retryable`. **200 응답의 본문이다** |
+ * | `GET /ai/chat/jobs/{id}` 6초 뒤, 그 밖 | `completed` + `content.result` 에 동기 경로의 `content`, `citations`·`dataAsOf` 는 봉투 최상위 |
+ * | `GET /ai/chat/jobs/{id}` 모르는 `jobId` | `404 RESOURCE_NOT_FOUND` — 다섯 번 연속이면 화면이 기다림을 끝낸다 |
+ * | `GET /ai/chat/jobs/{id}` 접수 후 3분 초과 | `404 RESOURCE_NOT_FOUND` — 보존 기간이 지난 갈래. 실제 24시간을 압축한 값이다 |
  *
  * **생성 실패는 이력에 남지 않는다** — `failed` 로 끝나는 job 은
  * `appendChatHistory` 를 부르지 않는다(AI 명세 §4.1, 동기 경로와 같은 규칙).
@@ -363,11 +369,19 @@ function chatAnswerContent(conversationId: string) {
 const CHAT_JOB_QUEUED_MS = 1_500;
 const CHAT_JOB_DURATION_MS = 6_000;
 
+/**
+ * 보존 기간. 지나면 조회가 `404` 다 (AI 명세 §4.2 · `app/chat_jobs.py` `RETENTION`).
+ *
+ * **실제는 24시간이고 여기서는 3분으로 압축했다.** 24시간을 그대로 쓰면 이 갈래를
+ * 눈으로 볼 방법이 없는데, 프론트는 `jobId` 를 `localStorage` 에 적어 두므로
+ * **한참 뒤 돌아와 404 를 받는 경로가 실제로 생긴다**. 3분은 답을 기다리다 탭을
+ * 백그라운드로 두고(폴링이 멈춘다) 돌아오는 것으로 닿는 길이다. 끝난 job 은
+ * 화면이 곧바로 스토리지에서 지우므로 이 갈래에 걸리는 것은 대기 중인 job 뿐이다.
+ */
+const CHAT_JOB_RETENTION_MS = 3 * 60_000;
+
 /** 접수 자체를 실패시키는 접두사. 생성 실패(아래 다섯)와 문이 다르다. */
 const CHAT_JOB_REJECT_PREFIX = 'reject';
-
-/** 모르는 `jobId`. apiSpec 에 없는 코드라 목이 이름을 지었다 — 계약이 아니다. */
-const CHAT_JOB_NOT_FOUND_CODE = 'CHAT_JOB_NOT_FOUND';
 
 interface MockChatJob {
   conversationId: string;
@@ -377,6 +391,11 @@ interface MockChatJob {
   failure: {
     code: string;
     message: string;
+    /**
+     * 다시 눌러 볼 가치가 있는가 (이슈 #90). **만든 쪽이 한 줄로 알려준다** —
+     * 프론트가 코드별 분기표를 또 들지 않게 하려는 것이 이 필드의 의도다.
+     */
+    retryable: boolean;
     detail?: Record<string, unknown>;
   } | null;
   /** 이력에 이미 적었나. `completed` 를 처음 관측한 때 한 번만 적는다. */
@@ -389,30 +408,46 @@ let nextChatJobSequence = 0;
 /**
  * 생성이 끝났을 때 낼 실패. **동기 경로의 갈래를 그대로 옮긴 것**이라 접두사도
  * 같다 — 화면이 같은 코드를 두 경로에서 같게 다루는지 비교할 수 있어야 한다.
+ *
+ * **`retryable` 이 함께 실린다** (이슈 #90). AI 의 표는
+ * `LLM_TIMEOUT`·`RETRIEVAL_FAILED` 둘만 `true` 다(`app/chat_jobs.py` `RETRYABLE`).
+ * 아래 다섯은 그 표에 없는 코드가 섞여 있어 값을 **프론트 코드 분기표와 같게**
+ * 맞췄다 — 목이 두 판정을 다르게 내놓으면 있지도 않은 불일치를 화면에서 보게 된다.
+ *
+ * **`AI_UPSTREAM_*` 는 원래 job 실패 본문에 실릴 수 없는 코드다.** 그 셋은 백엔드가
+ * AI 에 닿지 못했을 때 스스로 발행하는 것이라 200 본문이 아니라 HTTP 실패로 온다
+ * (apiSpec §10.4). 그래도 남겨 둔 이유는 **290 이 만든 갈래 목록이 화면을 확인하는
+ * 수단이어서**다 — 일일 예산 말풍선·분당 한도 말풍선을 지금 볼 수 있는 자리가
+ * 여기뿐이다. `detail` 도 같은 성격이다(AI 의 `run_job` 은 세 키만 싣는다).
  */
 function chatJobFailureFor(message: string): MockChatJob['failure'] {
   if (message.startsWith(CHAT_UPSTREAM_UNAVAILABLE_PREFIX)) {
     return {
       code: AI_RELAY_ERROR_CODES.UPSTREAM_UNAVAILABLE,
       message: 'AI 응답을 불러오지 못했어요',
+      retryable: true,
     };
   }
   if (message.startsWith(CHAT_UPSTREAM_TIMEOUT_PREFIX)) {
     return {
       code: AI_RELAY_ERROR_CODES.UPSTREAM_TIMEOUT,
       message: 'AI 응답이 지연되고 있어요',
+      retryable: true,
     };
   }
   if (message.startsWith(CHAT_GUARDRAIL_PREFIX)) {
     return {
       code: AI_SERVICE_ERROR_CODES.GUARDRAIL_BLOCKED,
       message: '투자 권유나 가격 예측에는 답할 수 없어요',
+      retryable: false,
     };
   }
   if (message.startsWith(CHAT_RATE_LIMIT_PREFIX)) {
     return {
       code: AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED,
       message: CHAT_RATE_LIMIT_MESSAGE,
+      // 분당 한도는 `Retry-After` 뒤에 다시 누르면 풀린다 (apiSpec §10.4).
+      retryable: true,
       detail: { reason: 'request_rate_limit' },
     };
   }
@@ -420,6 +455,8 @@ function chatJobFailureFor(message: string): MockChatJob['failure'] {
     return {
       code: AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED,
       message: CHAT_BUDGET_MESSAGE,
+      // 자정(KST)까지 풀리지 않는다.
+      retryable: false,
       detail: { reason: 'daily_token_budget' },
     };
   }
@@ -714,9 +751,24 @@ export const aiHandlers = [
       historyRecorded: false,
     });
 
-    // 같은 키로 다시 오면 이 202 가 그대로 재생된다 — 같은 `jobId` 를 되받으므로
-    // 접수 실패 뒤 재시도가 job 을 둘 만들지 않는다.
-    return idempotency.commit(202, { jobId });
+    /**
+     * 같은 키로 다시 오면 이 202 가 그대로 재생된다 — 같은 `jobId` 를 되받으므로
+     * 접수 실패 뒤 재시도가 job 을 둘 만들지 않는다.
+     *
+     * **봉투를 씌운다.** `content` 는 `jobId`·`status`·`conversationId` 셋이고
+     * (`create_chat_job` 의 `_job_envelope`), 접수 직후라 `status` 는 언제나
+     * `queued` 다. 아직 아무것도 읽지 않았으므로 `dataAsOf` 는 전부 `null`,
+     * `citations` 는 빈 배열이다.
+     */
+    return idempotency.commit(
+      202,
+      aiResponse(
+        { jobId, status: 'queued', conversationId },
+        nextAiRequestId(),
+        {},
+        [],
+      ),
+    );
   }),
 
   /**
@@ -734,35 +786,70 @@ export const aiHandlers = [
 
     const jobId = String(params.jobId);
     const job = chatJobs.get(jobId);
+    const elapsed = job === undefined ? 0 : Date.now() - job.acceptedAt;
 
-    if (job === undefined) {
+    if (job === undefined || elapsed > CHAT_JOB_RETENTION_MS) {
       /**
-       * 모르는 `jobId`. **새로고침하면 이 목의 job 이 전부 사라지므로 여기로
-       * 온다.** 화면은 조회 실패가 다섯 번 연속되면 기다림을 끝내고 재시도
-       * 가능한 실패로 떨어뜨린다(`CHAT_JOB_POLL_FAILURE_LIMIT`) — 그 갈래를
-       * 눈으로 보는 자리이기도 하다.
+       * **없는 것·만료된 것·남의 것이 모두 같은 404 다** (AI 명세 §4.2 ·
+       * `get_chat_job`). 코드는 `RESOURCE_NOT_FOUND` 로, 290 판이 지어낸
+       * `CHAT_JOB_NOT_FOUND` 는 계약에 없는 이름이라 버렸다.
+       *
+       * **새로고침하면 이 목의 job 이 전부 사라지므로 여기로 온다.** 화면은
+       * 조회 실패가 다섯 번 연속되면 기다림을 끝내고 재시도 가능한 실패로
+       * 떨어뜨린다(`CHAT_JOB_POLL_FAILURE_LIMIT`) — 그 갈래를 눈으로 보는
+       * 자리이기도 하다. 보존 기간이 지난 job 도 같은 자리로 합류한다.
        */
       return errorResponse(
-        CHAT_JOB_NOT_FOUND_CODE,
+        COMMON_ERROR_CODES.RESOURCE_NOT_FOUND,
         '요청을 찾을 수 없어요',
         404,
       );
     }
 
-    const elapsed = Date.now() - job.acceptedAt;
+    const createdAt = toKstIsoString(new Date(job.acceptedAt));
 
-    if (elapsed < CHAT_JOB_QUEUED_MS) {
-      return HttpResponse.json({ jobId, status: 'queued' });
-    }
-
+    /**
+     * 진행 중인 job. `result`·`error` 는 둘 다 `null` 이고 `completedAt` 도 아직
+     * 없다 — **키를 빼지 않고 `null` 로 싣는다**(contracts C54).
+     */
     if (elapsed < CHAT_JOB_DURATION_MS) {
-      return HttpResponse.json({ jobId, status: 'running' });
+      return HttpResponse.json(
+        aiResponse(
+          {
+            jobId,
+            status: elapsed < CHAT_JOB_QUEUED_MS ? 'queued' : 'running',
+            conversationId: job.conversationId,
+            createdAt,
+            completedAt: null,
+            result: null,
+            error: null,
+          },
+          nextAiRequestId(),
+          {},
+          [],
+        ),
+      );
     }
 
     if (job.failure !== null) {
       // 생성 실패는 이력에 남지 않는다 (AI 명세 §4.1). `appendChatHistory` 를
       // 부르지 않는 것이 그 규칙의 전부다.
-      return HttpResponse.json({ jobId, status: 'failed', error: job.failure });
+      return HttpResponse.json(
+        aiResponse(
+          {
+            jobId,
+            status: 'failed',
+            conversationId: job.conversationId,
+            createdAt,
+            completedAt: nowKstIso(),
+            result: null,
+            error: job.failure,
+          },
+          nextAiRequestId(),
+          {},
+          [],
+        ),
+      );
     }
 
     if (!job.historyRecorded) {
@@ -776,15 +863,26 @@ export const aiHandlers = [
       appendChatHistory(job.conversationId, job.question, CHAT_ANSWER_TEXT);
     }
 
-    return HttpResponse.json({
-      jobId,
-      status: 'completed',
-      result: aiResponse(
-        chatAnswerContent(job.conversationId),
+    /**
+     * 완료. **`result` 는 동기 경로의 `content` 이고 그 답의 `citations`·
+     * `dataAsOf` 는 봉투 최상위에 실린다**(`_job_envelope`). 290 판은 `result`
+     * 안에 봉투를 통째로 넣었는데 그것이 이번에 고친 어긋남이다.
+     */
+    return HttpResponse.json(
+      aiResponse(
+        {
+          jobId,
+          status: 'completed',
+          conversationId: job.conversationId,
+          createdAt,
+          completedAt: nowKstIso(),
+          result: chatAnswerContent(job.conversationId),
+          error: null,
+        },
         nextAiRequestId(),
         { price: nowKstIso(), portfolio: nowKstIso() },
       ),
-    });
+    );
   }),
 
   http.post(mockPath(API_PATHS.ai.diagnosis), ({ request }) => {
