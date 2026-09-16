@@ -17,6 +17,7 @@ import {
 import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
   isChatJobDailyBudgetFailure,
+  isChatJobFailureRetryable,
   type ChatJobFailure,
 } from '@/features/chat/model/chatJob';
 import {
@@ -32,17 +33,13 @@ import { isHttpError } from '@/shared/api';
 import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
 import { useInnerScrollRestoration } from '@/shared/hooks/useInnerScrollRestoration';
 import { showToast } from '@/shared/hooks/useToastStore';
-import {
-  isRetryableAiErrorCode,
-  readAiErrorCode,
-} from '@/shared/lib/aiErrorRetry';
+import { readAiErrorCode } from '@/shared/lib/aiErrorRetry';
 import {
   clearStoredConversationId,
   getStoredConversationId,
   storeConversationId,
 } from '@/shared/lib/chatConversationId';
 import { generateIdempotencyKey } from '@/shared/lib/idempotencyKey';
-import { AI_RELAY_ERROR_CODES } from '@/shared/types/errorCodes';
 import { type IdempotencyKey } from '@/shared/types/primitives';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
@@ -102,10 +99,9 @@ function toChatJobFailure(error: unknown): ChatJobFailure {
  * `detail.reason` 까지 보는 전용 판정을 먼저 거친다 — 여기 해당하면 재시도
  * 횟수와 무관하게 버튼이 없다.
  *
- * 네트워크 실패·응답 스키마 불일치(`code` 없음)는 재시도가 유의미하다. 알려진
- * 코드는 도메인 판정(`isRetryableAiErrorCode`)을 따르되, `AI_UPSTREAM_RATE_LIMITED`
- * 는 위에서 일일 예산 갈래를 걸러 낸 뒤라 여기 남은 것은 분당 한도뿐이다 —
- * 그쪽은 `Retry-After` 뒤에 재시도하면 풀린다(apiSpec §10.4).
+ * 그 갈래가 아니면 재시도 가능 여부는 `isChatJobFailureRetryable` 에 맡긴다
+ * (`chatJob.ts`). 서버가 `error.retryable` 을 주면 그 값을 따르고, 없으면 그
+ * 함수 안의 코드 분기표로 되돌아간다 — 여기서 다시 판정하지 않는다.
  */
 function toChatErrorMessage(
   failure: ChatJobFailure,
@@ -125,11 +121,7 @@ function toChatErrorMessage(
     };
   }
 
-  const codeRetryable =
-    failure.code === null
-      ? true
-      : isRetryableAiErrorCode(failure.code) ||
-        failure.code === AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED;
+  const codeRetryable = isChatJobFailureRetryable(failure);
   const hasRetriesLeft = retryCount < MAX_CHAT_RETRY_COUNT;
   const retryable = codeRetryable && hasRetriesLeft;
 
