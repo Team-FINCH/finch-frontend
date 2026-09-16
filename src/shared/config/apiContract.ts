@@ -229,15 +229,17 @@ export const API_PATHS = {
     analysis: (stockCode: string) => `/ai/stocks/${stockCode}/analysis`,
     chat: '/ai/chat',
     /**
-     * 대화 이력 조회 — **계약 없음. 이 경로는 프론트 추정값이다**
-     * (FINCH-278, `ai/docs/api-spec.md` §4.1 · GitLab 이슈 #79 회신 대기).
-     * 백엔드 중계가 아직 없다(`AiRoute.java` 에 없음). AI 서버 경로
-     * (`GET /api/ai/v1/chat/conversations/{conversation_id}/messages`)에서
-     * 접두만 `/ai` 로 갈아 끼웠다 — 지금 있는 열한 경로가 전부 그 규칙(경로
-     * 변수 이름만 프론트 쪽으로 바꾸고 나머지는 그대로)이라서다.
+     * 대화 이력 조회 (FINCH-278 이 프론트 추정값으로 먼저 만들었고, GitLab
+     * 이슈 #79 회신으로 확정돼 오늘 그 이슈를 닫았다, 2026-09-16).
      *
-     * 실제 경로가 열리면 이 줄과 `mocks/handlers/ai.ts` 의 GET 핸들러만 갈아
-     * 끼운다 — 위키 `맞아요`(FINCH-246)와 같은 방식이다.
+     * **백엔드 중계가 생겼다.** `backend/.../domain/ai/relay/AiRoute.java:28` 의
+     * `CHAT_CONVERSATION_MESSAGES(GET, "/chat/conversations/{conversationId}/messages")`
+     * 다. 이 줄은 더 이상 추정값이 아니라 확정된 계약이다.
+     *
+     * AI 채팅이 비동기 job 으로 바뀐 뒤(GitLab #90) 이 경로의 역할이 갈렸다 —
+     * job 이 `completed` 로 끝나면 그 답이 이 이력에 실리고, 화면은 job 결과
+     * (`chatJob`/`chatJobs`)와 이 이력 둘을 함께 읽는다. 이력만 보면 아직
+     * 진행 중인 job 의 상태를 알 수 없다.
      */
     chatMessages: (conversationId: string) =>
       `/ai/chat/conversations/${conversationId}/messages`,

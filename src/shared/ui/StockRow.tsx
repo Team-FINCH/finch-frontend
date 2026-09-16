@@ -12,8 +12,14 @@ import {
 import { StockLogo } from './StockLogo';
 
 /**
- * 종목 한 줄. 홈의 내 종목 · 검색 결과 · 시장 랭킹 · 관심 목록 · 포트폴리오 보유 ·
- * 브리핑 전체 · 알림함이 같은 행을 쓴다.
+ * 종목 한 줄. 실제로 쓰는 곳은 셋이다(grep 으로 확인, 2026-09-16) —
+ * 홈의 내 종목·관심 종목(`HoldingsWatchlistPreview`), 최근 본 종목
+ * (`RecentStockList`), 검색 결과(`StockSearchResultList`). 포트폴리오 보유
+ * (`HoldingsTab`)·브리핑 전체(`BriefingFullList`)·알림함(`InboxList`)은 각자
+ * 독자 컴포넌트를 쓰고, 시장 랭킹 화면은 `design.md` 가 걷어내 코드에 없다.
+ *
+ * **이 목록이 이 컴포넌트를 고칠 때 얼마나 번지는지의 근거다.** 목록이 틀리면
+ * 영향 범위를 잘못 재게 된다 — 오늘 실제로 사고가 났다(FINCH-312).
  *
  * 치수는 프로토타입 `prototype/screen/finch-prototype.html` 의 `.row`·`.th` 에서 읽었다 —
  * 행 최소 높이 72px · 안쪽 여백 14px 0 · 요소 간격 12px · 이니셜 뱃지 44x44 반경 14px.
