@@ -162,8 +162,11 @@ export function StockDetailPage() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:96px]">
       {/* 고정 묶음 — 프로토타입 `.nav` · 현재가 블록 · `.tabs`. 위 주석 참고.
-          좌우 26px 과 위 24px 은 `PageMain` 이 주던 값을 그대로 가져온 것이다. */}
-      <div className="mx-auto w-full max-w-md flex-none px-6.5 pt-6">
+          위 24px 은 `PageMain` 이 주던 값을 그대로 가져온 것이다.
+          좌우는 15px — `‹` 뒤로가기가 있는 화면의 공통값이다 (`SubPageHeader`
+          `px-3.75`, 프로토타입 `.nav` 실측값). 본문(`PageMain`)의 26px 과는 다르다 —
+          `StockDetailHeader` 안에 좌우 패딩이 없어 이 한 줄이 그 자리를 대신한다. */}
+      <div className="mx-auto w-full max-w-md flex-none px-3.75 pt-6">
         <StockDetailHeader
           detail={data}
           quote={quote.snapshot}
