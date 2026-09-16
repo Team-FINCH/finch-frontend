@@ -94,8 +94,14 @@ export const AiOrderPreviewWarningSchema = z.object({
   before: RatioSchema.nullable(),
   after: RatioSchema,
   threshold: RatioSchema,
-  text: z.string(),
-  segments: z.array(AiSegmentSchema),
+  /**
+   * **항상 `null`.** 프리셋 문장을 서버가 만들다가 화면으로 옮겼다(GitLab #93) —
+   * `title`·`before`·`after`·`threshold` 로 화면이 한 줄을 만든다
+   * (`orderPreviewDisplay.ts` `formatOrderPreviewWarningLine`). 같은 수치를 두 곳에서
+   * 표현하면 문구 정책이 갈린다.
+   */
+  text: z.string().nullable(),
+  segments: z.array(AiSegmentSchema).nullable(),
 });
 export type AiOrderPreviewWarning = z.infer<typeof AiOrderPreviewWarningSchema>;
 
@@ -131,6 +137,12 @@ export const AiOrderPreviewContentSchema = z.object({
   delta: AiOrderPreviewDeltaSchema,
   warnings: z.array(AiOrderPreviewWarningSchema),
   thesisConflicts: z.array(AiThesisConflictSchema),
+  /**
+   * **항상 `null`.** 프리셋 헤드라인을 서버가 만들다가 화면으로 옮겼다(GitLab #93) —
+   * `feasible`·`shortfall`·`warnings.length` 로 화면이 헤드라인을 만든다
+   * (`orderPreviewDisplay.ts` `selectOrderPreviewHeadline`). 필드는 계약대로 남겨 둔다 —
+   * `.nullable()` 이라 이미 이 값을 받을 수 있었고, 스키마를 좁힐 이유가 없다.
+   */
   summary: AiSectionSchema.nullable(),
 });
 export type AiOrderPreviewContent = z.infer<typeof AiOrderPreviewContentSchema>;

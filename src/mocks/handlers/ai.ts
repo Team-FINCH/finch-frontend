@@ -1171,6 +1171,9 @@ export const aiHandlers = [
             diversificationRatio: -0.06,
             topSectorWeight: 0.057,
           },
+          // text · segments 가 null 이다 — 프리셋 문장은 화면이 만든다 (GitLab #93,
+          // AI 명세 §7). title·before·after·threshold 로 `formatOrderPreviewWarningLine`
+          // 이 한 줄을 만든다.
           warnings: [
             {
               id: 'ticker_concentration',
@@ -1180,12 +1183,8 @@ export const aiHandlers = [
               before: 0.4168,
               after: 0.4712,
               threshold: 0.3,
-              text: '이 주문 뒤 가장 큰 종목 비중이 47.12%가 돼요.',
-              segments: [
-                textSegment('이 주문 뒤 가장 큰 종목 비중이 '),
-                metricSegment('47.12%', 0.4712, 'ratio', 'risk_engine', 'up'),
-                textSegment('가 돼요.'),
-              ],
+              text: null,
+              segments: null,
             },
           ],
           // 논지는 종목별 기록이다. **주문에 오른 종목의 논지만 낸다** (AI 명세 §7 —
@@ -1211,15 +1210,8 @@ export const aiHandlers = [
                 },
               ]
             : [],
-          summary: section(
-            null,
-            '집중도가 올라가는 주문이에요. 승인이나 거절을 판단하지는 않아요.',
-            [
-              textSegment(
-                '집중도가 올라가는 주문이에요. 승인이나 거절을 판단하지는 않아요.',
-              ),
-            ],
-          ),
+          // 항상 null 이다 — 프리셋 헤드라인은 화면이 만든다 (GitLab #93, AI 명세 §7).
+          summary: null,
         },
         requestId,
         { portfolio: nowKstIso(), price: nowKstIso() },
