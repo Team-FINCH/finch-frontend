@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from '@/app/App';
+import { installChunkRecovery } from '@/app/installChunkRecovery';
 import { installAuthBridge } from '@/features/auth';
 import '@/styles/index.css';
 
@@ -31,6 +32,11 @@ if (rootElement === null) {
 
 // 렌더보다 먼저 꽂는다. 컴포넌트 안에서 꽂으면 그보다 먼저 나간 요청에 토큰이 안 붙는다.
 installAuthBridge();
+
+// 라우터가 뜨기 전에 등록한다 (FINCH-304). 라우트가 전부 lazy 라 첫 화면부터
+// 청크를 받는데, 그보다 늦게 붙으면 바로 그 실패를 놓친다. `window` 리스너라
+// React 트리 밖이고, `enableMocking` 의 await 보다도 앞이어야 한다.
+installChunkRecovery();
 
 void enableMocking().then(() => {
   createRoot(rootElement).render(
