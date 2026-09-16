@@ -1,4 +1,4 @@
-import { type Candle, type CandleInterval } from '@/shared/types/stock';
+import { type Candle } from '@/shared/types/stock';
 
 /**
  * 차트 탭의 `오늘` 격자(시가·고가·저가·거래량)가 쓸 값을 캔들 응답에서 고른다.
@@ -7,9 +7,10 @@ import { type Candle, type CandleInterval } from '@/shared/types/stock';
  * `previousClose`·`changeAmount`·`changeRate` 만 준다. 대신 캔들 응답(§5.3)의
  * 봉 하나가 `open`·`high`·`low`·`close`·`volume` 을 갖고, §5.3 "진행 중인 당일 봉"
  * 이 장중에는 마지막에 오늘 봉이 얹혀 나가며 그 값이 **현재가 응답과 같은 출처**
- * 라고 못박았다. 그래서 차트 탭이 이미 받아 둔 응답의 마지막 봉이 곧 오늘 값이다.
- * 백엔드에 필드를 새로 요청하지 않고, `GET /stocks/{stockCode}` 를 한 번 더 부르지도
- * 않는다 — 그 호출은 최근 본 종목에 기록을 남긴다 (contracts C51).
+ * 라고 못박았다. 그래서 차트 탭이 **일봉을 따로 구독해 받아 둔** 응답의 마지막
+ * 봉이 곧 오늘 값이다 (`StockChartTab` 참고 — 왜 일봉을 따로 구독하는지는 아래
+ * 함수 주석에 적었다). 백엔드에 필드를 새로 요청하지 않고, `GET /stocks/{stockCode}`
+ * 를 한 번 더 부르지도 않는다 — 그 호출은 최근 본 종목에 기록을 남긴다 (contracts C51).
  */
 
 const KST_DATE_FORMATTER = new Intl.DateTimeFormat('ko-KR', {
@@ -46,14 +47,21 @@ export type TodayQuote = {
 };
 
 /**
- * 캔들 배열의 마지막 봉에서 `오늘` 격자 값을 뽑는다. 쓸 수 없으면 `null` 이다.
+ * 캔들 배열의 마지막 봉에서 `오늘` 격자 값을 뽑는다. 봉이 하나도 없으면 `null` 이다.
  *
- * **일봉일 때만 값을 준다.** 주봉·월봉의 마지막 봉은 §5.3 집계 규칙대로 이번 주·
- * 이번 달을 묶은 것이라(`high`·`low` 는 구간 최대·최소, `volume` 은 구간 합)
- * 하루치가 아니다. 그 값에 `오늘` 이라고 적으면 거짓말이 되고, 라벨을 `이번 주`·
- * `이번 달` 로 바꾸는 것은 프로토타입에 없는 섹션을 새로 만드는 일이다. 일봉을
- * 따로 한 번 더 받는 선택지도 있었지만 호출이 하나 느는 값어치가 없다 — 봉 종류
- * 탭은 일봉이 기본값이라 처음 들어온 사람은 항상 이 격자를 본다.
+ * **호출부가 항상 일봉 캔들을 넘긴다.** 이 함수는 봉 종류를 더는 받지 않는다 —
+ * 전에는 `interval` 을 받아 `DAY` 가 아니면 `null` 을 돌려줬는데, 그러면 주봉·
+ * 월봉 탭에서는 격자가 통째로 사라졌다. 주·월봉의 마지막 봉은 §5.3 집계 규칙대로
+ * 이번 주·이번 달을 묶은 것이라(`high`·`low` 는 구간 최대·최소, `volume` 은 구간
+ * 합) 하루치가 아니고, 거기에 `오늘` 이라고 적으면 거짓말이 되는 문제였다.
+ *
+ * 라벨을 `이번 주`·`이번 달` 로 바꾸는 안도 있었지만 버렸다(2026-09-16 팀 피드백) —
+ * 주·월봉을 보는 사람은 차트의 흐름을 보지 이번 주·이번 달의 고저시종을 보지
+ * 않는다는 것이 근거였고, 격자는 "오늘 무슨 일이 있었나" 를 말하는 자리라 그
+ * 역할과도 맞지 않았다. 대신 `StockChartTab` 이 화면에 보이는 봉 종류와 무관하게
+ * 일봉을 따로 구독해 이 함수에 넘긴다 — 일봉이 봉 종류 탭의 기본값이라 이미
+ * 캐시에 있고, 쿼리 키가 봉 종류별로 갈리는 `useCandles` 가 그대로 재사용해
+ * 호출을 늘리지 않는다(`?interval=WEEK` 등으로 곧장 들어온 드문 경로만 예외다).
  *
  * **마지막 봉이 오늘이 아닐 수 있다.** §5.3 이 "시세를 모르면 얹지 않는다 …
  * 프론트는 마지막 봉이 오늘이라고 가정하지 않는다" 고 적었다 — 장 전(KIS 가
@@ -69,13 +77,8 @@ export type TodayQuote = {
  */
 export function selectTodayQuote(
   candles: readonly Candle[],
-  interval: CandleInterval,
   now: Date = new Date(),
 ): TodayQuote | null {
-  if (interval !== 'DAY') {
-    return null;
-  }
-
   // 캔들은 과거에서 현재 순이다 (lightweight-charts 의 `setData` 도 오름차순을
   // 요구해 `CandleChart` 가 그대로 넘긴다). 마지막 원소가 가장 최근 봉이다.
   const last = candles.at(-1);

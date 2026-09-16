@@ -30,15 +30,19 @@ import { StockTodayGrid } from './StockTodayGrid';
  * 그리고 거래정지 종목은 **차트와 기간 탭을 아예 그리지 않는다**
  * (`d.tradableChart`, 새 디코드 L1749–L1761).
  *
- * **`오늘` 격자는 캔들 응답의 마지막 봉에서 온다.** `GET /stocks/{stockCode}`
- * 응답에는 시가·고가·저가·거래량이 없지만(apiSpec §5.2 는 `currentPrice`·
- * `previousClose`·`changeAmount`·`changeRate` 만 준다) 캔들 응답(§5.3)의 봉이
- * 넷을 다 갖고 있고, §5.3 "진행 중인 당일 봉" 이 장중의 마지막 봉은 **현재가
- * 응답과 같은 출처의 그날 값**이라고 못박았다. 이 탭이 이미 그 응답을 받고
- * 있으므로 호출을 늘리지 않는다. 값을 고르는 규칙과 봉 종류·날짜 처리의 근거는
- * `../lib/todayQuote.ts` 에 적었다. **전에 여기 적혀 있던 "필드 추가를 GitLab
- * #46 으로 요청해 뒀다" 는 더는 유효하지 않다** — 캔들로 되는 것이라 새 필드가
- * 필요 없다.
+ * **`오늘` 격자는 봉 종류 탭과 무관하게 일봉을 따로 구독한다.** `GET
+ * /stocks/{stockCode}` 응답에는 시가·고가·저가·거래량이 없지만(apiSpec §5.2 는
+ * `currentPrice`·`previousClose`·`changeAmount`·`changeRate` 만 준다) 캔들
+ * 응답(§5.3)의 봉이 넷을 다 갖고 있고, §5.3 "진행 중인 당일 봉" 이 장중의 마지막
+ * 봉은 **현재가 응답과 같은 출처의 그날 값**이라고 못박았다. 그런데 주·월봉의
+ * 마지막 봉은 이번 주·이번 달을 묶은 값이라(`../lib/todayQuote.ts` 참고) 이
+ * 격자에는 쓸 수 없다 — 그래서 화면이 어떤 봉 종류를 보고 있든 이 격자만은 일봉
+ * 캔들을 따로 받는다. 일봉이 봉 종류 탭의 기본값이라 처음 들어온 사람은 이미 그
+ * 응답을 받아 둔 상태고, `useCandles` 가 봉 종류를 쿼리 키에 넣어 캐시하므로
+ * 호출이 늘지 않는다(`?interval=WEEK` 등으로 곧장 들어온 드문 경로만 예외다).
+ * 값을 고르는 규칙의 근거는 `../lib/todayQuote.ts` 에 적었다. **전에 여기 적혀
+ * 있던 "필드 추가를 GitLab #46 으로 요청해 뒀다" 는 더는 유효하지 않다** —
+ * 캔들로 되는 것이라 새 필드가 필요 없다.
  *
  * 봉 종류는 URL 이 갖는다 (`?interval=` — `@/shared/types/candleInterval.ts` 참고).
  * 부모가 넘기고 여기서는 바꾸기만 한다.
@@ -84,6 +88,14 @@ export function StockChartTab({
   const candles = useCandles(stockCode, interval, !suspended);
 
   /*
+   * `오늘` 격자는 화면에 보이는 봉 종류와 무관하게 항상 일봉을 본다 — 주·월봉의
+   * 마지막 봉은 하루치가 아니다(`../lib/todayQuote.ts`). 일봉이 봉 종류 탭의
+   * 기본값이라 이미 캐시에 있고, 쿼리 키가 봉 종류별로 갈리는 `useCandles` 가
+   * 그대로 재사용해 호출을 늘리지 않는다.
+   */
+  const dailyCandles = useCandles(stockCode, 'DAY', !suspended);
+
+  /*
    * 첫 진입 Wipe 는 한 번만 탄다 (프로토타입 `.pfirst`, 새 디코드 L1020·L3726).
    * 프로토타입은 세그먼트를 **누른 적이 있는가**(`prevPeriod`)로 가른다 — 그리기
    * 횟수가 아니라 사용자의 조작이 기준이다. 그대로 옮겼다.
@@ -95,15 +107,15 @@ export function StockChartTab({
   const [intervalPressed, setIntervalPressed] = useState(false);
 
   /*
-   * `오늘` 격자 값. 봉 종류가 일봉이 아니거나 봉이 하나도 없으면 `null` 이고
-   * 그때는 격자를 그리지 않는다 (근거는 `../lib/todayQuote.ts`).
+   * `오늘` 격자 값. 일봉 캔들이 하나도 없으면 `null` 이고 그때는 격자를 그리지
+   * 않는다 (근거는 `../lib/todayQuote.ts`).
    *
    * `useMemo` 로 감싸지 않는다. 오늘이 며칠인지는 렌더마다 다시 봐야 하는 값이고
    * (화면을 열어 둔 채 자정을 넘길 수 있다) 계산은 배열의 마지막 원소 하나를
    * 읽는 것이 전부다.
    */
-  const todayQuote = candles.isSuccess
-    ? selectTodayQuote(candles.data.candles, interval)
+  const todayQuote = dailyCandles.isSuccess
+    ? selectTodayQuote(dailyCandles.data.candles)
     : null;
 
   return (
