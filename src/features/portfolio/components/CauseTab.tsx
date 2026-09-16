@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import {
   isInsufficientDataErrorCode,
   isRetryableAiErrorCode,
@@ -7,65 +5,64 @@ import {
   readAiErrorMessage,
 } from '@/shared/lib/aiErrorRetry';
 import { formatKstTime } from '@/shared/lib/formatDate';
-import {
-  formatSignedPercent,
-  getPriceDirection,
-} from '@/shared/lib/formatNumber';
-import { type AiAttributionRow } from '@/shared/types/ai/attribution';
 import { AiCard } from '@/shared/ui/AiCard';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
-import { StockLogo } from '@/shared/ui/StockLogo';
 
 import { usePortfolioAttribution } from '../api/usePortfolioAttribution';
+import { mergeContributionRows } from '../lib/attributionInsight';
 
-const DIRECTION_TEXT_CLASS = {
-  up: 'text-stock-up',
-  down: 'text-stock-down',
-} as const;
-
-const RATIO_TEXT_CLASS = {
-  rise: 'text-stock-up',
-  fall: 'text-stock-down',
-  flat: 'text-stock-neutral',
-} as const;
-
-/** 프로토타입이 `.sht` 를 덮어 쓰는 이 탭의 소제목 셋 (proto L2305, L2327, L2347). */
-const SUBTITLE_CLASS =
-  'text-[20px] font-bold tracking-[-0.02em] text-text-primary';
-
-/** 프로토타입 `.info` — 18px 원 · 1.4px 테두리 · 11px/700 · 왼쪽 5px (proto L1146). */
-const INFO_BUTTON_CLASS =
-  'ml-1.25 flex size-4.5 flex-none items-center justify-center rounded-full ' +
-  'border-[1.4px] border-text-muted text-[11px] font-bold text-text-muted';
-
-/** 프로토타입 `.pop` — 화면 폭에 붙고(left/right 0) 반경 12px · 패딩 13/14 (proto L1118). */
-const POPOVER_CLASS =
-  'absolute top-full right-0 left-0 z-10 mt-2 flex items-start gap-2.5 ' +
-  'rounded-12 bg-text-primary px-3.5 py-[13px] text-surface shadow-float';
-
-const BREAKDOWN_LABEL = {
-  market: '시장 영향',
-  sector: '업종 영향',
-  selection: '종목 선택',
-} as const;
+import { PerformanceSummary } from './PerformanceSummary';
+import { ReturnAttributionChart } from './ReturnAttributionChart';
+import { StockContributionChart } from './StockContributionChart';
 
 /**
  * "수익률 분석" 탭 (프로토타입 `isPfCause` 블록, AI 슬롯 2번).
  * 프로토타입 실제 UI에서 피드백이 붙는 확정된 세 자리 중 하나다
  * (ia.md §4 "피드백 슬롯 배치 규칙" 각주 — 종목 상세 AI 탭 · AI 채팅 · 여기).
  *
- * `breakdown`(시장·업종·종목 선택)에 프로토타입은 `{{a.note}}`라는 설명 문구를
- * 함께 그리지만, 실제 응답 스키마(`AiAttributionContent.breakdown`)에는 항목별
- * 설명 필드가 없다 — 값과 라벨만 표시하고 문구를 지어내지 않는다.
+ * ## 이 파일은 조립만 한다 (FINCH-308)
+ *
+ * 전에는 수치 표시·막대·목록·상태 분기가 전부 이 파일 하나에 있었다. 개편에서
+ * 화면을 네 블록으로 나누면서 그리는 일은 각 컴포넌트로 옮기고, 여기에는 **상태
+ * 분기와 배치 순서만** 남겼다.
+ *
+ * ## 계산값과 AI 해석값을 섞지 않는다
+ *
+ * 배치 순서가 그 경계다.
+ *
+ * | 블록 | source of truth |
+ * | --- | --- |
+ * | `PerformanceSummary` | 엔진 (`portfolioReturn`·`benchmarkReturn`·`excessReturn`) |
+ * | `AiCard` | AI (`summary.text`) |
+ * | `ReturnAttributionChart` | 엔진 (`breakdown`) |
+ * | `StockContributionChart` | 엔진 (`contributors`·`detractors`) |
+ * | `notes` | 엔진 (계산 중 붙은 단서) |
+ *
+ * 엔진 값은 흰 면에, AI 문장은 검정 카드 안에 둔다 — **면 색이 곧 출처 표시다.**
+ * 전에는 기간 수익률·초과수익률이 AI 카드의 캡션에 들어가 있어서 그 숫자까지
+ * AI 가 만든 것처럼 읽혔다. 그 셋을 카드 밖으로 꺼낸 것이 이 개편의 핵심이다.
+ *
+ * ## AI 카드는 아직 문장 한 덩어리다
+ *
+ * 화면은 AI 해석을 `헤드라인 · 종목 한 줄 · 단서 한 줄` 세 자리로 나눠 쓰고 싶지만,
+ * 현재 AI 응답의 `summary` 는 2~4문장이 이어진 **한 덩어리**다
+ * (`NARRATIVE_SCHEMA` 가 `{narrative: string}` 필드 하나다). 문장을 프론트가
+ * 잘라 세 자리에 나누면 문장 경계가 어긋나는 날 뜻이 깨지므로 자르지 않는다.
+ *
+ * 나눠 쓰려면 AI 응답 계약이 바뀌어야 한다 — 요청문은
+ * `_inbox/요청-ai-수익률분석-응답형식.md` 에 있다. 계약이 들어오면 이 카드만
+ * 바꾸면 되고 나머지 세 블록은 그대로다.
+ *
+ * `label` 은 `AI 수익 분석` 그대로 둔다. design.md §8.4 가 AI 슬롯 라벨을 통일하라
+ * 했고 다른 다섯 슬롯이 전부 `AI ~` 꼴이다 — 이 자리만 바꾸면 통일이 깨진다.
  */
 export function CauseTab() {
   const { data, isPending, isError, error, refetch } =
     usePortfolioAttribution(true);
-  const [infoOpen, setInfoOpen] = useState(false);
 
   if (isPending) {
     return (
@@ -121,124 +118,43 @@ export function CauseTab() {
 
   const {
     portfolioReturn,
+    benchmarkReturn,
     excessReturn,
+    tradingDays,
     breakdown,
-    contributors,
-    detractors,
     notes,
     summary,
     aiMeta,
   } = data;
   const asOfLabel = aiMeta.dataAsOf.portfolio ?? aiMeta.dataAsOf.price;
-  const rows: (AiAttributionRow & { tone: 'up' | 'down' })[] = [
-    ...contributors.map((row) => ({ ...row, tone: 'up' as const })),
-    ...detractors.map((row) => ({ ...row, tone: 'down' as const })),
-  ];
+  const rows = mergeContributionRows(data);
 
   return (
     <div className="pt-4">
+      <PerformanceSummary
+        portfolioReturn={portfolioReturn}
+        benchmarkReturn={benchmarkReturn}
+        excessReturn={excessReturn}
+        tradingDays={tradingDays}
+      />
+
+      {/* 캡션을 비운다 — 전에 여기 있던 두 수치는 위 `PerformanceSummary` 로 갔다.
+          같은 값을 두 곳에 적으면 포맷이 갈라지는 날 둘이 달라 보인다. */}
       <AiCard
         className="mb-10"
         label="AI 수익 분석"
         headline={summary?.text ?? '수익률 원인 분석을 준비하지 못했어요.'}
-        caption={`기간 수익률 ${formatSignedPercent(portfolioReturn)} · 초과수익률 ${formatSignedPercent(excessReturn)}`}
       />
 
-      <div className="relative mb-6 flex items-center gap-1.75">
-        <h2 className={SUBTITLE_CLASS}>무엇이 영향을 줬나요?</h2>
-        <button
-          type="button"
-          aria-label="계산 기준 보기"
-          onClick={() => setInfoOpen((prev) => !prev)}
-          className={INFO_BUTTON_CLASS}
-        >
-          ?
-        </button>
-        {infoOpen && (
-          <div className={POPOVER_CLASS}>
-            <span className="flex-1 text-caption text-pretty text-surface/86">
-              내 자산의 변화를 시장 · 업종 · 종목으로 나눠봤어요. 각 값은 계산
-              기준이 달라서 그대로 더해지지 않아요.
-            </span>
-            <button
-              type="button"
-              aria-label="닫기"
-              onClick={() => setInfoOpen(false)}
-              className="flex-none text-caption text-surface/50"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-      </div>
+      <ReturnAttributionChart breakdown={breakdown} />
 
-      <div className="mb-10 flex flex-col gap-7.5">
-        <BreakdownRow label={BREAKDOWN_LABEL.market} ratio={breakdown.market} />
-        <BreakdownRow label={BREAKDOWN_LABEL.sector} ratio={breakdown.sector} />
-        <BreakdownRow
-          label={BREAKDOWN_LABEL.selection}
-          ratio={breakdown.selection}
-        />
-      </div>
-
-      <div>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className={SUBTITLE_CLASS}>종목별 기여</h2>
-          <span className="text-caption text-text-muted">
-            {rows.length}종목
-          </span>
-        </div>
-
-        {rows.length === 0 ? (
-          <p className="py-3.5 text-body-1 text-text-secondary">
-            이 기간 동안 특별한 기여가 없었어요.
-          </p>
-        ) : (
-          <div className="flex flex-col divide-y divide-border">
-            {rows.map((row) => {
-              const event = row.events[0];
-              return (
-                <div
-                  key={row.ticker}
-                  className="flex items-center gap-3 py-3.5"
-                >
-                  {/* 로고가 없는 종목이면 이니셜 뱃지로 돌아간다 (FINCH-299).
-                      `ticker` 는 `StockCodeSchema` 라 6자리가 검증된 값이다. */}
-                  <StockLogo
-                    stockCode={row.ticker}
-                    stockName={row.name}
-                    size="sub"
-                  />
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.75">
-                    <span className="truncate text-body-1 font-medium text-text-primary">
-                      {row.name}
-                    </span>
-                    <span className="truncate text-caption text-text-secondary">
-                      {event === undefined ? row.sector : event.title}
-                    </span>
-                  </span>
-                  <span className="flex-none text-right">
-                    <span
-                      className={`block text-body-1 font-bold tabular-nums ${DIRECTION_TEXT_CLASS[row.tone]}`}
-                    >
-                      {formatSignedPercent(row.contribution)}
-                    </span>
-                    <span
-                      className={`text-caption tabular-nums ${DIRECTION_TEXT_CLASS[row.tone]}`}
-                    >
-                      {formatSignedPercent(row.return)}
-                    </span>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <StockContributionChart rows={rows} />
 
       {notes.length > 0 && (
         <div className="mt-6 border-t border-border pt-5">
-          <h2 className={`mb-2.5 ${SUBTITLE_CLASS}`}>확인해볼 점</h2>
+          <h2 className="mb-2.5 text-[20px] font-bold tracking-[-0.02em] text-text-primary">
+            확인해볼 점
+          </h2>
           <div className="flex flex-col gap-1.5">
             {notes.map((note) => (
               <p
@@ -265,25 +181,6 @@ export function CauseTab() {
       </p>
 
       <AiFeedbackRow requestId={aiMeta.requestId} className="mt-5" />
-    </div>
-  );
-}
-
-/**
- * 시장·업종·종목 선택 한 줄 (프로토타입 `attribution`, proto L2314-2323).
- * 값에 등락색을 입힌다 — 부호만으로는 방향이 눈에 들어오지 않는다.
- * 프로토타입의 항목별 설명 줄(`a.note`)은 응답 `breakdown` 에 대응 필드가 없어
- * 그리지 않는다 (머리 주석).
- */
-function BreakdownRow({ label, ratio }: { label: string; ratio: number }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-body-1 font-medium text-text-primary">{label}</span>
-      <span
-        className={`text-[17px] font-bold tabular-nums ${RATIO_TEXT_CLASS[getPriceDirection(ratio)]}`}
-      >
-        {formatSignedPercent(ratio)}
-      </span>
     </div>
   );
 }
