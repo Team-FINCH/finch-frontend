@@ -227,13 +227,22 @@ async function recoverSession(
     return false;
   }
 
-  const accessToken = await bridge.refreshSession();
-  if (accessToken === null) {
-    bridge.onSessionExpired();
-    return false;
+  const result = await bridge.refreshSession();
+  if (result.status === 'renewed') {
+    return true;
   }
 
-  return true;
+  /**
+   * **세션을 비우는 것은 서버가 없다고 말한 경우뿐이다** (FINCH-302).
+   * 네트워크·5xx·타임아웃은 "지금 판단할 수 없다"이지 "세션이 없다"가 아니라서,
+   * 여기서 비우면 잠깐의 장애가 그대로 로그아웃이 된다. 비우지 않고 원 에러를
+   * 던지면 화면은 실패를 그리되 세션은 남아 다음 요청에서 다시 판정된다.
+   */
+  if (result.status === 'noSession') {
+    bridge.onSessionExpired();
+  }
+
+  return false;
 }
 
 async function parseSuccess<TSchema extends z.ZodType<unknown>>(
