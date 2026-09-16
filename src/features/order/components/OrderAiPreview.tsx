@@ -17,6 +17,8 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useAiOrderPreview } from '../api/useAiOrderPreview';
 import {
+  formatOrderPreviewWarningLine,
+  selectOrderPreviewHeadline,
   selectOrderPreviewIndicatorRows,
   sortOrderPreviewWarnings,
 } from '../lib/orderPreviewDisplay';
@@ -140,17 +142,15 @@ export function OrderAiPreview({
     );
   }
 
-  const { feasible, shortfall, warnings, thesisConflicts, summary } =
-    preview.data;
+  const { feasible, shortfall, warnings, thesisConflicts } = preview.data;
   const indicatorRows = selectOrderPreviewIndicatorRows(preview.data);
   const sortedWarnings = sortOrderPreviewWarnings(warnings);
+  // 서버가 만들던 프리셋 헤드라인을 화면이 세 값으로 만든다 (GitLab #93).
+  const headline = selectOrderPreviewHeadline(preview.data);
 
   return (
     <div className="mt-8">
-      <AiCard
-        label="AI 주문 전 점검"
-        headline={summary?.text ?? '점검 결과를 준비하지 못했어요.'}
-      >
+      <AiCard label="AI 주문 전 점검" headline={headline}>
         {indicatorRows.length > 0 && (
           <div className="mt-4 flex flex-col gap-3.5">
             {indicatorRows.map((row) => (
@@ -204,7 +204,7 @@ export function OrderAiPreview({
                 key={warning.id}
                 className="mt-1 text-body-2 text-pretty text-ai-text-primary first:mt-0"
               >
-                {warning.text}
+                {formatOrderPreviewWarningLine(warning)}
               </p>
             ))}
           </div>

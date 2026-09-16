@@ -1,4 +1,4 @@
-import { formatPercent } from '@/shared/lib/formatNumber';
+import { formatKrw, formatPercent } from '@/shared/lib/formatNumber';
 import {
   type AiOrderPreviewContent,
   type AiOrderPreviewDelta,
@@ -143,6 +143,56 @@ export function sortOrderPreviewWarnings(
   return [...warnings].sort(
     (a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity],
   );
+}
+
+/**
+ * 헤드라인 (ia.md §4, GitLab #93). 서버가 만들던 프리셋 문장 대신 화면이 세 값으로
+ * 만든다 — 같은 수치를 두 곳에서 표현하면 문구 정책이 갈린다.
+ *
+ * 우선순위는 예수금 부족 → 경고 → 안전이다. 예수금이 부족하면 그 사실이 가장 급하고
+ * (카드 아래 별도 블록으로 한 번 더 나온다), 경고가 있으면 몇 개인지만 말한다 —
+ * 개별 문장은 `sortedWarnings` 목록이 따로 보여준다.
+ */
+export function selectOrderPreviewHeadline(
+  content: Pick<AiOrderPreviewContent, 'feasible' | 'shortfall' | 'warnings'>,
+): string {
+  const { feasible, shortfall, warnings } = content;
+
+  if (!feasible && shortfall !== null) {
+    return `현금이 ${formatKrw(shortfall)} 부족해요`;
+  }
+  if (warnings.length > 0) {
+    return `${warnings.length}개 지표가 기준을 넘었어요`;
+  }
+  return '새로 높아진 위험은 없어요';
+}
+
+/**
+ * 경고 한 줄 (GitLab #93). 서버가 만들던 `text` 대신 `title`·`before`·`after`·
+ * `threshold` 로 화면이 만든다.
+ *
+ * 셋 다 `Ratio`(0~1 소수) 다 — 방향이 아니라 크기(집중도·비중)를 말하는 값이라
+ * `formatPercent` 를 쓴다. `formatSignedPercent`·`formatSignedRate` 와 섞으면
+ * 100 배로 나오거나 부호가 잘못 붙는다(contracts C18, `shared/lib/formatNumber.ts`).
+ *
+ * `before` 가 `null` 이면 이 주문에서 처음 걸린 항목이다(AI 명세 §7) — 화살표 없이
+ * `after` 만 말한다.
+ */
+export function formatOrderPreviewWarningLine(
+  warning: Pick<
+    AiOrderPreviewWarning,
+    'title' | 'before' | 'after' | 'threshold'
+  >,
+): string {
+  const after = formatPercent(warning.after);
+  const threshold = formatPercent(warning.threshold);
+
+  if (warning.before === null) {
+    return `${warning.title} ${after} (기준 ${threshold})`;
+  }
+
+  const before = formatPercent(warning.before);
+  return `${warning.title} ${before} → ${after} (기준 ${threshold})`;
 }
 
 function absDelta(delta: AiOrderPreviewDelta, key: RatioIndicatorKey): number {
