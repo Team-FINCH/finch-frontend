@@ -5,26 +5,41 @@ import {
   type PriceDirection,
 } from '@/shared/lib/formatNumber';
 import { type StockHoldingSummary } from '@/shared/types/stock';
+import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
 
 /**
- * 내 보유 요약 (프로토타입 `d.owned` 의 눌리는 요약 카드, 새 디코드 L1710–L1719).
+ * 내 보유 요약 (종목 상세 상단, 현재가 요약 바로 아래).
  *
- * **한 줄 요약 카드다. 키-값 상세가 아니다.** 프로토타입은 두 단계로 나눈다 —
- * 껍데기에는 `{수량}주 보유` · `평균 {평단}원` · 평가손익 한 줄만 두고, 누르면
- * 차트 탭 하단의 `내 보유 상세`(`StockChartTab` 의 `#hold-detail`)로 보낸다.
- * 전에는 상세 세 줄을 이 자리에 바로 뒀는데 그러면 카드가 갈 곳이 없어진다.
+ * **라벨 있는 표다. 라벨 없는 한 줄 카드가 아니다(FINCH-301,
+ * 2026-09-16 재수정).** 이전 판은 라벨 없이 `{금액} / {비율}` 두 줄만 둔
+ * 카드였는데, 그 모양이 바로 위 현재가 요약(오늘 등락)과 똑같아 실제 화면에서
+ * 사용자가 둘을 구분하지 못했다 — 라벨이 없으면 어느 숫자가 오늘 등락이고
+ * 어느 쪽이 평가손익인지 알 길이 없다. 앞 커밋에서 지운 `내 보유 상세`
+ * (`StockChartTab` 참고)가 라벨 있는 표로 이미 이 문제를 풀고 있었으므로 그
+ * 모양을 이 자리로 옮겼다 — 정보를 지운 것이 아니라 중복이던 두 자리를
+ * 하나로 합친 것이다.
  *
- * 실측 — 면 `#F5F6F8` · 반경 12 · 안쪽 여백 15/17 · 가운데 묶음 줄 간격 4 ·
- * 제목 15px/600 · 보조 `.cp` · 평가손익 16px/600 등락색 · 오른쪽 셰브런 15px `--t3`.
- * 면색 `#F5F6F8` 은 토큰이 없어 `--color-surface-soft`(`#F1F3F6`)로 그렸다 —
- * 반톤 차이라 눈에 띄지 않고, 새 색 토큰은 `shared/styles` 주인이 정한다.
+ * **2행이다. `내 보유 상세`의 3행을 그대로 옮기지 않는다(사용자 결정,
+ * 2026-09-16).** 3행이면 차트가 그만큼 아래로 밀린다. 보유 수량과 평균
+ * 매수가를 `보유` 한 줄에 합쳤다.
  *
- * 제목(`내 보유`)을 그리지 않는다 — 프로토타입 카드에 제목이 없다.
+ *   보유          1주 · 평균 323,500원
+ *   평가손익      -15,000원 (4.64%)
  *
- * **평가손익이 없을 수 있다** (contracts C93 · apiSpec v0.8.2 §5.2). 현재가가 없으면
- * 평가손익 두 필드가 `null` 로 온다. 그때는 등락색을 붙이지 않고 `—` 로 둔다 —
- * 프로토타입도 값이 없는 자리를 `—` 로 그린다(`myAvg`·`myPnl`). 0원과 같은 색이 되면
- * "손익 없음" 으로 읽힌다.
+ * `SoftBox`·`SoftBoxRow`(`shared/ui`)를 그대로 쓴다 — `내 보유 상세`가 쓰던
+ * 것과 같은 컴포넌트라 고칠 이유가 없다. 그 컴포넌트의 반경 10px·안쪽 여백
+ * 16px 을 그대로 받아들이면, 이전 카드(반경 12·`px-4.25 py-3.75`, 2행 기준
+ * 대략 74px)보다 박스가 약 16px 커진다(2행 기준 대략 90px = 안쪽 여백
+ * 16×2 + 행 높이 24 + 행 간격 10 + 행 높이 24) — `shared/ui` 를 손대지 않고
+ * 그대로 쓰는 대신 받아들인 차이다.
+ *
+ * **평가손익이 없을 수 있다** (contracts C93 · apiSpec v0.8.2 §5.2). 현재가가
+ * 없으면 평가손익 두 필드가 `null` 로 온다. 그때는 등락색을 붙이지 않고 `—` 로
+ * 둔다 — 0원과 같은 색이 되면 "손익 없음" 으로 읽힌다.
+ *
+ * **누르지 않는다.** 이전 판이 갖고 있던 `onClick`·셰브런·스크롤 로직은
+ * `내 보유 상세` 로 이동하던 것이었는데 그 절이 사라졌으므로(앞 커밋) 되살리지
+ * 않는다.
  */
 const DIRECTION_TEXT_CLASS: Record<PriceDirection, string> = {
   rise: 'text-stock-up',
@@ -34,11 +49,9 @@ const DIRECTION_TEXT_CLASS: Record<PriceDirection, string> = {
 
 type StockHoldingBoxProps = {
   holding: StockHoldingSummary;
-  /** 누르면 차트 탭의 `내 보유 상세` 로 보낸다 (프로토타입 `scrollToHold`). */
-  onPress: () => void;
 };
 
-export function StockHoldingBox({ holding, onPress }: StockHoldingBoxProps) {
+export function StockHoldingBox({ holding }: StockHoldingBoxProps) {
   const { evaluationProfit, evaluationProfitRate } = holding;
   const hasProfit = evaluationProfit !== null && evaluationProfitRate !== null;
   const profitClass = hasProfit
@@ -47,33 +60,26 @@ export function StockHoldingBox({ holding, onPress }: StockHoldingBoxProps) {
 
   return (
     <section className="mt-5">
-      <button
-        type="button"
-        onClick={onPress}
-        className="flex w-full items-center gap-3 rounded-12 bg-surface-soft px-4.25 py-3.75 text-left active:bg-primary-soft"
-      >
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-[15px] font-semibold text-text-primary tabular-nums">
-            {formatAmount(holding.quantity)}주 보유
-          </span>
-          <span className="text-caption text-text-muted tabular-nums">
-            평균 {formatAmount(holding.avgBuyPrice)}원
-          </span>
-        </span>
-        <span
-          className={`flex-none text-body-1 font-semibold whitespace-nowrap tabular-nums ${profitClass}`}
-        >
-          {hasProfit
-            ? formatSignedAmountWithRate(evaluationProfit, evaluationProfitRate)
-            : '—'}
-        </span>
-        <span
-          aria-hidden="true"
-          className="flex-none text-[15px] text-text-muted"
-        >
-          ›
-        </span>
-      </button>
+      <SoftBox>
+        <SoftBoxRow
+          label="보유"
+          value={`${formatAmount(holding.quantity)}주 · 평균 ${formatAmount(
+            holding.avgBuyPrice,
+          )}원`}
+        />
+        <SoftBoxRow
+          label="평가손익"
+          value={
+            hasProfit
+              ? formatSignedAmountWithRate(
+                  evaluationProfit,
+                  evaluationProfitRate,
+                )
+              : '—'
+          }
+          valueClassName={profitClass}
+        />
+      </SoftBox>
     </section>
   );
 }

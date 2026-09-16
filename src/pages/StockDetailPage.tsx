@@ -121,22 +121,6 @@ export function StockDetailPage() {
     setParam(STOCK_DETAIL_TAB_PARAM, tab);
   };
 
-  /**
-   * 내 보유 요약 카드를 누르면 차트 탭으로 바꾸고 `내 보유 상세` 로 스크롤한다
-   * (프로토타입 `scrollToHold` — 새 디코드 L3465).
-   *
-   * 탭을 바꾸면 그 자리 DOM 이 이번 렌더 뒤에 붙으므로 같은 틱에서는 앵커를 못
-   * 찾는다. `requestAnimationFrame` 으로 한 프레임 미뤄 커밋된 뒤에 찾는다 —
-   * 이미 차트 탭이면 바꿀 것이 없어 그 프레임에 바로 스크롤된다.
-   */
-  const handleHoldingPress = () => {
-    setParam(STOCK_DETAIL_TAB_PARAM, 'chart');
-    requestAnimationFrame(() => {
-      document
-        .getElementById('hold-detail')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  };
   const handleIntervalChange = (next: CandleInterval) => {
     setParam(STOCK_DETAIL_INTERVAL_PARAM, next);
   };
@@ -221,12 +205,7 @@ export function StockDetailPage() {
 
         {/* 보유 블록은 `holding !== null` 로만 판단한다 — 전량 매도하면 `null` 이
             내려온다 (contracts C76). 수량 0 으로 오지 않는다. */}
-        {data.holding !== null && (
-          <StockHoldingBox
-            holding={data.holding}
-            onPress={handleHoldingPress}
-          />
-        )}
+        {data.holding !== null && <StockHoldingBox holding={data.holding} />}
 
         <StockDetailTabNav activeTab={activeTab} onChange={handleTabChange} />
       </div>
@@ -242,7 +221,6 @@ export function StockDetailPage() {
             suspended={data.suspended}
             suspendedReason={data.suspendedReason}
             currentPrice={data.currentPrice}
-            holding={data.holding}
           />
         )}
         {activeTab === 'ai' && (
