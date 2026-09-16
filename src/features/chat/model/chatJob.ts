@@ -243,12 +243,10 @@ export function toChatJobState(raw: ChatJobStatusResponse): ChatJobState {
  * 자정(KST)까지 풀리지 않아 재시도 횟수와 무관하게 버튼이 없어야 하는데,
  * 그 갈래는 `code` 가 아니라 `detail.reason` 으로만 갈린다.
  *
- * **아직 화면이 이 함수를 부르지 않는다.** `ChatPage` 의 `toChatErrorMessage` 가
- * 여전히 코드 분기표(`codeRetryable`)로 판정한다 — FINCH-297 이 같은 파일을
- * 고치고 있어 충돌을 만들지 않으려고 이번 티켓에서 건드리지 않았다. 297 이
- * 머지되면 그 세 줄을 이 함수 호출로 바꾼다. **판정 결과는 지금 같다** — AI 가
- * `retryable: true` 로 주는 코드(`LLM_TIMEOUT`·`RETRIEVAL_FAILED`)가 분기표에도
- * 들어 있어서다. 값이 갈리는 것은 AI 가 표를 바꾼 뒤부터다.
+ * `ChatPage` 의 `toChatErrorMessage` 가 이 함수를 부른다(FINCH-297 머지 뒤
+ * 298 후속으로 교체). **판정 결과는 그전과 같다** — AI 가 `retryable: true` 로
+ * 주는 코드(`LLM_TIMEOUT`·`RETRIEVAL_FAILED`)가 분기표에도 들어 있어서다. 값이
+ * 갈리는 것은 AI 가 표를 바꾼 뒤부터다.
  */
 export function isChatJobFailureRetryable(failure: ChatJobFailure): boolean {
   if (failure.retryable !== null && failure.retryable !== undefined) {
