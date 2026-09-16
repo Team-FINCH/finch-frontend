@@ -7,6 +7,7 @@ import {
   getPriceDirection,
   type PriceDirection,
 } from '@/shared/lib/formatNumber';
+import { formatMarketLabel } from '@/shared/lib/marketLabel';
 import {
   type StockDetailResponse,
   type StockQuote,
@@ -32,11 +33,6 @@ const DIRECTION_TEXT_CLASS: Record<PriceDirection, string> = {
   rise: 'text-stock-up',
   fall: 'text-stock-down',
   flat: 'text-stock-neutral',
-};
-
-const MARKET_LABEL: Record<string, string> = {
-  KOSPI: '코스피',
-  KOSDAQ: '코스닥',
 };
 
 type StockDetailHeaderProps = {
@@ -85,7 +81,7 @@ export function StockDetailHeader({
             {detail.stockName}
           </span>
           <span className="text-caption text-text-muted">
-            {detail.stockCode} · {MARKET_LABEL[detail.market] ?? detail.market}
+            {detail.stockCode} · {formatMarketLabel(detail.market)}
           </span>
         </span>
         {detail.suspended && (
