@@ -317,6 +317,9 @@ function HoldingsPanel({
             kind: 'holding',
             evaluationAmount: holding.evaluationAmount,
             evaluationProfitRate: holding.evaluationProfitRate,
+            // `StockRow` 가 이미 그리는 값이다(`figures.evaluationProfit`) — 응답에도
+            // 있는데 여기서만 넘기지 않아 변동금액 줄이 비어 있었다.
+            evaluationProfit: holding.evaluationProfit,
           }}
         />
       ))}

@@ -4,7 +4,7 @@ import { formatKstMonthDay, formatKstTime } from '@/shared/lib/formatDate';
 import {
   formatKrw,
   formatSignedAmount,
-  formatSignedRate,
+  formatSignedAmountWithRate,
   getPriceDirection,
   type PriceDirection,
 } from '@/shared/lib/formatNumber';
@@ -105,8 +105,9 @@ function transactionDetail(transaction: Transaction): string | null {
  * 이다. 두 필드가 서로 독립으로 `nullable` 이라 금액만 오는 경우도 막지 않는다 —
  * 금액이 있으면 줄을 그리고 비율은 있을 때만 뒤에 붙인다.
  *
- * `realizedProfitRate` 는 `Percent` 계열(이미 백분율)이라 `formatSignedRate` 다
- * (contracts C18). `formatSignedPercent` 를 쓰면 100 배로 나온다.
+ * `realizedProfitRate` 는 `Percent` 계열(이미 백분율)이라 `formatSignedAmountWithRate`
+ * 의 `rate` 자리에 그대로 넘긴다 (contracts C18). `Ratio` 계열(`formatSignedPercent`
+ * 가 다루는 값)로 착각해 100 을 곱하면 100 배로 나온다.
  */
 function realizedProfitLine(
   transaction: Transaction,
@@ -115,14 +116,11 @@ function realizedProfitLine(
   if (realizedProfit === null) {
     return null;
   }
-  const amount = `${formatSignedAmount(realizedProfit)}원`;
-  return {
-    text:
-      realizedProfitRate === null
-        ? `실현손익 ${amount}`
-        : `실현손익 ${amount} · ${formatSignedRate(realizedProfitRate)}`,
-    direction: getPriceDirection(realizedProfit),
-  };
+  const text =
+    realizedProfitRate === null
+      ? `실현손익 ${formatSignedAmount(realizedProfit)}원`
+      : `실현손익 ${formatSignedAmountWithRate(realizedProfit, realizedProfitRate)}`;
+  return { text, direction: getPriceDirection(realizedProfit) };
 }
 
 type TransactionListProps = {

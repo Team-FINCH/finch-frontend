@@ -1,7 +1,6 @@
 import {
   formatAmount,
-  formatSignedAmount,
-  formatSignedRate,
+  formatSignedAmountWithRate,
   getPriceDirection,
   type PriceDirection,
 } from '@/shared/lib/formatNumber';
@@ -65,9 +64,7 @@ export function StockHoldingBox({ holding, onPress }: StockHoldingBoxProps) {
           className={`flex-none text-body-1 font-semibold whitespace-nowrap tabular-nums ${profitClass}`}
         >
           {hasProfit
-            ? `${formatSignedAmount(evaluationProfit)}원 (${formatSignedRate(
-                evaluationProfitRate,
-              )})`
+            ? formatSignedAmountWithRate(evaluationProfit, evaluationProfitRate)
             : '—'}
         </span>
         <span

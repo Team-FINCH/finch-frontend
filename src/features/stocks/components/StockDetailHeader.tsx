@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatKstShortTime } from '@/shared/lib/formatDate';
 import {
   formatAmount,
-  formatSignedAmount,
-  formatSignedRate,
+  formatSignedAmountWithRate,
   getPriceDirection,
   type PriceDirection,
 } from '@/shared/lib/formatNumber';
@@ -157,8 +156,7 @@ export function StockDetailHeader({
               <span
                 className={`text-body-1 font-medium whitespace-nowrap tabular-nums ${changeClass}`}
               >
-                {formatSignedAmount(changeAmount)}원 ·{' '}
-                {formatSignedRate(changeRate)}
+                {formatSignedAmountWithRate(changeAmount, changeRate)}
               </span>
               <span className="text-[12px] whitespace-nowrap text-text-muted">
                 {formatKstShortTime(asOf)} 기준

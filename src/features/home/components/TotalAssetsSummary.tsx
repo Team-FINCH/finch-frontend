@@ -4,8 +4,7 @@ import { ROUTES } from '@/shared/config/routes';
 import { formatKstMonthDayTime } from '@/shared/lib/formatDate';
 import {
   formatAmount,
-  formatSignedAmount,
-  formatSignedRate,
+  formatSignedAmountWithRate,
   getPriceDirection,
 } from '@/shared/lib/formatNumber';
 import { RollingNumber } from '@/shared/ui/RollingNumber';
@@ -127,8 +126,11 @@ export function TotalAssetsSummary({
                토큰을 고치면 같은 크기를 쓰는 다른 화면이 함께 움직인다. */
             className={`mt-2.5 text-body-2 leading-[21px] font-medium whitespace-nowrap tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
           >
-            평가손익 {formatSignedAmount(evaluationTotals.profit)}원 ·{' '}
-            {formatSignedRate(evaluationTotals.rate)}
+            평가손익{' '}
+            {formatSignedAmountWithRate(
+              evaluationTotals.profit,
+              evaluationTotals.rate,
+            )}
           </p>
           <p className="mt-2 text-caption text-text-muted">
             {formatKstMonthDayTime(account.data.asOf)} 기준

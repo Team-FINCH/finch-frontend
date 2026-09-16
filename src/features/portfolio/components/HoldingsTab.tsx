@@ -9,8 +9,7 @@ import {
 } from '@/shared/lib/applyQuotes';
 import {
   formatAmount,
-  formatSignedAmount,
-  formatSignedRate,
+  formatSignedAmountWithRate,
   getPriceDirection,
 } from '@/shared/lib/formatNumber';
 import { type Holding, type PortfolioSort } from '@/shared/types/portfolio';
@@ -135,8 +134,7 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
         <span
           className={`text-body-1 font-semibold tabular-nums ${DIRECTION_TEXT_CLASS[direction]}`}
         >
-          {formatSignedAmount(totalProfit)}원 (
-          {formatSignedRate(totalProfitRate)})
+          {formatSignedAmountWithRate(totalProfit, totalProfitRate)}
         </span>
       </div>
       <div className="mt-3 flex items-center justify-between gap-3">
@@ -286,7 +284,11 @@ function HoldingRow({ holding, evaluationTotal }: HoldingRowProps) {
           >
             {evaluationProfit === null || evaluationProfitRate === null
               ? '등락 없음'
-              : `${formatSignedAmount(evaluationProfit)} (${formatSignedRate(evaluationProfitRate)})`}
+              : formatSignedAmountWithRate(
+                  evaluationProfit,
+                  evaluationProfitRate,
+                  '',
+                )}
           </span>
         </span>
       </span>

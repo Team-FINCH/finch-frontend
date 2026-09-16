@@ -76,6 +76,37 @@ export function formatSignedRate(rate: number, fractionDigits = 2): string {
   return `${sign}${Math.abs(rate).toFixed(fractionDigits)}%`;
 }
 
+/**
+ * 손익 금액과 등락률(`Percent`, 이미 백분율)을 "부호금액(비율)" 한 형식으로 묶는다
+ * (2026-09-16 결정). `-14,000원 (4.33%)` · `+1,200 (0.34%)` · `0원 (0.00%)`
+ *
+ * 예전에는 호출부가 `formatSignedAmount` 와 `formatSignedRate` 를 따로 불러 문자열을
+ * 이어 붙였다 — 그러면 `-14,000원 (-4.33%)` 처럼 부호가 두 번 나오거나, 구분자가
+ * 화면마다 괄호·가운뎃점으로 갈렸다. 부호 판정을 여기 한 곳에 모아 그 둘을 막는다.
+ *
+ * **부호는 금액 쪽 값으로만 정한다.** 괄호 안 비율은 항상 절댓값이다. 금액과 비율은
+ * 보통 같은 방향이지만 반올림 경계에서 갈릴 수 있다 — 이를테면 금액은 반올림해
+ * `0` 인데 비율은 `-0.001%` 처럼 아주 작은 음수로 남는 경우다. 화면이 손익을
+ * 대표하는 값은 금액이고(이 표기의 라벨도 "평가손익"·"실현손익"이지 "수익률"이
+ * 아니다) 호출부도 지금까지 `getPriceDirection` 을 금액으로 판정해 왔으므로, 그
+ * 기준을 그대로 따른다.
+ *
+ * `unit` 은 금액 뒤에 붙는 단위 라벨이다. 기본은 `원` 이고, 폭이 좁아 단위를
+ * 생략하던 목록 행(`formatAmount` 주석 참고)은 빈 문자열을 넘긴다.
+ *
+ * **`rate` 는 `Percent` 계열이다.** `Ratio`(0~1 소수)를 그대로 넘기면 100 배로
+ * 나온다 — `formatSignedPercent` 를 감싸는 자매 함수는 아직 없다. 지금 이 형식을
+ * 쓰는 자리가 전부 `Percent` 계열(`evaluationProfitRate`·`changeRate`·
+ * `realizedProfitRate`)이라 필요해지면 그때 추가한다.
+ */
+export function formatSignedAmountWithRate(
+  amount: number,
+  rate: number,
+  unit = '원',
+): string {
+  return `${formatSignedAmount(amount)}${unit} (${Math.abs(rate).toFixed(2)}%)`;
+}
+
 /** 등락 방향. 색은 이 값으로 의미 토큰을 고른다. 색 이름을 직접 쓰지 않는다. */
 export type PriceDirection = 'rise' | 'fall' | 'flat';
 

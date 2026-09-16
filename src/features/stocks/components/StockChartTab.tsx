@@ -3,8 +3,7 @@ import { useState } from 'react';
 import {
   formatAmount,
   formatKrw,
-  formatSignedAmount,
-  formatSignedRate,
+  formatSignedAmountWithRate,
   getPriceDirection,
   type PriceDirection,
 } from '@/shared/lib/formatNumber';
@@ -230,9 +229,10 @@ export function StockChartTab({
                 holding.evaluationProfitRate === null ? (
                   <NoValue label="시세가 없어 평가손익을 계산할 수 없음" />
                 ) : (
-                  `${formatSignedAmount(
+                  formatSignedAmountWithRate(
                     holding.evaluationProfit,
-                  )}원 (${formatSignedRate(holding.evaluationProfitRate)})`
+                    holding.evaluationProfitRate,
+                  )
                 )
               }
               valueClassName={`font-bold ${
