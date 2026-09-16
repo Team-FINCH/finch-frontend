@@ -9,6 +9,7 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
 import { Button, LinkButton } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
+import { StockLogo } from '@/shared/ui/StockLogo';
 
 import { useConfirmWikiFact } from '../api/useConfirmWikiFact';
 import { useDeleteWikiFact } from '../api/useDeleteWikiFact';
@@ -377,15 +378,18 @@ function ThesisList({ theses, onEditThesis }: ThesisListProps) {
               onClick={() => setOpenId(isOpen ? null : thesis.id)}
               className="flex w-full items-center gap-2.5 py-3.75 text-left"
             >
-              <span className="flex size-8 flex-none items-center justify-center rounded-[11px] bg-primary-soft text-[13px] font-semibold text-text-secondary">
-                {/*
-                  이름이 없으면 첫 글자가 `0` 하나뿐이라 어느 종목인지 못 읽는다.
-                  코드 앞 두 자리로 대체한다 (이슈 #42 안서진 님 표시 규칙).
-                */}
-                {isUnowned
-                  ? thesis.ticker.slice(0, 2)
-                  : thesis.name.slice(0, 1)}
-              </span>
+              {/*
+                이름을 못 찾았으면 `stockName` 을 `null` 로 넘긴다. 뱃지가 그때
+                코드 앞 두 자리를 넣는다 — 첫 글자가 `0` 하나뿐이면 어느 종목인지
+                못 읽기 때문이다 (이슈 #42 표시 규칙). 그 규칙은 FINCH-299 가
+                `StockInitialBadge` 로 올렸다. 로고가 있는 종목이면 애초에 로고가
+                나오므로 이 갈래까지 오지 않는다.
+              */}
+              <StockLogo
+                stockCode={thesis.ticker}
+                stockName={isUnowned ? null : thesis.name}
+                size="dense"
+              />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span
                   className={`truncate text-body-1 font-semibold tracking-[-0.01em] ${

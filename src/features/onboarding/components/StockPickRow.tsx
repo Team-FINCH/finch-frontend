@@ -1,3 +1,5 @@
+import { StockLogo } from '@/shared/ui/StockLogo';
+
 /**
  * 온보딩의 종목 한 줄 (design.md §7.16 "종목 리스트"·"선택 인디케이터").
  *
@@ -34,12 +36,7 @@ export function StockPickRow({
       data-stock-code={stockCode}
       className="flex w-full items-center gap-3 border-b border-border py-2.75 text-left"
     >
-      <span
-        aria-hidden="true"
-        className="flex size-9 flex-none items-center justify-center rounded-md bg-surface-soft text-caption font-bold text-text-secondary"
-      >
-        {stockName.slice(0, 1)}
-      </span>
+      <StockLogo stockCode={stockCode} stockName={stockName} size="sub" />
 
       <span className="flex min-w-0 flex-1 flex-col gap-0.25">
         <span className="flex min-w-0 items-center gap-1.5">
