@@ -1,11 +1,27 @@
-import { Suspense } from 'react';
-import { Outlet, ScrollRestoration } from 'react-router-dom';
+import { Suspense, useEffect } from 'react';
+import {
+  Navigate,
+  Outlet,
+  ScrollRestoration,
+  useLocation,
+} from 'react-router-dom';
 
+import { ROUTES } from '@/shared/config/routes';
 import { ToastViewport } from '@/shared/ui/Toast';
 
+import { needsBootLanding } from '../bootLanding';
 import { RouteFallback } from '../RouteFallback';
 
 import { AiFloatingOverlay } from './AiFloatingOverlay';
+
+/**
+ * 이 문서에서 재진입 착지를 이미 처리했는지 (FINCH-295).
+ *
+ * **모듈 스코프에 둔다.** "문서 하나에 한 번" 이 정확히 이 모듈의 수명이다.
+ * 컴포넌트 상태에 두면 StrictMode 의 이중 마운트에서 초기화되고, ref 에 두면
+ * 렌더 중에 값을 바꾸게 되어 렌더가 순수하지 않게 된다.
+ */
+let hasHandledBootLanding = false;
 
 /**
  * 모든 라우트의 바깥 레이아웃. 화면을 그리지 않고 두 가지만 한다.
@@ -25,8 +41,29 @@ import { AiFloatingOverlay } from './AiFloatingOverlay';
  *    `navigate` 와 함께 뜨는 것)가 전환 도중 사라진다. `Outlet` 바깥이라
  *    라우트가 바뀌어도 이 요소는 언마운트되지 않는다.
  * 5. **모바일 폭 기둥** (FINCH-269). 아래 주석을 본다.
+ * 6. **재진입 착지** (FINCH-295). 아래 주석을 본다.
  */
 export function RootLayout() {
+  const { pathname } = useLocation();
+
+  /*
+   * 문서를 새로 받은 첫 렌더에서만 판정한다. 판정이 서는 순간 `<Navigate>` 를
+   * 대신 그리므로 **원래 주소의 화면은 마운트되지 않는다** — 뜬 뒤에 쫓아내면
+   * 그 화면의 쿼리가 한 번 나갔다 버려진다.
+   *
+   * 표식은 렌더가 아니라 이펙트에서 세운다. 렌더 중에 세우면 StrictMode 의 이중
+   * 렌더에서 두 번째 호출이 이미 처리된 것으로 보고 착지를 건너뛴다.
+   */
+  const shouldLandOnHome = !hasHandledBootLanding && needsBootLanding(pathname);
+
+  useEffect(() => {
+    hasHandledBootLanding = true;
+  }, []);
+
+  if (shouldLandOnHome) {
+    return <Navigate to={ROUTES.home} replace />;
+  }
+
   return (
     <>
       <ScrollRestoration />

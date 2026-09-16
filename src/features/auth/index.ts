@@ -7,6 +7,5 @@ export { LogoutButton } from './components/LogoutButton';
 export { RequireAuth } from './components/RequireAuth';
 export { SessionCard } from './components/SessionCard';
 export { useRestoreSession } from './hooks/useRestoreSession';
-export { toSafeRedirectPath } from './lib/oauthState';
 export { installAuthBridge } from './model/installAuthBridge';
 export { useAuthSession, type AuthStatus } from './model/useAuthSession';

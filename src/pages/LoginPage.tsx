@@ -1,11 +1,7 @@
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 
-import {
-  KakaoLoginButton,
-  LoginHero,
-  toSafeRedirectPath,
-  useAuthSession,
-} from '@/features/auth';
+import { KakaoLoginButton, LoginHero, useAuthSession } from '@/features/auth';
+import { ROUTES } from '@/shared/config/routes';
 
 /**
  * 로그인 화면 (`/login`, 프로토타입 `isLanding`). 자체 회원가입 폼은 없다 —
@@ -21,17 +17,22 @@ import {
  * 높이는 `h-dvh` 가 아니라 `min-h-dvh` 다. 화면이 짧은 기기에서 히어로가
  * 뷰포트보다 길어지는데, 높이를 못 박으면 약관 문구가 잘린 채 스크롤도 되지
  * 않는다.
+ *
+ * ## 착지는 언제나 홈이다
+ *
+ * **`?redirect=` 를 읽지 않는다** (FINCH-295). 전에는 이 화면이 그 값으로
+ * 착지점을 정했고 `RequireAuth` 가 값을 실어 보냈다. 이제 보내는 쪽이 없고,
+ * 주소창에 손으로 붙여도 무시한다 — 읽는 자리를 남겨 두면 "언제나 홈" 을 비껴갈
+ * 구멍이 그대로 남는다.
  */
 export function LoginPage() {
-  const [searchParams] = useSearchParams();
   const status = useAuthSession((state) => state.status);
-  const redirectTo = searchParams.get('redirect');
 
   // 이미 로그인한 사람에게 버튼을 보여 주지 않는다. 눌러도 카카오가 곧바로
   // 되돌려보내지만 그 사이 화면이 두 번 깜빡인다.
   // unknown 일 때는 판단하지 않는다. 아직 모르는 것이지 비로그인이 아니다.
   if (status === 'authenticated') {
-    return <Navigate to={toSafeRedirectPath(redirectTo)} replace />;
+    return <Navigate to={ROUTES.home} replace />;
   }
 
   return (
@@ -39,7 +40,7 @@ export function LoginPage() {
       <LoginHero />
 
       <div className="flex-none px-6.5 pb-[calc(1.625rem+env(safe-area-inset-bottom))]">
-        <KakaoLoginButton redirectTo={redirectTo} />
+        <KakaoLoginButton />
 
         {/*
           약관 페이지는 이번 범위에 없다. 그래서 밑줄 표기는 프로토타입대로
