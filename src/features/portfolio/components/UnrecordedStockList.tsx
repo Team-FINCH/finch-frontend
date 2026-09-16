@@ -1,5 +1,6 @@
 import { formatAmount, formatKrw } from '@/shared/lib/formatNumber';
 import { type Holding } from '@/shared/types/portfolio';
+import { StockLogo } from '@/shared/ui/StockLogo';
 
 /**
  * "아직 적지 않은 종목" — 매수 이유를 남기지 않은 보유 종목 (프로토타입
@@ -59,9 +60,11 @@ export function UnrecordedStockList({
             onClick={() => onRecord(holding)}
             className="flex w-full items-center gap-3 py-2.75 text-left"
           >
-            <span className="flex size-8 flex-none items-center justify-center rounded-[11px] bg-primary-soft text-[13px] font-semibold text-text-secondary">
-              {holding.stockName.slice(0, 1)}
-            </span>
+            <StockLogo
+              stockCode={holding.stockCode}
+              stockName={holding.stockName}
+              size="dense"
+            />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="truncate text-[15px] leading-5 font-medium text-text-primary">
                 {holding.stockName}

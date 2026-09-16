@@ -18,6 +18,7 @@ import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
+import { StockLogo } from '@/shared/ui/StockLogo';
 
 import { usePortfolioAttribution } from '../api/usePortfolioAttribution';
 
@@ -201,12 +202,13 @@ export function CauseTab() {
                   key={row.ticker}
                   className="flex items-center gap-3 py-3.5"
                 >
-                  <span
-                    aria-hidden="true"
-                    className="flex size-9 flex-none items-center justify-center rounded-[11px] bg-surface-soft text-[14px] font-bold text-text-secondary"
-                  >
-                    {row.name.slice(0, 1)}
-                  </span>
+                  {/* 로고가 없는 종목이면 이니셜 뱃지로 돌아간다 (FINCH-299).
+                      `ticker` 는 `StockCodeSchema` 라 6자리가 검증된 값이다. */}
+                  <StockLogo
+                    stockCode={row.ticker}
+                    stockName={row.name}
+                    size="sub"
+                  />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.75">
                     <span className="truncate text-body-1 font-medium text-text-primary">
                       {row.name}

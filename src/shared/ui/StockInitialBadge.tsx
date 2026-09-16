@@ -64,19 +64,21 @@ const TINT_CLASS = [
 const NEUTRAL_CLASS = 'bg-surface-soft text-text-secondary';
 
 /**
- * 치수 두 벌. 프로토타입 실측이다.
- *
- * - `md` — 목록 행의 44x44 (`.th`, 반경 14px = `rounded-md`). 홈·포트폴리오·주문
- * - `sm` — 브리핑 행 머리의 22x22. 한 줄 안에 이름·등락률과 나란히 서는 자리라
- *   목록 행 것을 줄여 쓸 수 없다
- */
-/**
  * 뱃지에만 있는 것 — 모서리와 글자 크기. 자리 크기는 `stockBadgeSize` 가 갖는다
  * (로고와 나눠 쓰는 값이라 컴포넌트 밖에 있다). 로고는 SVG 가 이미 원형이라
  * 모서리를 줄 일이 없다.
  */
 const SIZE_CLASS = {
   md: 'rounded-md text-body-1',
+  /**
+   * 36px·32px 은 FINCH-299 가 더했다. 전에 손으로 그리던 값이
+   * `rounded-[11px]`·`text-[14px]`·`text-[13px]` 이었는데, 같은 36px 자리인데도
+   * `CauseTab` 은 11px, `StockPickRow` 는 `rounded-md`(14px)라 둘로 갈려 있었다.
+   * 임의값을 버리고 계단 토큰으로 맞춘다 — 11px 은 `--radius-sm`(10px)과
+   * `--radius-12`(12px) 사이라 계단에 자리가 없는 값이었다.
+   */
+  sub: 'rounded-md text-label',
+  dense: 'rounded-12 text-caption',
   sm: 'rounded-xs text-[11px]',
 } as const;
 
@@ -108,9 +110,13 @@ type StockInitialBadgeProps = {
   /** 6자리 문자열. **색을 고르는 값이다** — 이름이 아니라 코드로 고른다 */
   stockCode: string;
   /**
-   * 첫 글자를 뱃지에 넣는다. 아직 모르면 `null` — 그때는 중립색에 종목코드
-   * 첫 글자를 넣는다. 이름이 도착하면 색이 붙지만 **자리와 크기는 그대로**라
+   * 첫 글자를 뱃지에 넣는다. 아직 모르면 `null` — 그때는 중립색에 **종목코드 앞
+   * 두 자리**를 넣는다. 이름이 도착하면 색이 붙지만 **자리와 크기는 그대로**라
    * 목록이 밀리지 않는다.
+   *
+   * **한 글자가 아니라 두 자리인 이유** (GitLab 이슈 #42 표시 규칙, 위키 테제에서
+   * 올라왔다 — FINCH-299). 종목코드는 `005930` 처럼 앞자리가 `0` 인 것이
+   * 많아 첫 글자만 넣으면 뱃지가 죄다 `0` 이 된다. 어느 종목인지 못 읽는다.
    */
   stockName: string | null;
   size?: StockBadgeSize;
@@ -131,7 +137,7 @@ export function StockInitialBadge({
       aria-hidden="true"
       className={`flex flex-none items-center justify-center font-bold ${STOCK_BADGE_BOX_CLASS[size]} ${SIZE_CLASS[size]} ${toneClass} ${className}`}
     >
-      {(stockName ?? stockCode).slice(0, 1)}
+      {stockName === null ? stockCode.slice(0, 2) : stockName.slice(0, 1)}
     </span>
   );
 }
