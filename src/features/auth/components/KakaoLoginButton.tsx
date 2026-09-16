@@ -4,18 +4,17 @@ import { Button } from '@/shared/ui/Button';
 import { buildKakaoAuthorizeUrl } from '../lib/buildKakaoAuthorizeUrl';
 import { createOauthState } from '../lib/oauthState';
 
-type KakaoLoginButtonProps = {
-  /** 로그인 후 되돌아갈 앱 내부 경로. */
-  redirectTo: string | null;
-};
-
-export function KakaoLoginButton({ redirectTo }: KakaoLoginButtonProps) {
+/**
+ * **되돌아갈 경로를 받지 않는다** (FINCH-295). 로그인 착지는 언제나 홈이라
+ * 고를 것이 없다 — 이 버튼이 경로를 받으면 "언제나 홈" 을 비껴갈 구멍이 생긴다.
+ */
+export function KakaoLoginButton() {
   const isConfigured = KAKAO_REST_API_KEY !== '';
 
   // navigate 가 아니라 location.assign 이다. 카카오는 우리 앱의 라우트가 아니라
   // 다른 오리진이라 라우터가 다룰 수 있는 대상이 아니다.
   const handleClick = () => {
-    const state = createOauthState(redirectTo);
+    const state = createOauthState();
     window.location.assign(buildKakaoAuthorizeUrl(state));
   };
 

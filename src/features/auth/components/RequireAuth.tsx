@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 
 import { ROUTES } from '@/shared/config/routes';
 import { PageMain } from '@/shared/ui/PageMain';
@@ -17,8 +17,6 @@ import { useAuthSession } from '../model/useAuthSession';
  */
 export function RequireAuth() {
   const status = useAuthSession((state) => state.status);
-  const sessionEndReason = useAuthSession((state) => state.sessionEndReason);
-  const location = useLocation();
 
   // unknown 을 unauthenticated 로 합치면 새로고침할 때마다 로그인 화면이 번쩍인다.
   if (status === 'unknown') {
@@ -32,29 +30,16 @@ export function RequireAuth() {
 
   if (status === 'unauthenticated') {
     /**
-     * 스스로 로그아웃했으면 돌아갈 곳을 기억하지 않는다 (FINCH-260).
-     * 지금 서 있는 자리는 "보려다 못 본 화면" 이 아니라 **떠나려고 버튼을 누른
-     * 자리**다. 이것을 기억하면 마이페이지에서 로그아웃한 사람이 다시 로그인했을 때
-     * 홈이 아니라 마이페이지로 떨어진다.
+     * **보려던 화면을 기억하지 않는다** (FINCH-295). 스스로 로그아웃했든
+     * 세션이 끊겼든 `/login` 하나로 보내고, 로그인하면 홈에서 시작한다.
      *
-     * 홈이 아니라 `/login` 으로 보낸다. 로그인 화면은 착지점을 `redirect` 로 정하고
-     * 그것이 없으면 `toSafeRedirectPath` 가 홈(`DEFAULT_REDIRECT_TO`)을 준다 —
-     * 여기서 홈을 한 번 더 적으면 기본 착지점이 두 파일에 갈려 적힌다.
+     * 전에는 세션이 끊긴 갈래만 `?redirect=` 에 지금 경로를 실어 보냈다
+     * (FINCH-260 이 로그아웃 갈래를 그 대상에서 뺐다). 착지가 갈래마다
+     * 다르면 같은 로그인 화면이 어디서 왔는지에 따라 다른 곳으로 떨어지는데,
+     * 이제 그 규칙 자체를 없앴다 — 재진입은 언제나 홈이다
+     * (`app/bootLanding.ts`).
      */
-    if (sessionEndReason === 'signedOut') {
-      return <Navigate to={ROUTES.login} replace />;
-    }
-
-    // 세션이 끊긴 것이지 떠난 것이 아니다. 원래 가려던 곳을 들고 간다. 이 값은
-    // 카카오 왕복 동안 state 에 실려 살아남는다.
-    // hash 까지 붙이는 이유 — 빼면 앵커나 딥링크로 들어온 사람만 다른 곳에 떨어진다.
-    const requestedPath = `${location.pathname}${location.search}${location.hash}`;
-    return (
-      <Navigate
-        to={`${ROUTES.login}?redirect=${encodeURIComponent(requestedPath)}`}
-        replace
-      />
-    );
+    return <Navigate to={ROUTES.login} replace />;
   }
 
   return <Outlet />;

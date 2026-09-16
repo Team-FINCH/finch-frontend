@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { isHttpError } from '@/shared/api';
 import { KAKAO_REDIRECT_URI } from '@/shared/config/env';
+import { ROUTES } from '@/shared/config/routes';
 import { LinkButton } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { Skeleton } from '@/shared/ui/Skeleton';
@@ -34,13 +35,13 @@ type KakaoCallbackProps = {
    * 로그인 성공 후 갈 곳을 부르는 쪽이 고른다.
    *
    * **인증이 온보딩을 알지 않게 하는 자리다** (컨벤션 — feature 끼리 직접
-   * import 하지 않고 `pages` 에서 조립한다). 넘기지 않으면 로그인 전에 보려던
-   * 화면(`redirectTo`)으로 간다.
+   * import 하지 않고 `pages` 에서 조립한다). 넘기지 않으면 홈으로 간다.
+   *
+   * **로그인 전에 보려던 화면으로 돌아가지 않는다** (FINCH-295). 전에는
+   * `redirectTo` 를 state 에 실어 왕복시켰는데, 착지가 언제나 홈으로 정해지면서
+   * 운반할 값이 사라졌다 (`lib/oauthState.ts`).
    */
-  resolveDestination?: (result: {
-    isNewUser: boolean;
-    redirectTo: string;
-  }) => string;
+  resolveDestination?: (result: { isNewUser: boolean }) => string;
 };
 
 /**
@@ -99,7 +100,7 @@ export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
    * 옵션 `onSuccess` 를 `Mutation.execute()` 가 **프로미스를 풀기 전에** 부르기
    * 때문이다. 이동하는 곳이 `RequireAuth` 뒤라도 로그인 화면으로 튕기지 않는다.
    */
-  function runExchange(authorizationCode: string, redirectTo: string): void {
+  function runExchange(authorizationCode: string): void {
     void mutateAsync({
       authorizationCode,
       // 인가 때 쓴 값과 같아야 카카오가 토큰으로 바꿔 준다 (apiSpec §2.1).
@@ -109,9 +110,10 @@ export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
         // replace 로 이동한다. 기록에 남기면 뒤로가기로 이미 소진된 코드가 붙은
         // URL 로 되돌아와 실패 화면을 본다.
         navigate(
-          resolveDestination?.({ isNewUser: data.isNewUser, redirectTo }) ??
-            redirectTo,
-          { replace: true },
+          resolveDestination?.({ isNewUser: data.isNewUser }) ?? ROUTES.home,
+          {
+            replace: true,
+          },
         );
       })
       .catch((caught: unknown) => {
@@ -137,7 +139,7 @@ export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
       return;
     }
 
-    runExchange(preflight.authorizationCode, preflight.redirectTo);
+    runExchange(preflight.authorizationCode);
     // runExchange 는 매 렌더 새 참조라 의존성에서 뺀다 — preflight 만 본다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preflight]);
@@ -158,7 +160,7 @@ export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
   return (
     <Card>
       <p className="text-sm text-text-primary">{describeFailure(failure)}</p>
-      <LinkButton to="/login" replace className="mt-3">
+      <LinkButton to={ROUTES.login} replace className="mt-3">
         로그인 화면으로
       </LinkButton>
     </Card>

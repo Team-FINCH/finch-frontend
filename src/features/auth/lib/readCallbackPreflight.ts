@@ -1,4 +1,4 @@
-import { readOauthRedirectTo } from './oauthState';
+import { isOauthStateMatched } from './oauthState';
 
 export type CallbackFailure =
   /** 카카오 인가 단계에서 끝났다. 동의 취소가 대부분이다. */
@@ -11,7 +11,7 @@ export type CallbackFailure =
   | { kind: 'exchangeFailed'; message: string };
 
 export type CallbackPreflight =
-  | { kind: 'ready'; authorizationCode: string; redirectTo: string }
+  | { kind: 'ready'; authorizationCode: string }
   | { kind: 'failed'; failure: CallbackFailure };
 
 /**
@@ -38,10 +38,9 @@ export function readCallbackPreflight(
   }
 
   // 대조는 교환보다 먼저 한다. 확인되지 않은 코드는 서버로 보내지 않는다.
-  const redirectTo = readOauthRedirectTo(searchParams.get('state'));
-  if (redirectTo === null) {
+  if (!isOauthStateMatched(searchParams.get('state'))) {
     return { kind: 'failed', failure: { kind: 'stateMismatch' } };
   }
 
-  return { kind: 'ready', authorizationCode, redirectTo };
+  return { kind: 'ready', authorizationCode };
 }
