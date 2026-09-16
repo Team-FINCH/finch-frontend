@@ -7,9 +7,13 @@ import { type AiAttributionPeriod } from '@/shared/types/ai/attribution';
 import { postAiAttribution } from './postAiAttribution';
 
 /**
- * `tab=cause` 탭(수익률 분석, AI 슬롯 2번). 홈 화면도 같은 슬롯을 쓰지만 컴포넌트가
- * 하나이므로 각 화면이 각자 요청하고 응답을 받은 화면의 `requestId` 로 피드백을
- * 붙인다(ia.md §4 "피드백 슬롯 배치 규칙").
+ * `tab=cause` 탭(수익률 분석, AI 슬롯 2번).
+ *
+ * **지금 이 훅을 쓰는 화면은 포트폴리오 탭 하나뿐이다.** `screenDesign.md`(L256)가
+ * 이 슬롯을 "홈, 포트폴리오 `?tab=cause`" 두 곳에 두기로 적어 뒀지만 홈은 아직
+ * 붙지 않았다 — 전에 이 자리에 "홈 화면도 같은 슬롯을 쓴다"고 적혀 있던 것은 그
+ * 계획을 현재형으로 옮겨 적은 것이었다. 홈이 붙으면 각 화면이 각자 요청하고 응답을
+ * 받은 화면의 `requestId` 로 피드백을 붙인다(ia.md §4 "피드백 슬롯 배치 규칙").
  *
  * **기간이 키에 실린다.** `queryKeys.ai.attribution(period)` 가 처음부터 파라미터를
  * 받게 돼 있었고(쓰는 쪽이 `'1d'` 로 못 박고 있었을 뿐이다) 이제 실제로 채운다.
