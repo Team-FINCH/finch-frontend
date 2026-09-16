@@ -118,27 +118,28 @@ function toChatErrorMessage(
       retryText,
       retryCount: 0,
       retryIdempotencyKey: null,
+      // 애초에 재시도가 있던 적이 없다 — 재시도 소진이 아니라 일일 한도다.
+      retriesExhausted: false,
     };
   }
 
   const codeRetryable = isChatJobFailureRetryable(failure);
   const hasRetriesLeft = retryCount < MAX_CHAT_RETRY_COUNT;
   const retryable = codeRetryable && hasRetriesLeft;
+  const retriesExhausted = codeRetryable && !hasRetriesLeft;
 
   return {
     id: createMessageId(),
     role: 'assistant-error',
     // 재시도를 다 썼으면 서버 문구 대신 입력창으로 유도하는 문구로 바꾼다 —
     // 남은 재시도가 없다는 사실이 서버 메시지보다 중요하다.
-    message:
-      codeRetryable && !hasRetriesLeft
-        ? RETRY_EXHAUSTED_MESSAGE
-        : failure.message,
+    message: retriesExhausted ? RETRY_EXHAUSTED_MESSAGE : failure.message,
     retryable,
     retryText,
     retryCount,
     // 버튼이 없으면 들고 있을 이유도 없다.
     retryIdempotencyKey: retryable ? retryIdempotencyKey : null,
+    retriesExhausted,
   };
 }
 
@@ -388,15 +389,28 @@ export function ChatPage() {
   const isAwaitingAnswer = chatJobMutation.isPending || pendingJob !== null;
 
   /**
-   * 종목 진입 추천 칩 (FINCH-286). 이 방문에서 메시지를 한 번이라도 보내면
-   * 계속 숨긴다 — `messages.length` 만 보면 안 된다. 답이 하나 오면 `messages`
-   * 가 다시 비지 않아 그 뒤로도 계속 보여야 할 이유가 없어진다.
+   * 종목 진입 추천 칩 (FINCH-286, 311). 이 방문에서 메시지를 한 번이라도
+   * 보내면 일단 숨긴다 — `messages.length` 만 보면 안 된다. 답이 하나 오면
+   * `messages` 가 다시 비지 않아 그 뒤로도 계속 보여야 할 이유가 없어진다.
+   *
+   * **재시도가 소진된 실패는 예외다.** 그 실패는 답이 온 것이 아니라 사용자가
+   * 막힌 자리라 — 입력창 말고는 갈 곳이 없던 것을 칩이 대신한다. 판정은
+   * **대화의 마지막 말풍선**만 본다 — 지금 막 끝난 시도의 결과가 항상 거기 있고,
+   * 칩을 눌러 다시 보내면 그 즉시 마지막이 사용자 말풍선(또는 새 진행 중 상태)이
+   * 되어 이 조건이 저절로 꺼진다. 그 재시도도 실패해 다시 소진되면 또 켜진다 —
+   * `chipsSentThisVisit` 이 한 번 켜지면 계속 켜져 있는 것과 달리, 이 조건은
+   * 매번 실패 여부로 다시 계산된다.
    */
   const [chipsSentThisVisit, setChipsSentThisVisit] = useState(false);
+  const lastMessage = messages.at(-1);
+  const retriesExhausted =
+    lastMessage !== undefined &&
+    lastMessage.role === 'assistant-error' &&
+    lastMessage.retriesExhausted;
   const showContextChips =
     chatContext.screen === 'stock_detail' &&
     messages.length > 0 &&
-    !chipsSentThisVisit;
+    (!chipsSentThisVisit || retriesExhausted);
 
   /**
    * 빈 상태로 떨어뜨릴지. **기다리는 job 이 있으면 빈 상태가 아니다**

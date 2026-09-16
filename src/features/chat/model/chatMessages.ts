@@ -73,6 +73,15 @@ export type ChatMessage =
        * 요청이다. 같은 키를 다시 쓰면 서버가 저장해 둔 실패를 그대로 되돌려 준다.
        */
       retryIdempotencyKey: IdempotencyKey | null;
+      /**
+       * 재시도를 다 써서 `retryable` 이 `false` 로 떨어졌는가 (FINCH-311).
+       * `retryable` 이 `false` 인 이유는 셋이다 — 재시도 소진 · 일일 예산 소진 ·
+       * 애초에 재시도 불가능한 코드. 이 값은 그중 **재시도 소진** 만 가리킨다 —
+       * 사용자가 갈 곳이 없어지는 자리는 이것뿐이다. 일일 예산은 자정까지 버튼이
+       * 없는 게 맞고, 애초에 안 되는 코드는 첫 시도부터 막혀 있었다. 둘 다 종목
+       * 진입 추천 칩을 다시 띄울 이유가 아니다(`ChatPage.showContextChips`).
+       */
+      retriesExhausted: boolean;
     };
 
 /**
