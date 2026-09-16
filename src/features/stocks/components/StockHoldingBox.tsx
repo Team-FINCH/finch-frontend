@@ -7,15 +7,20 @@ import {
 import { type StockHoldingSummary } from '@/shared/types/stock';
 
 /**
- * 내 보유 요약 (프로토타입 `d.owned` 의 눌리는 요약 카드, 새 디코드 L1710–L1719).
+ * 내 보유 요약 (프로토타입 `d.owned` 의 요약 카드, 새 디코드 L1710–L1719).
  *
- * **한 줄 요약 카드다. 키-값 상세가 아니다.** 프로토타입은 두 단계로 나눈다 —
- * 껍데기에는 `{수량}주 보유` · `평균 {평단}원` · 평가손익 한 줄만 두고, 누르면
- * 차트 탭 하단의 `내 보유 상세`(`StockChartTab` 의 `#hold-detail`)로 보낸다.
- * 전에는 상세 세 줄을 이 자리에 바로 뒀는데 그러면 카드가 갈 곳이 없어진다.
+ * **한 줄 요약 카드다. 키-값 상세가 아니다.** 껍데기에는 `{수량}주 보유` ·
+ * `평균 {평단}원` · 평가손익 한 줄만 둔다.
+ *
+ * **누르면 이동하던 동작을 걷어냈다(FINCH-301, 2026-09-16).** 프로토타입은
+ * 이 카드를 누르면 차트 탭 하단의 `내 보유 상세`(`scrollToHold`, 앵커
+ * `hold-detail`)로 스크롤했다. 그 절이 보여주던 세 값 — 보유 수량·평균 매수가·
+ * 평가손익 — 이 이 카드와 정확히 같아 절 자체를 없앴다(`StockChartTab` 참고).
+ * 도착지가 사라졌으므로 셰브런과 `onClick`, 스크롤 로직도 함께 걷어냈다 —
+ * 남겨 두면 눌러도 아무 일이 없는 죽은 버튼이 된다.
  *
  * 실측 — 면 `#F5F6F8` · 반경 12 · 안쪽 여백 15/17 · 가운데 묶음 줄 간격 4 ·
- * 제목 15px/600 · 보조 `.cp` · 평가손익 16px/600 등락색 · 오른쪽 셰브런 15px `--t3`.
+ * 제목 15px/600 · 보조 `.cp` · 평가손익 16px/600 등락색.
  * 면색 `#F5F6F8` 은 토큰이 없어 `--color-surface-soft`(`#F1F3F6`)로 그렸다 —
  * 반톤 차이라 눈에 띄지 않고, 새 색 토큰은 `shared/styles` 주인이 정한다.
  *
@@ -34,11 +39,9 @@ const DIRECTION_TEXT_CLASS: Record<PriceDirection, string> = {
 
 type StockHoldingBoxProps = {
   holding: StockHoldingSummary;
-  /** 누르면 차트 탭의 `내 보유 상세` 로 보낸다 (프로토타입 `scrollToHold`). */
-  onPress: () => void;
 };
 
-export function StockHoldingBox({ holding, onPress }: StockHoldingBoxProps) {
+export function StockHoldingBox({ holding }: StockHoldingBoxProps) {
   const { evaluationProfit, evaluationProfitRate } = holding;
   const hasProfit = evaluationProfit !== null && evaluationProfitRate !== null;
   const profitClass = hasProfit
@@ -47,11 +50,7 @@ export function StockHoldingBox({ holding, onPress }: StockHoldingBoxProps) {
 
   return (
     <section className="mt-5">
-      <button
-        type="button"
-        onClick={onPress}
-        className="flex w-full items-center gap-3 rounded-12 bg-surface-soft px-4.25 py-3.75 text-left active:bg-primary-soft"
-      >
+      <div className="flex w-full items-center gap-3 rounded-12 bg-surface-soft px-4.25 py-3.75">
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-[15px] font-semibold text-text-primary tabular-nums">
             {formatAmount(holding.quantity)}주 보유
@@ -67,13 +66,7 @@ export function StockHoldingBox({ holding, onPress }: StockHoldingBoxProps) {
             ? formatSignedAmountWithRate(evaluationProfit, evaluationProfitRate)
             : '—'}
         </span>
-        <span
-          aria-hidden="true"
-          className="flex-none text-[15px] text-text-muted"
-        >
-          ›
-        </span>
-      </button>
+      </div>
     </section>
   );
 }

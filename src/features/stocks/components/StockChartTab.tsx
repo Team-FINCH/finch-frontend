@@ -1,16 +1,7 @@
 import { useState } from 'react';
 
-import {
-  formatAmount,
-  formatKrw,
-  formatSignedAmountWithRate,
-  getPriceDirection,
-  type PriceDirection,
-} from '@/shared/lib/formatNumber';
-import {
-  type CandleInterval,
-  type StockHoldingSummary,
-} from '@/shared/types/stock';
+import { formatAmount } from '@/shared/lib/formatNumber';
+import { type CandleInterval } from '@/shared/types/stock';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
@@ -26,9 +17,15 @@ import { StockTodayGrid } from './StockTodayGrid';
 /**
  * 차트 탭 (프로토타입 `isDtChart` 블록, 새 디코드 L1748–L1830).
  *
- * 세 묶음이다 — 봉 종류 세그먼트 + 캔들 차트 · `오늘` 격자 · `내 보유 상세`.
+ * 두 묶음이다 — 봉 종류 세그먼트 + 캔들 차트 · `오늘` 격자.
  * 그리고 거래정지 종목은 **차트와 기간 탭을 아예 그리지 않는다**
  * (`d.tradableChart`, 새 디코드 L1749–L1761).
+ *
+ * **`내 보유 상세` 섹션은 걷어냈다(FINCH-301, 2026-09-16).** 프로토타입
+ * 새 디코드 L1819–L1828 에 있었지만, 보여주던 세 값 — 보유 수량·평균 매수가·
+ * 평가손익 — 이 껍데기의 요약 카드(`StockHoldingBox`)와 정확히 같아 중복이었다.
+ * 앵커 `hold-detail` 과, 그 카드를 누르면 여기로 스크롤하던 `onPress`(프로토타입
+ * `scrollToHold`)도 도착지가 없어졌으므로 함께 걷어냈다 — `StockHoldingBox` 참고.
  *
  * **`오늘` 격자는 봉 종류 탭과 무관하게 일봉을 따로 구독한다.** `GET
  * /stocks/{stockCode}` 응답에는 시가·고가·저가·거래량이 없지만(apiSpec §5.2 는
@@ -47,11 +44,6 @@ import { StockTodayGrid } from './StockTodayGrid';
  * 봉 종류는 URL 이 갖는다 (`?interval=` — `@/shared/types/candleInterval.ts` 참고).
  * 부모가 넘기고 여기서는 바꾸기만 한다.
  */
-const DIRECTION_TEXT_CLASS: Record<PriceDirection, string> = {
-  rise: 'text-stock-up',
-  fall: 'text-stock-down',
-  flat: 'text-stock-neutral',
-};
 
 /** 차트 자리 높이. 프로토타입 SVG 가 150px 이다 (새 디코드 L1782). */
 const CHART_BOX_CLASS = 'h-[150px]';
@@ -67,8 +59,6 @@ type StockChartTabProps = {
   suspendedReason: string | null;
   /** 정지 화면의 `마지막 체결가`. */
   currentPrice: number;
-  /** 보유 중이면 탭 하단에 `내 보유 상세` 를 둔다 (프로토타입 `d.owned`). */
-  holding: StockHoldingSummary | null;
 };
 
 export function StockChartTab({
@@ -79,7 +69,6 @@ export function StockChartTab({
   suspended,
   suspendedReason,
   currentPrice,
-  holding,
 }: StockChartTabProps) {
   /*
    * 거래정지면 캔들을 부르지 않는다 — 차트를 그리지 않으므로 응답을 쓸 자리가 없다.
@@ -208,55 +197,6 @@ export function StockChartTab({
           */}
           {todayQuote !== null && <StockTodayGrid quote={todayQuote} />}
         </>
-      )}
-
-      {/*
-        내 보유 상세 (새 디코드 L1819–L1828). 껍데기의 요약 카드(`StockHoldingBox`)를
-        누르면 이 자리로 온다 — 그래서 프로토타입과 같은 앵커 `hold-detail` 을 둔다.
-        정지 종목에서도 그린다(프로토타입도 `d.tradableChart` 밖이다).
-
-        **`평가금액` 줄 대신 `평균 매수가` 를 둔다.** 프로토타입 세 줄은
-        `보유 수량`·`평가금액`·`평가손익` 인데 `StockHoldingSummary` 는 평가금액을
-        주지 않는다 (apiSpec §5.2). `수량 x 현재가` 를 여기서 곱하면 현재가가 폴링으로
-        흔들릴 때 서버의 포트폴리오 숫자와 어긋난다. 응답에 있는 값만 그린다.
-      */}
-      {holding !== null && (
-        <section className="mt-8" id="hold-detail">
-          <h2 className="mb-3.5 text-section-title text-text-primary">
-            내 보유 상세
-          </h2>
-          <SoftBox>
-            <SoftBoxRow
-              label="보유 수량"
-              value={`${formatAmount(holding.quantity)}주`}
-            />
-            <SoftBoxRow
-              label="평균 매수가"
-              value={formatKrw(holding.avgBuyPrice)}
-            />
-            <SoftBoxRow
-              label="평가손익"
-              value={
-                holding.evaluationProfit === null ||
-                holding.evaluationProfitRate === null ? (
-                  <NoValue label="시세가 없어 평가손익을 계산할 수 없음" />
-                ) : (
-                  formatSignedAmountWithRate(
-                    holding.evaluationProfit,
-                    holding.evaluationProfitRate,
-                  )
-                )
-              }
-              valueClassName={`font-bold ${
-                holding.evaluationProfitRate === null
-                  ? 'text-text-secondary'
-                  : DIRECTION_TEXT_CLASS[
-                      getPriceDirection(holding.evaluationProfitRate)
-                    ]
-              }`}
-            />
-          </SoftBox>
-        </section>
       )}
     </>
   );
