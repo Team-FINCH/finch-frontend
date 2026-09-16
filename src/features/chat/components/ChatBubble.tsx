@@ -142,7 +142,11 @@ export function ChatBubble({
               citations={message.citations}
               title="참고 뉴스 및 자료"
               showPublisher
-              className="mt-4 border-t border-ai-text-muted/20 pt-3 [&_a]:text-ai-text-primary [&_h3]:text-ai-text-muted [&_span]:text-ai-text-muted"
+              // 종류 칩(`bg-surface-soft`, 예: "공시"·"자체 계산")은 밝은 회색
+              // 배경이라 `text-ai-text-muted`(반투명 흰색)를 받으면 대비가 거의
+              // 사라진다. 칩만 이 일괄 override 에서 빼서 AiCitationList 가 준
+              // text-text-secondary 를 그대로 쓰게 둔다.
+              className="mt-4 border-t border-ai-text-muted/20 pt-3 [&_a]:text-ai-text-primary [&_h3]:text-ai-text-muted [&_span:not(.bg-surface-soft)]:text-ai-text-muted"
             />
             {message.disclaimer !== null && (
               <p className="mt-3 text-caption text-ai-text-muted">
