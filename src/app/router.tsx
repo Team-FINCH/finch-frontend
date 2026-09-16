@@ -10,6 +10,7 @@ import { ROUTES, ROUTE_PATTERNS } from '@/shared/config/routes';
 import { RootLayout } from './layouts/RootLayout';
 import { StockCodeGuard } from './layouts/StockCodeGuard';
 import { TabBarLayout } from './layouts/TabBarLayout';
+import { RouteErrorPage } from './RouteErrorPage';
 import { RoutePlaceholder } from './RoutePlaceholder';
 
 /**
@@ -111,6 +112,22 @@ export const router = createBrowserRouter([
   {
     // 스크롤 복원과 lazy 폴백을 한 곳에서 건다.
     element: <RootLayout />,
+    /**
+     * 라우트 오류를 받는 화면 (FINCH-304). 이것이 없으면 react-router 의
+     * 개발자용 기본 화면(`💿 Hey developer 👋`)이 사용자에게 그대로 뜬다.
+     *
+     * **갈래마다 두지 않고 최상위 하나로 덮는다.** 여기까지 오는 오류는 거의
+     * 전부 "화면 청크를 못 받았다" 이고(배포 중 교체, `app/installChunkRecovery`
+     * 주석), 그 복구는 어느 라우트에서 났든 똑같다 — 새 문서를 받는 것 하나다.
+     * 갈래마다 두면 같은 화면이 여러 벌 생겨 문구가 갈라지고, 정작 `RequireAuth`
+     * ·`StockCodeGuard` 같은 중간 층에서 난 오류는 그 어느 것도 덮지 못한다.
+     *
+     * 컨벤션 §7 이 경계를 잘게 나누라고 한 것과 어긋나지 않는다 — 그 조항이
+     * 지키려는 것은 위젯 단위(차트·AI 블록·시세 영역)이고, 그 경계들은 화면
+     * 안에 그대로 있어 여기보다 먼저 잡는다. 여기까지 올라온 오류는 이미 그
+     * 화면을 그릴 수 없다는 뜻이라 나눌 것이 남아 있지 않다.
+     */
+    errorElement: <RouteErrorPage />,
     children: [
       // ── 비보호 ────────────────────────────────────────────────────────
       { path: ROUTES.login, element: <LoginPage /> },
