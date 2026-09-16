@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import {
   formatAmount,
-  formatSignedAmount,
+  formatSignedAmountWithRate,
   formatSignedRate,
   getPriceDirection,
   type PriceDirection,
@@ -53,7 +53,7 @@ export type StockRowFigures =
       /** `null` 이면 값 없음으로 그린다 (`StockQuote` 캐시 미스 · apiSpec §5.4) */
       currentPrice: number | null;
       changeRate: number | null;
-      /** 있으면 등락률 위에 한 줄 더 붙는다. 검색 결과가 이 모양이다 */
+      /** 있으면 등락률과 한 줄로 합쳐 그린다(`formatSignedAmountWithRate`). 검색 결과가 이 모양이다 */
       changeAmount?: number | null;
     }
   | {
@@ -61,6 +61,7 @@ export type StockRowFigures =
       /** `null` 이면 값 없음으로 그린다 (시세 없는 보유 종목 · apiSpec v0.8.2 §8.1) */
       evaluationAmount: number | null;
       evaluationProfitRate: number | null;
+      /** 있으면 평가손익률과 한 줄로 합쳐 그린다(`formatSignedAmountWithRate`) */
       evaluationProfit?: number | null;
     };
 
@@ -160,12 +161,12 @@ export function StockRow({
   const rateValue = suspended ? null : rate;
   const diffValue = rateValue === null ? null : diff;
 
-  // 등락색은 이 두 줄에만 붙는다. 행 전체를 칠하지 않는다 (컨벤션 §11).
+  // 등락색은 이 줄에만 붙는다. 행 전체를 칠하지 않는다 (컨벤션 §11).
   const changeColorClass =
     rateValue === null
       ? 'text-text-secondary'
       : DIRECTION_TEXT_CLASS[getPriceDirection(rateValue)];
-  // 등락액이 함께 나오면 두 줄이 되므로 프로토타입처럼 한 단계 작은 글자를 쓴다.
+  // 등락액이 함께 나와 문자열이 길어지면 프로토타입처럼 한 단계 작은 글자를 쓴다.
   const changeSizeClass = diffValue === null ? 'text-label' : 'text-caption';
   const changeClass = `${changeSizeClass} font-medium ${changeColorClass}`;
 
@@ -190,11 +191,7 @@ export function StockRow({
           </span>
         )}
       </span>
-      <span
-        className={`flex flex-none flex-col items-end tabular-nums ${
-          diffValue === null ? 'gap-0.75' : 'gap-0.5'
-        }`}
-      >
+      <span className="flex flex-none flex-col items-end gap-0.75 tabular-nums">
         <span className="text-body-1 font-semibold text-text-primary">
           {amount === null ? (
             <NoValue label="시세 없음" />
@@ -202,14 +199,23 @@ export function StockRow({
             formatAmount(amount)
           )}
         </span>
-        {diffValue === null ? null : (
-          <span className={changeClass}>{formatSignedAmount(diffValue)}</span>
-        )}
+        {/*
+          손익 한 줄(2026-09-16 결정, `formatSignedAmountWithRate`). 예전에는
+          금액·비율을 별도 span 둘로 그려 세로로 쌓였다(FINCH-291 의 여섯 호출부
+          통일에서 이 행만 빠졌다). 값 없음 갈래는 셋을 그대로 지킨다 —
+          rateValue===null(등락 자체가 없음) · diffValue===null(비율만 있고
+          변동액은 없음, `RecentStock`처럼 changeAmount 가 없는 스키마) ·
+          둘 다 있음(병합). `unit` 을 빈 문자열로 넘기는 이유는 위 금액 줄도
+          `formatAmount`(원 생략)를 쓰기 때문이다 — 폭이 좁은 목록 행이라
+          단위를 생략하는 자리다(`formatSignedAmountWithRate` 주석 참고).
+        */}
         <span className={changeClass}>
           {rateValue === null ? (
             <NoValue label={suspended ? '거래정지로 등락 없음' : '등락 없음'} />
-          ) : (
+          ) : diffValue === null ? (
             formatSignedRate(rateValue)
+          ) : (
+            formatSignedAmountWithRate(diffValue, rateValue, '')
           )}
         </span>
       </span>
