@@ -30,6 +30,7 @@ import {
 } from '@/features/chat/model/chatMessages';
 import { isHttpError } from '@/shared/api';
 import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
+import { useInnerScrollRestoration } from '@/shared/hooks/useInnerScrollRestoration';
 import { showToast } from '@/shared/hooks/useToastStore';
 import {
   isRetryableAiErrorCode,
@@ -195,6 +196,7 @@ function toChatErrorMessage(
  * C14·C70). 제목이 `FINCH AI` 인 것과 뒤로가기 동작은 FINCH-245·248 그대로다.
  */
 export function ChatPage() {
+  const shellRef = useInnerScrollRestoration();
   const [searchParams] = useSearchParams();
   const chatContext = parseChatContext(searchParams);
 
@@ -508,7 +510,12 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:6rem]">
+    <div
+      ref={shellRef}
+      className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:6rem]"
+    >
+      {/* 답변 본문의 링크·인용 칩이 종목 상세로 나간다. 대화가 길면 돌아왔을 때
+          맨 위로 튀므로 안쪽 스크롤 위치를 되돌린다 (FINCH-297). */}
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
       {/* 6rem 은 이 화면이 `pb-24` 로 들고 있던 값 그대로다 — 입력 바가 `fixed` 라
         마지막 말풍선이 그 밑에 깔린다. `min-h-[calc(100dvh-3rem)]` 은 함께 걷었다:

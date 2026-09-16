@@ -5,6 +5,7 @@ import {
   useTransactions,
 } from '@/features/transactions';
 import { ROUTES } from '@/shared/config/routes';
+import { useInnerScrollRestoration } from '@/shared/hooks/useInnerScrollRestoration';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
@@ -36,9 +37,13 @@ export function TransactionsPage() {
     fetchNextPage,
     refetch,
   } = useTransactions(type);
+  const shellRef = useInnerScrollRestoration();
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
+    <div ref={shellRef} className="flex h-dvh flex-col overflow-hidden">
+      {/* 행 자체는 누를 수 없지만 `더 보기` 로 길어지는 목록이라, 헤더의 홈 버튼으로
+          나갔다 뒤로 돌아오면 보던 자리가 사라진다. 되돌릴 값이 없으면 훅이 아무것도
+          하지 않으므로 붙여 두는 쪽이 싸다. */}
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
       <SubPageHeader title="매매 내역" fallbackTo={ROUTES.my} />
       {/* 헤더와 첫 요소 사이 16px 은 `PageMain` 의 `pt-4` 다 — 헤더의 `mb-4` 였던
