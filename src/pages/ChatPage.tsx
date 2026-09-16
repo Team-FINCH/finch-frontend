@@ -2,15 +2,26 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { useChatHistoryQuery } from '@/features/chat/api/useChatHistoryQuery';
-import { useChatMutation } from '@/features/chat/api/useChatMutation';
+import { useChatJobMutation } from '@/features/chat/api/useChatJobMutation';
+import { useChatJobQuery } from '@/features/chat/api/useChatJobQuery';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
 import { ChatContextSuggestionChips } from '@/features/chat/components/ChatContextSuggestionChips';
 import { ChatEmptyState } from '@/features/chat/components/ChatEmptyState';
 import { ChatTypingIndicator } from '@/features/chat/components/ChatTypingIndicator';
 import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
+import {
+  clearPendingChatJob,
+  readPendingChatJob,
+} from '@/features/chat/lib/chatPendingJob';
 import { parseChatContext } from '@/features/chat/lib/parseChatContext';
 import {
+  isChatJobDailyBudgetFailure,
+  type ChatJobFailure,
+} from '@/features/chat/model/chatJob';
+import {
+  appendJobAnswer,
+  appendPendingQuestion,
   createMessageId,
   findRetryTargetId,
   MAX_CHAT_RETRY_COUNT,
@@ -21,7 +32,6 @@ import { isHttpError } from '@/shared/api';
 import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
 import { showToast } from '@/shared/hooks/useToastStore';
 import {
-  isDailyTokenBudgetExhausted,
   isRetryableAiErrorCode,
   readAiErrorCode,
 } from '@/shared/lib/aiErrorRetry';
@@ -30,7 +40,9 @@ import {
   getStoredConversationId,
   storeConversationId,
 } from '@/shared/lib/chatConversationId';
+import { generateIdempotencyKey } from '@/shared/lib/idempotencyKey';
 import { AI_RELAY_ERROR_CODES } from '@/shared/types/errorCodes';
+import { type IdempotencyKey } from '@/shared/types/primitives';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
@@ -49,72 +61,138 @@ const RETRY_EXHAUSTED_MESSAGE =
 const DEFAULT_CHAT_ERROR_MESSAGE = '메시지를 보내지 못했어요.';
 
 /**
+ * job 상태 조회가 내리 몇 번 실패하면 기다림을 끝내는가 (FINCH-290).
+ *
+ * **HTTP 상태 코드로 가르지 않는다** (컨벤션 §5 — 분기는 `code` 로 한다). 그런데
+ * job 조회 실패의 `code` 목록이 아직 계약에 없어서 회수로 센다. 한 번의 실패는
+ * 잠깐 끊긴 것일 수 있고 그때는 다음 주기가 곧 재시도라 기다림을 끝낼 이유가
+ * 없다. 다섯 번 연속(약 10초)이면 끊긴 것이 아니라 **이 job 을 조회할 수 없는
+ * 것**으로 본다 — 로그아웃하고 다른 계정으로 들어왔거나, job 이 서버에서
+ * 만료됐거나, 적어 둔 `jobId` 가 더는 없는 경우다. 무한 로딩으로 두지 않는 것이
+ * 이 값의 목적이다.
+ */
+const CHAT_JOB_POLL_FAILURE_LIMIT = 5;
+
+/** 조회를 포기했을 때의 문구. 서버가 준 문장이 없으므로 화면이 만든다. */
+const CHAT_JOB_UNREACHABLE_MESSAGE =
+  '답변 상태를 확인하지 못했어요. 다시 물어봐 주세요.';
+
+/**
+ * 접수 요청이 실패했을 때의 `HttpError` 를 job 실패와 같은 모양으로 맞춘다
+ * (FINCH-290).
+ *
+ * **실패가 들어오는 문이 둘이라서 필요하다** — 접수 요청의 HTTP 실패와, 200 응답
+ * 본문으로 오는 job 실패다. 둘을 한 모양으로 맞춰 두면 아래 `toChatErrorMessage`
+ * 하나가 두 갈래를 모두 다루고, 문구·재시도 판정이 두 곳으로 갈리지 않는다.
+ */
+function toChatJobFailure(error: unknown): ChatJobFailure {
+  return {
+    code: readAiErrorCode(error) ?? null,
+    message: isHttpError(error) ? error.message : DEFAULT_CHAT_ERROR_MESSAGE,
+    detail: isHttpError(error) ? error.detail : null,
+  };
+}
+
+/**
+ * 실패 하나를 말풍선으로 옮긴다 (FINCH-283 의 판정을 그대로 옮겨 온 것).
+ *
+ * **일일 예산 소진은 갈래가 다르다.** `code` 만으로는
+ * `AI_UPSTREAM_RATE_LIMITED` 의 두 갈래(분당 한도 · 일일 예산)를 가를 수 없어
+ * `detail.reason` 까지 보는 전용 판정을 먼저 거친다 — 여기 해당하면 재시도
+ * 횟수와 무관하게 버튼이 없다.
+ *
+ * 네트워크 실패·응답 스키마 불일치(`code` 없음)는 재시도가 유의미하다. 알려진
+ * 코드는 도메인 판정(`isRetryableAiErrorCode`)을 따르되, `AI_UPSTREAM_RATE_LIMITED`
+ * 는 위에서 일일 예산 갈래를 걸러 낸 뒤라 여기 남은 것은 분당 한도뿐이다 —
+ * 그쪽은 `Retry-After` 뒤에 재시도하면 풀린다(apiSpec §10.4).
+ */
+function toChatErrorMessage(
+  failure: ChatJobFailure,
+  retryText: string,
+  retryCount: number,
+  retryIdempotencyKey: IdempotencyKey | null,
+): ChatMessage {
+  if (isChatJobDailyBudgetFailure(failure)) {
+    return {
+      id: createMessageId(),
+      role: 'assistant-error',
+      message: DAILY_TOKEN_BUDGET_MESSAGE,
+      retryable: false,
+      retryText,
+      retryCount: 0,
+      retryIdempotencyKey: null,
+    };
+  }
+
+  const codeRetryable =
+    failure.code === null
+      ? true
+      : isRetryableAiErrorCode(failure.code) ||
+        failure.code === AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED;
+  const hasRetriesLeft = retryCount < MAX_CHAT_RETRY_COUNT;
+  const retryable = codeRetryable && hasRetriesLeft;
+
+  return {
+    id: createMessageId(),
+    role: 'assistant-error',
+    // 재시도를 다 썼으면 서버 문구 대신 입력창으로 유도하는 문구로 바꾼다 —
+    // 남은 재시도가 없다는 사실이 서버 메시지보다 중요하다.
+    message:
+      codeRetryable && !hasRetriesLeft
+        ? RETRY_EXHAUSTED_MESSAGE
+        : failure.message,
+    retryable,
+    retryText,
+    retryCount,
+    // 버튼이 없으면 들고 있을 이유도 없다.
+    retryIdempotencyKey: retryable ? retryIdempotencyKey : null,
+  };
+}
+
+/**
  * AI 채팅 — 내 포트폴리오에 대해 묻고 답 받기. 화면 맥락(`screen`·`ticker`)을 실어
  * 보내는 진입도 이 라우트로 연다 (`ia.md` §2 "채팅은 `/chat` 전용 화면만이 아니다").
  *
- * 티켓: FINCH-139. (`ia.md` 2026-09-05판은 "미발행 (0-14 와이어프레임에 포함)"
- * 으로 적혀 있다 — 이 값은 이후 발행된 Jira 티켓이다.)
+ * 티켓: FINCH-139. 근거: `ia.md` §1 "AI" 표.
  *
- * 근거: `ia.md` §1 "AI" 표.
- * API: `POST /api/v1/ai/chat`. **단발 요청/응답이다 — SSE 는 폐기됐다**(커밋 `34ed34a`).
+ * ## 답변 생성은 비동기 작업이다 (FINCH-290, GitLab 이슈 #84)
  *
- * **답변 말풍선마다 `requestId` 가 다르고 말풍선마다 피드백 버튼이 붙는다**
- * (design.md §7.15·§9, 이슈 #26 5번). `context` 는 **매 메시지마다** 싣는다
- * (FINCH-286). 전에는 첫 메시지에만 싣고 `conversationId` 발급 뒤로는
- * 뺐다 — "서버가 대화를 이어가니 화면 맥락도 이어간다"고 본 것인데, 이 전제가
- * 틀렸다. 서버가 이어가는 것은 **대화 이력**(최근 12개 메시지)이고 `context` 는
- * **지금 어느 화면에 있나** 를 매번 말해 주는 값이라 서로 다르다. 한 종목에서
- * 대화를 시작하고 며칠 뒤 다른 종목 상세에서 이어 들어오면, `context` 를 첫
- * 메시지에만 실었을 때는 AI 가 여전히 처음 종목만 알고 지금 보고 있는 화면을
- * 몰라 `이거 어때?` 가 엉뚱한 종목을 가리킨다
- * (`_inbox/2026-09-15-안건-채팅-대화지속의-부작용.md` §3). 계약상 매번 실어도
- * 되는 값이다(`ai/docs/api-spec.md` §"context" — 대명사 지시 대상 해소용).
+ * **긴 동기 요청을 열어 두지 않는다.** 전에는 `POST /ai/chat` 한 번이 답이 올
+ * 때까지 열려 있어서 화면을 옮기면 그 요청과 함께 답도 사라졌다 — **AI 생성
+ * 비용은 이미 나간 뒤**라 사용자만 손해였다. 지금은 `POST /ai/chat/jobs` 로
+ * 접수시키고(202 + `jobId`) `GET /ai/chat/jobs/{jobId}` 를 폴링해 받는다.
+ * 계약은 **잠정 확정**이고 고칠 범위는 `features/chat/model/chatJob.ts` 머리
+ * 주석에 적어 뒀다(`contracts.md` T4 · P40).
  *
- * ## 상단 (FINCH-245)
+ * **완료 통지는 폴링이다. SSE 를 쓰지 않는다** — 폐기된 결정이고(커밋 `34ed34a`)
+ * 되살리려면 백엔드 스트리밍 프록시가 먼저다(`contracts.md` C4).
  *
- * 프로토타입 `isChat` 의 `.nav` 는 뒤로가기 + 제목 `FINCH AI` 고, 메시지가 있으면
- * 오른쪽에 `초기화` 가 붙는다. 전에는 제목을 `AI 채팅` `h1` 으로 두고 뒤로가기가
- * 없어서, 탭 바에 없는 화면인데 나갈 길이 없었다. `shared/ui/SubPageHeader` 로
- * 바꿨고 뒤로가기 동작은 그 컴포넌트 기본값(히스토리 하나 되돌리기, 스택이 비면
- * 홈)이다 — 프로토타입 `closeChat` 이 스택을 하나 pop 하는 것과 같다.
+ * 잠그는 것은 **이 대화의 전송 버튼 하나**다. 전역 내비게이션과 뒤로가기는
+ * 건드리지 않는다 — 생성 중에 홈·포트폴리오·종목 상세로 자유롭게 갈 수 있어야 한다.
  *
- * 제목이 `Finch AI` 가 아니라 `FINCH AI` 인 이유 — 프로토타입 `.navt` 와 빈 상태
- * 헤드라인이 둘 다 대문자고, 로그인 히어로(`features/auth`)도 대문자를 쓴다.
- * design.md §7.15 의 초기 카피만 `Finch AI` 였는데 2026-09-11 에 대문자로 맞췄다
- * (사용자 확인, FINCH-248).
+ * ## 상태가 어디에 남나
  *
- * ## 종목 맥락의 종목명 (FINCH-248)
+ * - `conversationId` — `localStorage`(`shared/lib/chatConversationId`). 대화를
+ *   종목별로 나누지 않는 것이 의도라 키가 하나다(FINCH-278)
+ * - 기다리는 `jobId` — `localStorage`(`features/chat/lib/chatPendingJob`). 질문
+ *   원문과 재시도 횟수를 함께 적는다. 왜 zustand 가 아닌지는 그 파일 주석에 있다
+ * - `messages` — `useState` 뿐이다. 화면을 나가면 사라지고 다시 들어올 때 이력
+ *   조회로 복원한다. 대화 전체를 스토리지에 두지 않는 이유는 278 과 같다 — 로컬과
+ *   서버 두 군데에 같은 내용을 들고 있으면 어긋났을 때 어느 쪽이 맞는지 다투게 된다
  *
- * 빈 상태의 맥락 문구와 추천 질문은 **종목명**을 쓰는데 쿼리의 `ticker` 는 6자리
- * 코드다. 이름은 **진입하는 쪽이 `stockName` 으로 함께 싣는다** — 이 화면에서
- * `GET /stocks/{stockCode}` 를 불러 구할 수 없어서다. 그 호출 자체가 최근 본 종목
- * 기록이라(contracts C51) 사용자가 보지도 않은 조회가 기록에 남고 최근 본 종목
- * 목록까지 무효화된다.
+ * ## 답변이 두 번 그려지지 않게 하는 것
  *
- * 전에는 `useCachedStockName` 이 이미 받아 둔 상세 캐시에서 이름만 꺼냈다. **그 훅은
- * 지웠다.** 이제 모든 진입이 이름을 싣고, 남는 경우는 `/chat?screen=stock_detail&
- * ticker=…` 를 주소로 바로 여는 것 하나뿐인데 그때는 새로 뜬 앱이라 캐시가 비어 있어
- * 훅이 어차피 `null` 을 돌려준다. 성공할 수 없는 캐시 조회를 남겨 두면, 나중에
- * 이름 없이 보내는 진입이 생겼을 때 **캐시가 더울 때만 이름이 나오고 식으면 안 나오는**
- * 화면이 된다 — 그때는 늘 `이 종목` 으로 떨어지는 편이 고장을 빨리 드러낸다.
+ * 같은 답을 들고 올 수 있는 경로가 둘이다 — 대화 이력 조회와 job 결과 조회.
+ * 순서를 정해 막는다. **이력이 먼저 반영되고(`historySettled`), 그 위에 job
+ * 결과를 얹는다.** 얹을 때 이미 있는 턴인지 보는 판정은 `appendJobAnswer` 에
+ * 있다. 그렇게 두면 이력이 늦게 도착해 방금 붙인 답을 통째로 덮어쓰는 일도 없다.
  *
- * ## 대화 복원 (FINCH-278, 봉투 FINCH-280)
+ * ## 그 밖에 그대로인 것
  *
- * `messages`·`conversationId` 는 여전히 `useState` 다 — 화면 메모리에만 있고
- * 화면을 나가면 사라진다. 대신 `conversationId` **하나만** `localStorage` 에도
- * 남겨(`shared/lib/chatConversationId`), 다시 들어올 때 그 id 로
- * `GET /ai/chat/conversations/{id}/messages`(AI 명세 §4.1)를 불러 배열을 채운다
- * (`useChatHistoryQuery`). 대화 전체를 스토리지에 그대로 두지 않는 이유는 —
- * id 만 있으면 서버가 언제든 같은 배열을 다시 만들어 주고, 두 군데(로컬·서버)에
- * 같은 내용을 들고 있으면 둘이 어긋났을 때 어느 쪽이 맞는지 다투게 된다.
- *
- * 이 조회도 다른 AI 응답과 같은 봉투로 온다(`AiChatHistorySchema`) — 읽는 값은
- * `historyQuery.data.content.conversationId`·`.content.messages` 다. 봉투의
- * `dataAsOf`·`citations` 는 이 조회에서 전부 `null`/빈 배열이라 읽지 않는다.
- *
- * 복원은 `appliedHistoryData` 참조 비교로 한 번만 반영한다 — 세션 안에서 이미
- * 대화가 쌓인 뒤에 이력 조회가 다시 실행되면(쿼리 재요청 등) 그 결과로 화면을
- * 덮어쓰지 않기 위해서다.
+ * `context` 는 **매 메시지마다** 싣는다 (FINCH-286). 서버가 이어가는 것은
+ * 대화 이력이고 `context` 는 **지금 어느 화면에 있나** 라 서로 다르다. 답변
+ * 말풍선마다 `requestId` 가 다르고 말풍선마다 피드백 버튼이 붙는다(contracts
+ * C14·C70). 제목이 `FINCH AI` 인 것과 뒤로가기 동작은 FINCH-245·248 그대로다.
  */
 export function ChatPage() {
   const [searchParams] = useSearchParams();
@@ -122,31 +200,35 @@ export function ChatPage() {
 
   // 입력창 바가 토스트 자리를 정한다 — 이 화면은 `ActionBar` 를 쓰지 않고 같은
   // 모양의 바를 직접 그려서, 등록도 여기서 한다 (FINCH-232).
-  // 입력창은 글이 길어지면 높이가 자라고 `ResizeObserver` 가 그때마다 다시 잰다.
   const bottomFixedRef = useRegisterBottomFixedSpace();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const chatMutation = useChatMutation();
 
   /**
-   * 대화 이력 복원 (FINCH-278, task-I). `localStorage` 읽기는 동기라
-   * `useState` 초기값으로 한 번만 계산한다 — 매 렌더 다시 읽을 이유가 없다.
-   * `useChatHistoryQuery` 는 이 값이 `null` 이면 아예 호출하지 않는다.
+   * 대화 이력 복원 (FINCH-278). `localStorage` 읽기는 동기라 `useState`
+   * 초기값으로 한 번만 계산한다. `useChatHistoryQuery` 는 이 값이 `null` 이면
+   * 아예 호출하지 않는다.
    */
   const [storedConversationId] = useState(() => getStoredConversationId());
   const historyQuery = useChatHistoryQuery(storedConversationId);
 
   /**
+   * 답을 기다리는 중인 job (FINCH-290). 같은 이유로 마운트 때 한 번만 읽는다.
+   * 이 값이 `null` 이 아닌 동안 전송 버튼이 잠기고 점 세 개가 뜬다.
+   */
+  const [pendingJob, setPendingJob] = useState(() => readPendingChatJob());
+  const jobQuery = useChatJobQuery(pendingJob?.jobId ?? null);
+
+  const chatJobMutation = useChatJobMutation();
+
+  /**
    * 이력을 **렌더 중에** 반영한다. `useEffect` 로 하면 `historyQuery.data` 가
-   * 도착한 렌더에서 `setConversationId`·`setMessages` 를 동기로 부르는 모양이
-   * 되어 `react-hooks/set-state-in-effect` 가 막는다(`ThesisRecordSheet.tsx` 의
-   * `wasOpen` 과 같은, "리액트가 권하는 prop 변화 대응" 패턴 — react.dev "You
-   * Might Not Need an Effect").
-   *
-   * `appliedHistoryData` 가 "지금까지 반영한 데이터"를 들고 있다가 `historyQuery.data`
-   * 참조가 그것과 달라진 순간(=새 데이터가 도착한 순간) 딱 한 번만 반영한다 —
-   * 매 렌더 반영하면 그사이 쌓인 이번 세션의 대화를 덮어쓴다.
+   * 도착한 렌더에서 `setState` 를 동기로 부르는 모양이 되어
+   * `react-hooks/set-state-in-effect` 가 막는다(react.dev "You Might Not Need an
+   * Effect"). `appliedHistoryData` 가 "지금까지 반영한 데이터"를 들고 있다가 참조가
+   * 달라진 순간(=새 데이터가 도착한 순간) 딱 한 번만 반영한다 — 매 렌더 반영하면
+   * 그사이 쌓인 이번 세션의 대화를 덮어쓴다.
    */
   const [appliedHistoryData, setAppliedHistoryData] =
     useState<typeof historyQuery.data>(undefined);
@@ -165,28 +247,151 @@ export function ChatPage() {
   }
 
   /**
-   * `localStorage` 를 지우는 것은 부수효과라 렌더 중에 부르지 않는다
-   * (`features/auth/lib/oauthState.ts` 의 읽기·지우기 분리와 같은 규칙). 위
-   * 렌더 중 분기와 같은 조건을 다시 보되, `setState` 가 없어 `react-hooks/
-   * set-state-in-effect` 에 걸리지 않는다.
+   * 이력 조회가 끝났나. **job 결과를 얹기 전에 반드시 참이어야 한다**
+   * (FINCH-290). 이력이 나중에 도착하면 `setMessages` 로 배열을 통째로 갈아
+   * 끼우므로, 그 전에 job 의 답변을 붙여 두면 그 답변만 조용히 사라진다. 저장된
+   * 대화가 없으면(`storedConversationId === null`) 조회 자체가 없으니 처음부터 참이다.
+   */
+  const historySettled =
+    storedConversationId === null ||
+    historyQuery.isSuccess ||
+    historyQuery.isError;
+
+  /**
+   * job 상태를 **렌더 중에** 반영한다. 이력과 같은 이유·같은 방식이다.
+   *
+   * 폴링은 2초마다 같은 `{ kind: 'pending' }` 을 돌려주는데 TanStack Query 의
+   * 구조적 공유가 값이 같으면 참조를 유지해 주므로, 이 분기는 **상태가 실제로
+   * 바뀐 순간에만** 들어온다.
+   */
+  const [appliedJobState, setAppliedJobState] =
+    useState<typeof jobQuery.data>(undefined);
+
+  if (
+    historySettled &&
+    pendingJob !== null &&
+    jobQuery.data !== undefined &&
+    jobQuery.data !== appliedJobState
+  ) {
+    const jobState = jobQuery.data;
+    setAppliedJobState(jobState);
+
+    if (jobState.kind === 'pending') {
+      // 화면을 옮겼다 돌아온 경우 질문 말풍선이 없다. 이력에도 없다 — 아직 끝나지
+      // 않은 턴이라서다(AI 명세 §4.1). 적어 둔 원문으로 되살린다.
+      setMessages((prev) => appendPendingQuestion(prev, pendingJob.question));
+    }
+
+    if (jobState.kind === 'completed') {
+      const { answer } = jobState;
+      setConversationId(answer.content.conversationId);
+      setMessages((prev) =>
+        appendJobAnswer(prev, pendingJob.question, {
+          id: createMessageId(),
+          role: 'assistant',
+          requestId: answer.requestId,
+          section: answer.content.answer,
+          citations: answer.citations,
+          disclaimer: answer.disclaimer,
+          // 방금 도착한 응답이다. 타자 효과를 그대로 건다.
+          restored: false,
+        }),
+      );
+      setPendingJob(null);
+    }
+
+    if (jobState.kind === 'failed') {
+      setMessages((prev) => [
+        ...appendPendingQuestion(prev, pendingJob.question),
+        toChatErrorMessage(
+          jobState.failure,
+          pendingJob.question,
+          pendingJob.retryCount,
+          // 생성은 이미 끝났고 결과가 실패다. 재시도는 같은 클릭의 재전송이 아니라
+          // 새 생성 요청이라 새 키를 만든다 — `ChatMessage.retryIdempotencyKey` 참고.
+          null,
+        ),
+      ]);
+      setPendingJob(null);
+    }
+  }
+
+  /**
+   * 조회 자체가 내리 실패했다 (FINCH-290). 무한 로딩으로 두지 않고 재시도
+   * 가능한 실패로 떨어뜨린다 (`CHAT_JOB_POLL_FAILURE_LIMIT` 주석 참고).
+   * `setPendingJob(null)` 로 쿼리가 꺼지므로 이 분기는 한 번만 들어온다.
+   */
+  if (
+    historySettled &&
+    pendingJob !== null &&
+    jobQuery.failureCount >= CHAT_JOB_POLL_FAILURE_LIMIT
+  ) {
+    setMessages((prev) => [
+      ...appendPendingQuestion(prev, pendingJob.question),
+      toChatErrorMessage(
+        { code: null, message: CHAT_JOB_UNREACHABLE_MESSAGE, detail: null },
+        pendingJob.question,
+        pendingJob.retryCount,
+        null,
+      ),
+    ]);
+    setPendingJob(null);
+  }
+
+  /**
+   * `localStorage` 쓰기는 부수효과라 렌더 중에 부르지 않는다
+   * (`features/auth/lib/oauthState.ts` 의 읽기·쓰기 분리와 같은 규칙). 위 분기들은
+   * `pendingJob` 상태만 건드리고 스토리지는 이 효과가 따라간다.
+   *
+   * **접수 성공 때 스토리지에 적는 것은 이 효과가 아니라 `useChatJobMutation` 이다**
+   * — 보내자마자 화면을 옮기면 이 컴포넌트가 언마운트돼 여기까지 오지 않는다.
+   * 그 훅 주석에 이유가 있다.
+   */
+  useEffect(() => {
+    if (pendingJob === null) {
+      clearPendingChatJob();
+    }
+  }, [pendingJob]);
+
+  /**
+   * 다음 진입에서 이 대화를 복원할 수 있게 화면 밖에도 남긴다 (FINCH-278).
+   * 실패해도(스토리지 접근 불가) 화면은 그대로 진행한다.
+   *
+   * `null` 일 때 지우지 않는 이유 — 초기화는 `resetConversation` 이 명시적으로
+   * 지우고, 그 밖에 `null` 인 구간은 "아직 첫 답이 오지 않았다" 일 뿐이라 지울
+   * 것이 없다.
+   */
+  useEffect(() => {
+    if (conversationId !== null) {
+      storeConversationId(conversationId);
+    }
+  }, [conversationId]);
+
+  /**
+   * 저장된 id 가 가리키는 대화에 메시지가 없다. 매번 빈 조회를 반복하지 않게
+   * 지운다 — 이 id 로 화면이 얻을 수 있는 것이 앞으로도 없다.
    */
   useEffect(() => {
     if (historyQuery.data?.content.messages.length === 0) {
-      // 저장된 id 가 가리키는 대화에 메시지가 없다. 매번 빈 조회를 반복하지
-      // 않게 지운다 — 이 id 로 화면이 얻을 수 있는 것이 앞으로도 없다(정하고
-      // 근거를 남긴다, task-I 완료 판정).
       clearStoredConversationId();
     }
   }, [historyQuery.data]);
 
   // 종목 맥락으로 들어왔으면 빈 상태 문구에 종목명이 들어간다. 쿼리에 이름이 없으면
-  // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다 — 위 머리 주석 참고.
+  // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다.
   const emptyCopy = chatEmptyCopy(
     chatContext.ticker === null ? null : (chatContext.stockName ?? '이 종목'),
   );
 
   // 실패 말풍선이 여럿이어도 `다시 시도` 는 하나다 (FINCH-249).
   const retryTargetId = findRetryTargetId(messages);
+
+  /**
+   * 답을 기다리는 중인가 (FINCH-290). **접수 요청이 나가 있는 동안**
+   * (`isPending`)과 **접수된 job 이 도는 동안**(`pendingJob`) 둘 다다. 이 값이
+   * 잠그는 것은 전송 경로뿐이고 화면 이동은 건드리지 않는다.
+   */
+  const isAwaitingAnswer = chatJobMutation.isPending || pendingJob !== null;
 
   /**
    * 종목 진입 추천 칩 (FINCH-286). 이 방문에서 메시지를 한 번이라도 보내면
@@ -199,12 +404,22 @@ export function ChatPage() {
     messages.length > 0 &&
     !chipsSentThisVisit;
 
+  /**
+   * 빈 상태로 떨어뜨릴지. **기다리는 job 이 있으면 빈 상태가 아니다**
+   * (FINCH-290) — 복원 직후 질문 말풍선이 붙기 전 한 프레임 동안 빈 상태가
+   * 번쩍이는 것을 막는다.
+   */
+  const showEmptyState = messages.length === 0 && !isAwaitingAnswer;
+
   function resetConversation() {
     setMessages([]);
     setConversationId(null);
     // 저장된 id 도 함께 지운다. 지우지 않으면 초기화 뒤 새 메시지를 보내기 전에
     // 화면을 나갔다 돌아왔을 때 복원 경로가 방금 초기화한 대화를 도로 그린다.
     clearStoredConversationId();
+    // 기다리던 job 도 함께 버린다 (FINCH-290). 초기화는 이 대화를 비우겠다는
+    // 분명한 뜻이라, 비운 대화 위에 그 대화의 답이 뒤늦게 얹히면 안 된다.
+    setPendingJob(null);
     // 말풍선이 사라지는 것만으로는 초기화가 된 것인지 화면이 비어 버린 것인지
     // 구분되지 않는다. 서버를 부르지 않는 로컬 초기화라 성공 콜백이 따로 없다.
     showToast('대화를 초기화했어요.');
@@ -213,128 +428,79 @@ export function ChatPage() {
   /**
    * **보내는 자리는 셋인데 가드는 여기 하나다** (FINCH-248). 입력창
    * (`ChatComposer`) · 빈 상태의 추천 질문(`ChatEmptyState`) · 실패 말풍선의
-   * `다시 시도`(`ChatBubble`) 가 전부 이 함수를 부른다.
+   * `다시 시도`(`ChatBubble`) 가 전부 이 함수를 부른다. 버튼마다 막으면 호출부가
+   * 늘 때마다 같은 판정을 다시 적게 되고, 하나 빠뜨리면 그 경로에서만 조용히 샌다.
    *
-   * 전에는 입력창만 막혀 있었다(`disabled={chatMutation.isPending}`). `다시 시도`
-   * 는 눌러도 말풍선이 그대로 남아 있어서 연타하면 그만큼 요청이 나갔고, 그만큼
-   * AI 크레딧을 썼다.
-   *
-   * **버튼마다 막지 않고 여기서 막는 이유** — 호출부가 늘 때마다 같은 판정을 다시
-   * 적어야 하고, 하나 빠뜨리면 그 경로에서만 조용히 다시 샌다. 추천 질문이 지금
-   * 새지 않는 것도 설계가 아니라 우연이다(빈 상태는 첫 메시지를 넣는 순간
-   * 사라진다). 우연에 기대는 자리를 규칙으로 바꾼다.
-   *
-   * 기준은 입력창과 같은 `chatMutation.isPending` 이다. `다시 시도` 버튼도 이 값을
-   * 받아 함께 잠긴다 — 막기만 하고 모양이 그대로면 버튼이 고장 난 것으로 읽힌다.
+   * 기준은 `isAwaitingAnswer` 다. **전에는 `chatMutation.isPending` 이었는데,
+   * 이제 요청이 202 로 곧 끝나므로 그것만 보면 job 이 도는 내내 전송이 열려 있다**
+   * (FINCH-290).
    *
    * **이 가드만으로는 부족하다** (FINCH-249). 여기서 막는 것은 답을 기다리는
-   * 동안의 중복이고, 지나간 실패 말풍선이 저마다 들고 있던 버튼은 막지 못한다.
-   * 그쪽은 `findRetryTargetId` 가 버튼 자체를 하나로 줄여서 막는다. 둘은 서로 다른
-   * 것을 막으므로 함께 있어야 한다.
+   * 동안의 중복이고, 지나간 실패 말풍선이 저마다 들고 있던 버튼은
+   * `findRetryTargetId` 가 버튼 자체를 하나로 줄여서 막는다. 둘은 서로 다른 것을
+   * 막으므로 함께 있어야 한다.
    *
    * @param retryCount 이 전송이 몇 번째 재시도인지 (FINCH-283). 입력창·빈 상태
-   * 추천 질문처럼 **새 질문**이면 `0`이다. `다시 시도` 버튼을 눌러서 온 호출이면
-   * 그 실패 말풍선의 `retryCount + 1`을 렌더 쪽(`messages.map`)이 실어 보낸다 —
-   * 다시 실패했을 때 다음 말풍선에 얼마나 더 재시도할 수 있는지를 이어서 세려면
-   * 몇 번째 시도인지를 이 함수가 알아야 한다.
+   * 추천 질문처럼 **새 질문**이면 `0`이다.
+   * @param retryIdempotencyKey 다시 써야 할 멱등성 키 (FINCH-290). `null` 이면
+   * 새로 만든다. **키의 수명은 사용자의 한 번의 클릭이다** — 마운트 시점에 한 번
+   * 만들어 재사용하면 서로 다른 전송이 같은 키를 쓰게 되어 뜻이 없어진다
+   * (`shared/lib/idempotencyKey.ts`).
    */
-  function handleSend(text: string, retryCount = 0) {
-    if (chatMutation.isPending) {
+  function handleSend(
+    text: string,
+    retryCount = 0,
+    retryIdempotencyKey: IdempotencyKey | null = null,
+  ) {
+    if (isAwaitingAnswer) {
       return;
     }
 
     setChipsSentThisVisit(true);
+
+    const idempotencyKey = retryIdempotencyKey ?? generateIdempotencyKey();
 
     setMessages((prev) => [
       ...prev,
       { id: createMessageId(), role: 'user', text },
     ]);
 
-    chatMutation.mutate(
+    chatJobMutation.mutate(
       {
-        conversationId,
-        message: text,
-        // 매 메시지마다 싣는다 (FINCH-286). 근거는 파일 머리 주석 참고.
-        context: { screen: chatContext.screen, ticker: chatContext.ticker },
+        body: {
+          conversationId,
+          message: text,
+          // 매 메시지마다 싣는다 (FINCH-286). 근거는 파일 머리 주석 참고.
+          context: { screen: chatContext.screen, ticker: chatContext.ticker },
+        },
+        idempotencyKey,
+        retryCount,
       },
       {
-        onSuccess: (data) => {
-          setConversationId(data.content.conversationId);
-          // 다음 진입에서 이 대화를 복원할 수 있게 화면 밖에도 남긴다
-          // (FINCH-278). 실패해도(스토리지 접근 불가) 화면은 그대로 진행한다.
-          storeConversationId(data.content.conversationId);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: createMessageId(),
-              role: 'assistant',
-              requestId: data.requestId,
-              section: data.content.answer,
-              citations: data.citations,
-              disclaimer: data.disclaimer,
-              // 방금 도착한 응답이다. 타자 효과를 그대로 건다.
-              restored: false,
-            },
-          ]);
+        onSuccess: (created) => {
+          // 스토리지에는 훅이 이미 적었다. 여기서는 화면 상태만 맞춘다.
+          setPendingJob({
+            jobId: created.jobId,
+            conversationId,
+            question: text,
+            retryCount,
+          });
         },
         onError: (error) => {
           /**
-           * 일일 예산 소진은 갈래가 다르다(FINCH-283). `code` 만으로는
-           * `AI_UPSTREAM_RATE_LIMITED` 의 두 갈래(분당 한도 · 일일 예산)를 가를 수
-           * 없어 `detail.reason` 까지 보는 전용 판정(`isDailyTokenBudgetExhausted`)
-           * 을 먼저 거친다 — 여기 해당하면 재시도 횟수와 무관하게 버튼이 없다.
+           * **접수 자체가 실패했다.** job 이 만들어졌는지 못 만들어졌는지 모르는
+           * 구간이라, 재시도가 같은 키를 다시 쓰도록 키를 함께 실어 보낸다 —
+           * 이미 만들어진 job 이 있다면 같은 `jobId` 를 되받고 AI 생성 비용이
+           * 두 번 나가지 않는다.
            */
-          if (isDailyTokenBudgetExhausted(error)) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: createMessageId(),
-                role: 'assistant-error',
-                message: DAILY_TOKEN_BUDGET_MESSAGE,
-                retryable: false,
-                retryText: text,
-                retryCount: 0,
-              },
-            ]);
-            return;
-          }
-
-          const code = readAiErrorCode(error) ?? null;
-          /**
-           * 네트워크 실패·응답 스키마 불일치(code 없음)는 재시도가 유의미하다.
-           * 알려진 코드는 도메인 판정(`isRetryableAiErrorCode`)을 따르되,
-           * `AI_UPSTREAM_RATE_LIMITED` 는 위에서 일일 예산 갈래를 걸러 낸
-           * 뒤라 여기 남은 것은 분당 한도(`request_rate_limit`)뿐이다 — 그쪽은
-           * `Retry-After` 뒤에 재시도하면 풀린다(apiSpec §10.4). 채팅은
-           * 뮤테이션이라 `queryClient` 의 자동 재시도가 적용되지 않으므로
-           * (`createQueryClient` 의 `mutations.retry: false`), 이 버튼이 그
-           * "기다렸다 재시도"를 사람이 대신하는 자리다.
-           */
-          const codeRetryable =
-            code === null
-              ? true
-              : isRetryableAiErrorCode(code) ||
-                code === AI_RELAY_ERROR_CODES.UPSTREAM_RATE_LIMITED;
-          const hasRetriesLeft = retryCount < MAX_CHAT_RETRY_COUNT;
-          const retryable = codeRetryable && hasRetriesLeft;
-
           setMessages((prev) => [
             ...prev,
-            {
-              id: createMessageId(),
-              role: 'assistant-error',
-              // 재시도를 다 썼으면 서버 문구 대신 입력창으로 유도하는 문구로
-              // 바꾼다 — 남은 재시도가 없다는 사실이 서버 메시지보다 중요하다.
-              message:
-                codeRetryable && !hasRetriesLeft
-                  ? RETRY_EXHAUSTED_MESSAGE
-                  : isHttpError(error)
-                    ? error.message
-                    : DEFAULT_CHAT_ERROR_MESSAGE,
-              retryable,
-              retryText: text,
+            toChatErrorMessage(
+              toChatJobFailure(error),
+              text,
               retryCount,
-            },
+              idempotencyKey,
+            ),
           ]);
         },
       },
@@ -358,7 +524,7 @@ export function ChatPage() {
         }
       />
 
-      {messages.length === 0 ? (
+      {showEmptyState ? (
         <ChatEmptyState
           subCopy={emptyCopy.subCopy}
           suggestions={emptyCopy.suggestions}
@@ -372,6 +538,11 @@ export function ChatPage() {
             // 이 id 일 수 없다) 쓰이지 않는 값이라 0 으로 둔다.
             const nextRetryCount =
               message.role === 'assistant-error' ? message.retryCount + 1 : 0;
+            // 접수 실패에서 온 말풍선만 키를 들고 있다 (FINCH-290).
+            const retryIdempotencyKey =
+              message.role === 'assistant-error'
+                ? message.retryIdempotencyKey
+                : null;
             return (
               <ChatBubble
                 key={message.id}
@@ -382,21 +553,25 @@ export function ChatPage() {
                 // 보내는" 상태가 만들어지지 않는다.
                 onRetry={
                   message.id === retryTargetId
-                    ? (retryText) => handleSend(retryText, nextRetryCount)
+                    ? (retryText) =>
+                        handleSend(
+                          retryText,
+                          nextRetryCount,
+                          retryIdempotencyKey,
+                        )
                     : undefined
                 }
-                retryDisabled={chatMutation.isPending}
+                retryDisabled={isAwaitingAnswer}
               />
             );
           })}
           {/*
-            요청을 보낸 뒤 답이 오기 전까지 점 세 개 (FINCH-274). 사용자
-            말풍선은 `handleSend` 가 뮤테이션을 부르기 전에 먼저 붙이므로, 이
-            자리에 올 때는 이미 `messages.length > 0` 이라 빈 상태(`ChatEmptyState`)
-            분기와 겹치지 않는다. 실패하면 `isPending` 이 꺼지며 이 자리가 사라지고
-            같은 렌더에서 `assistant-error` 말풍선이 뒤이어 붙는다.
+            답을 기다리는 동안 점 세 개 (FINCH-274). 접수 요청이 나가 있는
+            동안과 job 이 도는 동안 둘 다 뜬다 — 사용자에게는 같은 "기다리는 중"
+            이라 둘을 나눠 보여 줄 이유가 없다. **화면을 옮겼다 돌아왔을 때 이
+            자리가 그대로 되살아나는 것**이 티켓 290 의 복원 요건이다.
           */}
-          {chatMutation.isPending && <ChatTypingIndicator />}
+          {isAwaitingAnswer && <ChatTypingIndicator />}
         </div>
       )}
 
@@ -412,11 +587,11 @@ export function ChatPage() {
         {showContextChips && (
           <ChatContextSuggestionChips
             suggestions={emptyCopy.suggestions.slice(0, 2)}
-            disabled={chatMutation.isPending}
+            disabled={isAwaitingAnswer}
             onPick={handleSend}
           />
         )}
-        <ChatComposer disabled={chatMutation.isPending} onSend={handleSend} />
+        <ChatComposer disabled={isAwaitingAnswer} onSend={handleSend} />
       </div>
     </PageMain>
   );
