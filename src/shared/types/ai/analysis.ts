@@ -208,15 +208,18 @@ export type AiAnalysisSections = z.infer<typeof AiAnalysisSectionsSchema>;
  *
  * design.md §8.3 `AIDetail` 의 구조
  * (`결론 → 근거 → 위험/확인할 점 → 내 계좌 영향 → 일정/기준 → 출처 → Feedback`)와
- * 이 순서가 일대일로 맞는다.
+ * 원래 이 순서가 일대일로 맞았다.
+ *
+ * **`myImpact`·`thesisCheck` 는 뺐다**(GitLab 이슈 #92). AI 가 종목 분석을
+ * 보유·논지에 무관한 종목 단위 정보로 바꾸면서 그 둘이 응답에서 아예 빠진다 —
+ * 매 요청마다 LLM 을 태우고 Guardrail 에 자주 걸려 화면이 늦고 비어 보였다.
+ * 나머지 다섯은 아침 배치가 미리 만들어 즉시 나온다.
  */
 export const AI_ANALYSIS_SECTION_KEYS = [
   'current',
   'changes',
   'attention',
   'risks',
-  'myImpact',
-  'thesisCheck',
   'nextEvents',
 ] as const;
 export type AiAnalysisSectionKey = (typeof AI_ANALYSIS_SECTION_KEYS)[number];

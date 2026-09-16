@@ -1,6 +1,3 @@
-import { useNavigate } from 'react-router-dom';
-
-import { ROUTES } from '@/shared/config/routes';
 import { showToast } from '@/shared/hooks/useToastStore';
 import {
   isInsufficientDataErrorCode,
@@ -30,16 +27,21 @@ import { useStockAnalysis } from '../api/useStockAnalysis';
  *
  * ## 본문을 그린다 — 무엇을 근거로 어떻게
  *
- * 섹션 일곱(`current`·`changes`·`attention`·`risks`·`myImpact`·`thesisCheck`·
- * `nextEvents`)의 키 구성이 `ai/docs/openapi.json` 으로 확정됐다(이슈 #15 닫힘,
- * contracts C57~C59). 스키마와 그 근거는 `shared/types/ai/analysis.ts` 에 있다.
+ * 섹션 다섯(`current`·`changes`·`attention`·`risks`·`nextEvents`)의 키 구성이
+ * `ai/docs/openapi.json` 으로 확정됐다(이슈 #15 닫힘, contracts C57~C59). 스키마와
+ * 그 근거는 `shared/types/ai/analysis.ts` 에 있다.
+ *
+ * **개인화 섹션 `myImpact`·`thesisCheck` 는 뺐다**(GitLab 이슈 #92). AI 가 종목
+ * 분석을 보유·논지에 무관한 종목 단위 정보로 바꾸면서 그 둘이 응답에서 아예
+ * 빠진다 — 매 요청마다 LLM 을 태우고 Guardrail 에 자주 걸려 화면이 늦고 비어
+ * 보였다. 나머지 다섯은 아침 배치가 미리 만들어 즉시 나온다.
  *
  * 지키는 규약 넷이다.
  * - **섹션 제목을 화면이 짓지 않고 응답의 `title` 을 그대로 쓴다**(ia.md:447).
- *   `title` 이 없으면 **제목을 그리지 않는다.** 키 이름(`myImpact` 등)을 한국어로
+ *   `title` 이 없으면 **제목을 그리지 않는다.** 키 이름을 한국어로
  *   옮겨 제목으로 쓰면 AI 가 제목을 바꿀 때 화면이 못 따라간다
  * - **`null` 섹션은 자리를 비운다**(ia.md:452). 접힌 카드도 "정보 없음" 박스도
- *   만들지 않는다 — 미보유 종목에서 개인화 섹션 둘이 빠지는 것이 정상 상태다
+ *   만들지 않는다
  * - **문장은 `text` 하나로 렌더된다.** `segments` 는 이어 붙이면 `text` 와 정확히
  *   일치하므로(C55) 둘 다 그리면 같은 문장이 두 번 나온다. 수치 강조가 필요할 때만
  *   `segments` 를 순회하고, 조각이 없으면 `text` 를 그대로 쓴다
@@ -61,12 +63,13 @@ import { useStockAnalysis } from '../api/useStockAnalysis';
  * ## 만들지 않은 것
  *
  * `cached`·`cachedAt` 은 항상 `false`/`null` 이라 **캐시 배지를 만들지 않는다.**
- * `thesisCheck.supporting`·`challenging` 과 `nextEvents.events` 도 지금 항상 빈
- * 배열이라(contracts C56) 전용 UI 를 만들지 않았다 — 그 자리를 그리려면 목이 계약보다
- * 관대해져야 한다. 값이 실제로 실려 오면 스키마는 이미 받고 있으니 여기만 고친다.
+ * `nextEvents.events` 도 지금 항상 빈 배열이라(contracts C56) 전용 UI 를 만들지
+ * 않았다 — 그 자리를 그리려면 목이 계약보다 관대해져야 한다. 값이 실제로 실려 오면
+ * 스키마는 이미 받고 있으니 여기만 고친다.
  *
- * `thesisCheck` 가 `null` 일 때의 논지 입력 유도는 **만들었다** (`ThesisPromptBlock`).
- * 보유 여부가 있어야 세는 자리라 `owned` 를 받는다 — 아래 그 주석 참고.
+ * `thesisCheck` 가 `null` 일 때의 논지 입력 유도(`ThesisPromptBlock`)는 **뺐다**
+ * (GitLab 이슈 #92). 개인화 섹션 제거로 `thesisCheck` 가 항상 `null` 이 되면서
+ * 보유 종목마다 그 카드가 뜨게 됐었다 — 논지 기록 유도는 위키 화면과 채팅이 맡는다.
  *
  * ## 근거는 목록이 아니라 캡션 한 줄이다
  *
@@ -87,18 +90,22 @@ import { useStockAnalysis } from '../api/useStockAnalysis';
 type StockAiTabProps = {
   stockCode: string;
   /**
-   * 종목명 (`GET /stocks/{stockCode}` 의 `stockName`). **채팅으로 넘기려고 받는다**
-   * — `ThesisPromptBlock` 이 `/chat?...&stockName=` 으로 실어 보낸다
-   * (FINCH-248, 아래 그 주석 참고). 이 탭 자체가 그리는 값은 아니다.
+   * 종목명 (`GET /stocks/{stockCode}` 의 `stockName`).
+   *
+   * **이 탭 안에서는 더 안 쓴다.** 채팅으로 논지 기록을 유도하던 `ThesisPromptBlock`
+   * 이 이 값을 실어 보냈는데 그 블록을 뺐다(GitLab 이슈 #92). 타입에 남긴 이유는
+   * `pages/StockDetailPage.tsx` 가 여전히 이 값을 넘기기 때문이다 — 그 파일은 이
+   * 작업 범위 밖이다.
    */
   stockName: string;
   /** AI 탭이 열려 있을 때만 부른다 — 안 그러면 차트만 보는 사람에게 AI 요금이 나간다. */
   isActive: boolean;
   /**
    * 보유 중인가 (`GET /stocks/{stockCode}` 의 `holding !== null`).
-   * **논지 없음 유도를 띄울지가 여기서 갈린다** — 프로토타입 `d.needThesis` 가
-   * `owned && !thesis` 다(새 디코드 L3712). `thesisCheck` 가 `null` 인 것만으로는
-   * 미보유와 구별되지 않아 응답만으로는 셀 수 없다.
+   *
+   * **이 탭 안에서는 더 안 쓴다.** 논지 없음 유도(`ThesisPromptBlock`)가 미보유와
+   * 갈리려고 이 값을 받았는데 그 블록을 뺐다(GitLab 이슈 #92). 타입에 남긴 이유는
+   * 위 `stockName` 과 같다.
    */
   owned: boolean;
 };
@@ -132,154 +139,6 @@ function AnalysisSectionBlock({
       {caption === undefined ? null : (
         <p className="mt-4 text-caption text-text-muted">{caption}</p>
       )}
-    </section>
-  );
-}
-
-/**
- * 나의 투자 기준 — 논지가 있을 때 (프로토타입 `d.hasThesis`, 새 디코드 L1958–L1971).
- *
- * 평면 섹션과 다르게 **흰 카드 하나**다 — 기록 날짜 · 논지 원문 · 구분선 ·
- * 점검 문장 넷을 담고 그 아래 `기록 확인하기` 행이 위키 탭으로 보낸다.
- * 원문·날짜는 `thesisCheck.thesis`(`text`·`recordedAt`)로 온다 — 스키마가 이미
- * 받고 있었는데 그리지 않고 있었다.
- *
- * `.card.d` 실측 — 흰 면 · 1px 테두리 · 반경 12 · 안쪽 여백 **16**.
- * `shared/ui/Card` 는 안쪽 여백이 20 이라 그대로 쓰면 실측에서 벗어나고
- * `className` 으로 덮으면 같은 특이도의 `p-*` 둘이 겹쳐 어느 쪽이 이길지 정해지지
- * 않는다. 그래서 이 자리만 손으로 적었다.
- *
- * 도착지는 `ia.md` L186 이 확정으로 적은 `/portfolio?tab=wiki` 다. 탭 값은
- * `features/portfolio` 가 갖지만 feature 끼리 import 가 막혀 있어(컨벤션 §2)
- * 문자열로 적는다.
- */
-function ThesisCheckBlock({ section }: { section: AiAnalysisSection }) {
-  const navigate = useNavigate();
-  const thesis = section.thesis ?? null;
-
-  return (
-    <section className="mt-10">
-      {section.title === null || section.title === undefined ? null : (
-        <h3 className="mb-3.5 text-section-title text-text-primary">
-          {section.title}
-        </h3>
-      )}
-
-      <div className="rounded-card border border-border bg-surface p-4">
-        {thesis === null ? null : (
-          <>
-            <p className="text-caption text-text-muted">
-              {formatKstMonthDay(thesis.recordedAt)} 기록
-            </p>
-            <p className="mt-1.75 text-body-1 leading-6 text-pretty whitespace-pre-line text-text-primary">
-              {thesis.text}
-            </p>
-            <div className="my-3.5 h-px bg-border" />
-          </>
-        )}
-        <p className="text-body-2 text-pretty text-text-secondary">
-          <AiSegmentText segments={section.segments} text={section.text} />
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => void navigate(`${ROUTES.portfolio}?tab=wiki`)}
-        className="mt-3.5 flex h-12.5 w-full items-center gap-3 rounded-[13px] bg-surface-soft px-4 text-left active:bg-primary-soft"
-      >
-        <span className="min-w-0 flex-1 text-[15px] font-semibold text-text-primary">
-          기록 확인하기
-        </span>
-        <span
-          aria-hidden="true"
-          className="flex-none text-[15px] text-text-muted"
-        >
-          ›
-        </span>
-      </button>
-    </section>
-  );
-}
-
-/**
- * 나의 투자 기준 — 논지가 **없을** 때의 유도 (프로토타입 `d.needThesis`,
- * 새 디코드 L1970–L1976). 보유 중인데 기록이 없을 때만 나온다.
- *
- * 제목·문장은 응답이 아니라 **시안 문구**다. `thesisCheck` 가 `null` 이라 서버
- * `title` 이 애초에 오지 않는 자리이고, "섹션 제목을 화면이 짓지 않는다"(ia.md:453)
- * 는 응답이 있는 섹션에 거는 규약이다. `SECTION_CAPTION` 과 같은 성격이다.
- *
- * 실측 — 제목 아래 10px · 본문 `.b1` 행간 24 `--t2` · 행 50px, 위 14px, 안쪽 16,
- * 반경 13, 면 `#F5F6F8` · 라벨 15px/600 `--t1` · `›` 15px `--t3`. 논지가 있을 때의
- * `기록 확인하기` 행과 같은 모양이라 클래스를 맞췄다.
- *
- * **도착지는 아직 AI 채팅이다.** 프로토타입은 `openRecordSheet` 로 입력 시트를
- * 열지만(L1974) 이 버튼은 채팅으로 보낸다.
- *
- * **이유가 2026-09-11 에 사라졌다.** 원래는 프론트에 논지를 새로 쓸 API 가 없었다 —
- * `POST /wiki/theses` 가 중계 대상이 아니어서 프론트가 가진 것은 열람·수정·사실 삭제
- * 셋뿐이었고(옛 contracts P34), 시트를 만들면 저장할 곳이 없는 폼이 됐다. 그래서
- * ia.md 가 "입력 폼이 아니라 AI 채팅으로 보내는 버튼" 으로 못박았다. **지금은 경로가
- * 열려 있다**(이슈 #56 · apiSpec v0.8.8 · contracts C97) — 위키 탭은 같은 티켓
- * (FINCH-238)에서 시트로 바꿨다.
- *
- * **이 자리를 바꾸지 않은 것은 계약이 아니라 범위 때문이다.** 종목 상세에서 시트를
- * 열려면 여기서 시트 상태를 들고 있어야 하고 저장 뒤 분석 재조회까지 붙는데, 그
- * 판단을 아직 하지 않았다. 바꿀 때 필요한 것은 `features/portfolio` 의
- * `ThesisEditSheet` 와 같은 갈래 — 논지가 없으면 `POST`, 있으면 `PUT` — 하나뿐이다.
- */
-function ThesisPromptBlock({
-  stockCode,
-  stockName,
-}: {
-  stockCode: string;
-  stockName: string;
-}) {
-  const navigate = useNavigate();
-
-  /*
-   * **종목명을 쿼리에 함께 싣는다** (FINCH-248). 채팅 빈 상태의 맥락 문구와
-   * 추천 질문이 종목명을 쓰는데 `ticker` 는 6자리 코드라 이름이 따로 필요하고,
-   * 채팅 화면은 그 이름을 구하려고 `GET /stocks/{stockCode}` 를 부를 수 없다 —
-   * 그 호출 자체가 최근 본 종목 기록이다(contracts C51). 이 화면은 이미 이름을
-   * 갖고 있으므로 여기서 얹는다. 파라미터 이름의 근거는
-   * `features/chat/lib/parseChatContext.ts` 에 있다.
-   *
-   * 손으로 문자열을 잇지 않고 `URLSearchParams` 로 만든다 — 종목명은 한글이라
-   * 인코딩이 필요하고 `&` 가 들어간 이름(`SK바이오팜 & …` 같은 값)이 오면
-   * 이어 붙인 주소는 파라미터가 하나 더 있는 것으로 읽힌다.
-   */
-  const chatQuery = new URLSearchParams({
-    screen: 'stock_detail',
-    ticker: stockCode,
-    stockName,
-  });
-
-  return (
-    <section className="mt-10">
-      <h3 className="mb-2.5 text-section-title text-text-primary">
-        나의 투자 기준
-      </h3>
-      <p className="text-body-1 leading-6 text-pretty text-text-secondary">
-        매수 이유를 기록해두면
-        <br />
-        다음 판단에서 다시 꺼내볼 수 있어요.
-      </p>
-      <button
-        type="button"
-        onClick={() => void navigate(`${ROUTES.chat}?${chatQuery.toString()}`)}
-        className="mt-3.5 flex h-12.5 w-full items-center gap-3 rounded-[13px] bg-surface-soft px-4 text-left active:bg-primary-soft"
-      >
-        <span className="min-w-0 flex-1 text-[15px] font-semibold text-text-primary">
-          ＋ 매수 이유 기록하기
-        </span>
-        <span
-          aria-hidden="true"
-          className="flex-none text-[15px] text-text-muted"
-        >
-          ›
-        </span>
-      </button>
     </section>
   );
 }
@@ -322,12 +181,7 @@ const SECTION_CAPTION: Partial<Record<AiAnalysisSectionKey, string>> = {
   risks: '공시와 실적에서 확인한 내용이에요.',
 };
 
-export function StockAiTab({
-  stockCode,
-  stockName,
-  isActive,
-  owned,
-}: StockAiTabProps) {
+export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   const analysis = useStockAnalysis(stockCode, isActive);
 
   if (analysis.isPending) {
@@ -417,9 +271,9 @@ export function StockAiTab({
         : null;
 
   /**
-   * 온 섹션만 표시 순서대로 고른다. **일곱이 전부 없을 수 있다** — 그때는 아래
-   * 안내로 접는다. 요청에서 뺀 섹션은 키째로 빠지고(`exclude_unset`) 개인화가
-   * 꺼지거나 미보유면 값이 `null` 이라(C58) 둘을 함께 걸러야 한다.
+   * 온 섹션만 표시 순서대로 고른다. **다섯이 전부 없을 수 있다** — 그때는 아래
+   * 안내로 접는다. 요청에서 뺀 섹션은 키째로 빠지고(`exclude_unset`), 근거가
+   * 모이지 않으면 값이 `null` 이라(C58) 둘을 함께 걸러야 한다.
    */
   const present = AI_ANALYSIS_SECTION_KEYS.flatMap((key) => {
     const section = content.sections[key] ?? null;
@@ -429,14 +283,6 @@ export function StockAiTab({
   const current = content.sections.current ?? null;
   const flat = present.filter((entry) => entry.key !== 'current');
 
-  /**
-   * 보유 중인데 논지가 없으면 그 자리에 유도를 둔다 (프로토타입 `d.needThesis`).
-   * `thesisCheck` 는 기록된 활성 논지가 없을 때 `null` 이고(ia.md §4 표) 미보유일
-   * 때도 `null` 이라(C58) 응답만으로는 둘을 못 가른다 — 보유 여부는 상세 응답에서
-   * 온다. `null` 섹션을 빈 상자로 채우는 것과 다르다(ia.md:452): 그 규약은 "정보
-   * 없음" 박스를 금지하는 것이고 이 자리는 다음 행동을 주는 유도다.
-   */
-  const needThesis = owned && (content.sections.thesisCheck ?? null) === null;
   const sourceLabels = citationTypeLabels(citations);
   const sourceLine = [
     ...(asOf === null
@@ -478,21 +324,13 @@ export function StockAiTab({
         )}
       </AiCard>
 
-      {flat.map((entry) =>
-        entry.key === 'thesisCheck' && entry.section.thesis != null ? (
-          <ThesisCheckBlock key={entry.key} section={entry.section} />
-        ) : (
-          <AnalysisSectionBlock
-            key={entry.key}
-            section={entry.section}
-            caption={SECTION_CAPTION[entry.key]}
-          />
-        ),
-      )}
-
-      {needThesis && (
-        <ThesisPromptBlock stockCode={stockCode} stockName={stockName} />
-      )}
+      {flat.map((entry) => (
+        <AnalysisSectionBlock
+          key={entry.key}
+          section={entry.section}
+          caption={SECTION_CAPTION[entry.key]}
+        />
+      ))}
 
       {/*
         근거 표기는 **뱃지 목록이 아니라 캡션 한 줄**이다 (design.md §9 ·
