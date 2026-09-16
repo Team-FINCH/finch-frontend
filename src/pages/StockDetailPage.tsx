@@ -162,11 +162,14 @@ export function StockDetailPage() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:96px]">
       {/* 고정 묶음 — 프로토타입 `.nav` · 현재가 블록 · `.tabs`. 위 주석 참고.
-          위 24px 은 `PageMain` 이 주던 값을 그대로 가져온 것이다.
-          좌우는 15px — `‹` 뒤로가기가 있는 화면의 공통값이다 (`SubPageHeader`
-          `px-3.75`, 프로토타입 `.nav` 실측값). 본문(`PageMain`)의 26px 과는 다르다 —
-          `StockDetailHeader` 안에 좌우 패딩이 없어 이 한 줄이 그 자리를 대신한다. */}
-      <div className="mx-auto w-full max-w-md flex-none px-3.75 pt-6">
+          좌우 26px 은 본문(`PageMain`)과 같은 값이다 — 이 한 줄이 헤더뿐 아니라
+          현재가 블록·탭까지 함께 감싸므로, 그 안의 내용물이 본문(`오늘` 격자 등)과
+          같은 줄에 서야 한다. `SubPageHeader` 의 15px(`px-3.75`)은 헤더 하나만
+          감싸는 자리의 값이라 여기 쓰면 내용물이 본문과 어긋난다.
+          위 여백은 없다 — `PageHeader`·`SubPageHeader` 를 쓰는 다른 화면은 전부
+          헤더가 화면 맨 위에 붙는다(둘 다 `pt` 없이 높이만 정해져 있다). 여기만
+          24px 을 주면 제목이 다른 화면보다 내려와 보인다. */}
+      <div className="mx-auto w-full max-w-md flex-none px-6.5">
         <StockDetailHeader
           detail={data}
           quote={quote.snapshot}
