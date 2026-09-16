@@ -246,12 +246,11 @@ export function OrderPage() {
           바 높이 6.5rem 에 1.5rem 을 더 얹은 것은 AI 점검 슬롯이 제출 버튼에 붙지 않게
           하려는 것이다 (ia.md §4:538 — 주문 확인 단계에서 오탭하면 주문이 나간다).
           safe-area 는 `PageMain` 이 한 번만 더한다. */}
+      <SubPageHeader
+        title={sideLabel}
+        fallbackTo={ROUTES.stockDetail(stockCode)}
+      />
       <PageMain>
-        <SubPageHeader
-          title={sideLabel}
-          fallbackTo={ROUTES.stockDetail(stockCode)}
-        />
-
         {/* 어느 종목을 사는지 화면에 남긴다 (FINCH-260). 전에는 종목명 없이
             `시장가 · 현재가 68,100원` 한 줄이라, 헤더 제목(`매수`)까지 합쳐도
             화면 어디에도 종목이 없었다. */}

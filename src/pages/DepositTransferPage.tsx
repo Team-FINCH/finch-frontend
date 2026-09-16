@@ -70,10 +70,8 @@ type Phase = 'select' | 'processing' | 'success' | 'error';
 function PaymentResultShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <PageMain>
-        <SubPageHeader title="결제 결과" showBack={false} />
-        {children}
-      </PageMain>
+      <SubPageHeader title="결제 결과" showBack={false} />
+      <PageMain>{children}</PageMain>
     </div>
   );
 }
@@ -232,15 +230,14 @@ export function DepositTransferPage() {
     <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:8rem]">
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
       {/* 8rem 은 이 화면이 `pb-32` 로 들고 있던 값 그대로다. */}
+      {/*
+       * 제목은 프로토타입 `isMock` 의 `.navt`(L2683)를 그대로 쓴다 — 사용자가 읽을 말은
+       * `계좌이체 승인` 이고 `모의 이체` 는 내부 용어다(prototype-diff.md B절). 뒤로가기의
+       * 되돌아갈 곳이 없으면 입금 화면으로 보낸다. 승인 뒤의 결과 화면들은 프로토타입
+       * `isPayReturn`(L2714)처럼 제목 `결제 결과` 만 두고 뒤로가기를 빼 이중 확정을 막는다.
+       */}
+      <SubPageHeader title="계좌이체 승인" fallbackTo={ROUTES.deposit} />
       <PageMain>
-        {/*
-         * 제목은 프로토타입 `isMock` 의 `.navt`(L2683)를 그대로 쓴다 — 사용자가 읽을 말은
-         * `계좌이체 승인` 이고 `모의 이체` 는 내부 용어다(prototype-diff.md B절). 뒤로가기의
-         * 되돌아갈 곳이 없으면 입금 화면으로 보낸다. 승인 뒤의 결과 화면들은 프로토타입
-         * `isPayReturn`(L2714)처럼 제목 `결제 결과` 만 두고 뒤로가기를 빼 이중 확정을 막는다.
-         */}
-        <SubPageHeader title="계좌이체 승인" fallbackTo={ROUTES.deposit} />
-
         {/* 섹션 간격 32px 은 프로토타입 `.sec{margin-top:32px}` 실측값이다. */}
         <div className="mt-8 flex flex-col gap-8">
           {/*

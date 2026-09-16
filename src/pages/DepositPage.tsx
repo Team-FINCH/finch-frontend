@@ -202,13 +202,12 @@ export function DepositPage() {
        한 번만 더한다. */
     <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:6.5rem]">
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      {/*
+       * 제목·뒤로가기는 프로토타입 `.nav` 묶음(L2623 `충전` — 용어 통일 뒤 `입금`)이다.
+       * 진입점이 마이페이지라(ia.md §1) 새 탭에서 바로 열었을 때는 그쪽으로 보낸다.
+       */}
+      <SubPageHeader title="입금" fallbackTo={ROUTES.my} />
       <PageMain>
-        {/*
-         * 제목·뒤로가기는 프로토타입 `.nav` 묶음(L2623 `충전` — 용어 통일 뒤 `입금`)이다.
-         * 진입점이 마이페이지라(ia.md §1) 새 탭에서 바로 열었을 때는 그쪽으로 보낸다.
-         */}
-        <SubPageHeader title="입금" fallbackTo={ROUTES.my} />
-
         {/* 섹션 간격 32px 은 프로토타입 `.sec{margin-top:32px}` 실측값이다. */}
         <div className="mt-8 flex flex-col gap-8">
           <AmountInput

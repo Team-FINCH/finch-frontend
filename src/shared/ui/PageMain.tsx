@@ -27,7 +27,7 @@ import { type ComponentProps } from 'react';
  * 굴러갔다. 지금은 화면마다 자기 껍데기를 직접 두른다.
  *
  * ```
- * 껍데기       flex h-dvh flex-col overflow-hidden [--page-bottom-space:…]
+ * 껍데기       flex h-dvh flex-col overflow-hidden  + --page-bottom-space
  *   헤더       flex-none                           <- 굴러가지 않는다
  *   PageMain   flex-1 overflow-y-auto              <- 본문만 굴러간다
  * ```

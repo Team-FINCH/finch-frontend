@@ -36,8 +36,8 @@ export function InboxPage() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      <SubPageHeader title="알림함" className="pb-1" />
       <PageMain>
-        <SubPageHeader title="알림함" className="pb-1" />
         <InboxList
           recordSubmit={{
             mutate: createThesis.mutate,

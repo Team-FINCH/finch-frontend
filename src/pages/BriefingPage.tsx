@@ -28,8 +28,8 @@ export function BriefingPage() {
           플로팅 버튼(`app/layouts/AiFloatingOverlay`)이 이 화면에만 떠 있어서
           그만큼 비워 두지 않으면 마지막 항목이 버튼 밑에 깔린다. 종목 상세가 쓰는
           값과 같다(`pages/StockDetailPage` 머리 주석). */}
+      <SubPageHeader title="데일리 브리핑" className="pb-1" />
       <PageMain>
-        <SubPageHeader title="데일리 브리핑" className="pb-1" />
         <BriefingFullList />
       </PageMain>
     </div>

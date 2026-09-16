@@ -33,12 +33,12 @@ export function DepositFailPage() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      {/*
+       * 프로토타입 `isPayReturn`(L2714)은 제목 `결제 결과` 만 두고 **뒤로가기를 일부러
+       * 뺐다** — 결제가 끝난 자리라 되돌아가면 이중 확정이 난다. 성공 복귀와 같다.
+       */}
+      <SubPageHeader title="결제 결과" showBack={false} />
       <PageMain>
-        {/*
-         * 프로토타입 `isPayReturn`(L2714)은 제목 `결제 결과` 만 두고 **뒤로가기를 일부러
-         * 뺐다** — 결제가 끝난 자리라 되돌아가면 이중 확정이 난다. 성공 복귀와 같다.
-         */}
-        <SubPageHeader title="결제 결과" showBack={false} />
         <div className="flex flex-col items-center px-6 pt-14.5 pb-5 text-center">
           <span
             aria-hidden="true"

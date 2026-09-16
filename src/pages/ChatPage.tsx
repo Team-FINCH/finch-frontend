@@ -514,22 +514,21 @@ export function ChatPage() {
         마지막 말풍선이 그 밑에 깔린다. `min-h-[calc(100dvh-3rem)]` 은 함께 걷었다:
         껍데기가 높이를 주기 전에 본문이 화면을 채우게 하려던 임시값이라, 이제는
         그 값 때문에 내용이 짧아도 스크롤이 생긴다. */}
+      <SubPageHeader
+        title="FINCH AI"
+        action={
+          messages.length > 0 ? (
+            <button
+              type="button"
+              onClick={resetConversation}
+              className="flex h-11 items-center rounded-12 px-2.5 text-body-2 font-medium text-text-muted transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
+            >
+              초기화
+            </button>
+          ) : undefined
+        }
+      />
       <PageMain className="flex flex-col">
-        <SubPageHeader
-          title="FINCH AI"
-          action={
-            messages.length > 0 ? (
-              <button
-                type="button"
-                onClick={resetConversation}
-                className="flex h-11 items-center rounded-12 px-2.5 text-body-2 font-medium text-text-muted transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
-              >
-                초기화
-              </button>
-            ) : undefined
-          }
-        />
-
         {showEmptyState ? (
           <ChatEmptyState
             subCopy={emptyCopy.subCopy}

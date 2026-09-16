@@ -67,10 +67,8 @@ type ConfirmPhase = 'pending' | 'success' | 'error';
 function PaymentResultShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <PageMain>
-        <SubPageHeader title="결제 결과" showBack={false} />
-        {children}
-      </PageMain>
+      <SubPageHeader title="결제 결과" showBack={false} />
+      <PageMain>{children}</PageMain>
     </div>
   );
 }

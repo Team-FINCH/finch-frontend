@@ -98,10 +98,9 @@ export function WithdrawPage() {
     <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:8rem]">
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
       {/* 8rem 은 이 화면이 `pb-32` 로 들고 있던 값 그대로다 (ActionBar 높이분). */}
+      {/* 프로토타입 `.nav`(L2757 `출금`). 진입점이 마이페이지라 그쪽을 fallback 으로 둔다. */}
+      <SubPageHeader title="출금" fallbackTo={ROUTES.my} />
       <PageMain>
-        {/* 프로토타입 `.nav`(L2757 `출금`). 진입점이 마이페이지라 그쪽을 fallback 으로 둔다. */}
-        <SubPageHeader title="출금" fallbackTo={ROUTES.my} />
-
         <div className="mt-6 flex flex-col gap-6">
           {/*
            * 라벨은 프로토타입 `.cp`(L2801) 문구 그대로 `출금 금액` 이다. `출금할

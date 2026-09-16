@@ -40,13 +40,10 @@ export function TransactionsPage() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
-      <PageMain>
-        <SubPageHeader
-          title="매매 내역"
-          fallbackTo={ROUTES.my}
-          className="mb-4"
-        />
-
+      <SubPageHeader title="매매 내역" fallbackTo={ROUTES.my} />
+      {/* 헤더와 첫 요소 사이 16px 은 `PageMain` 의 `pt-4` 다 — 헤더의 `mb-4` 였던
+          것을 옮겼다. 그 띠는 본문과 함께 굴러가야 한다(`PageHeader` 주석). */}
+      <PageMain className="pt-4">
         <TransactionFilterChips type={type} onChange={setType} />
 
         <TransactionList
