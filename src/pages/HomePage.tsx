@@ -7,6 +7,7 @@ import { TotalAssetsSummary } from '@/features/home/components/TotalAssetsSummar
 import { UpdateNoticeModal } from '@/features/home/components/UpdateNoticeModal';
 import { useHomeData } from '@/features/home/model/useHomeData';
 import { useInboxItems } from '@/features/inbox';
+import type { PortfolioSort } from '@/shared/types/portfolio';
 import type { WatchlistSort } from '@/shared/types/stock';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { PageMain } from '@/shared/ui/PageMain';
@@ -42,9 +43,16 @@ import { PageMain } from '@/shared/ui/PageMain';
  */
 export function HomePage() {
   /**
-   * 관심 종목 정렬. 버튼은 목록 안에 있지만 쿼리는 `useHomeData` 가 갖고 있어
-   * 상태를 여기까지 올렸다 — 두 곳이 다른 정렬값을 보면 목록과 버튼이 어긋난다.
+   * 내 종목·관심 종목 정렬. 버튼은 목록 안에 있지만 쿼리는 `useHomeData` 가 갖고
+   * 있어 상태를 여기까지 올렸다 — 두 곳이 다른 정렬값을 보면 목록과 버튼이 어긋난다.
+   *
+   * **내 종목 기본값은 `PROFIT_RATE` 다** (사용자 결정, 2026-09-16). apiSpec §8.1의
+   * 계약 기본값은 `EVALUATION` 이지만 그건 `sort` 파라미터를 아예 안 보냈을 때
+   * 서버가 고르는 값이다 — 화면 기본을 지키려면 `useHomePortfolio` 가 이 값을 항상
+   * 명시적으로 실어야 한다(`getHomePortfolio` 주석 참고).
    */
+  const [holdingsSort, setHoldingsSort] =
+    useState<PortfolioSort>('PROFIT_RATE');
   const [watchSort, setWatchSort] = useState<WatchlistSort>('REGISTERED');
   const {
     account,
@@ -57,7 +65,7 @@ export function HomePage() {
     watchError,
     watchRefetch,
     evaluationTotals,
-  } = useHomeData(watchSort);
+  } = useHomeData(holdingsSort, watchSort);
   const inbox = useInboxItems();
 
   const hasNoStocks =
@@ -94,6 +102,8 @@ export function HomePage() {
           holdingsPending={holdingsPending}
           holdingsError={holdingsError}
           holdingsRefetch={holdingsRefetch}
+          holdingsSort={holdingsSort}
+          onHoldingsSortChange={setHoldingsSort}
           watchItems={watchItems}
           watchPending={watchPending}
           watchError={watchError}

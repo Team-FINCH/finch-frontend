@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { HOME_LIST_TAB_PARAM, ROUTES } from '@/shared/config/routes';
 import { formatKrw, formatSignedRate } from '@/shared/lib/formatNumber';
 import type { AiBriefingItem } from '@/shared/types/ai/briefing';
+import type { PortfolioSort } from '@/shared/types/portfolio';
 import type { WatchlistSort } from '@/shared/types/stock';
 import { ListEmpty } from '@/shared/ui/ListEmpty';
 import { Skeleton } from '@/shared/ui/Skeleton';
@@ -26,6 +27,16 @@ const WATCH_SORTS: readonly { value: WatchlistSort; label: string }[] = [
   { value: 'REGISTERED', label: '등록순' },
   { value: 'NAME', label: '이름순' },
   { value: 'CHANGE_RATE', label: '등락률순' },
+];
+
+/**
+ * 내 종목 정렬 (티켓 FINCH-292). `WATCH_SORTS` 와 같은 원칙이다 — 라벨은
+ * apiSpec §8.1 `sort` 열거값과 그대로 대응하고, 화면에서 다시 정렬하지 않는다.
+ * 가짓수가 둘뿐인 것은 서버가 그 둘만 지원해서다.
+ */
+const HOLDINGS_SORTS: readonly { value: PortfolioSort; label: string }[] = [
+  { value: 'EVALUATION', label: '평가금액순' },
+  { value: 'PROFIT_RATE', label: '수익률순' },
 ];
 
 /**
@@ -118,6 +129,9 @@ type HoldingsWatchlistPreviewProps = Pick<
   | 'watchError'
   | 'watchRefetch'
 > & {
+  /** 내 종목 정렬. 쿼리를 가진 `useHomeData` 와 같은 값을 써야 해서 페이지가 갖는다 */
+  holdingsSort: PortfolioSort;
+  onHoldingsSortChange: (sort: PortfolioSort) => void;
   /** 관심 종목 정렬. 쿼리를 가진 `useHomeData` 와 같은 값을 써야 해서 페이지가 갖는다 */
   watchSort: WatchlistSort;
   onWatchSortChange: (sort: WatchlistSort) => void;
@@ -139,6 +153,8 @@ export function HoldingsWatchlistPreview({
   holdingsPending,
   holdingsError,
   holdingsRefetch,
+  holdingsSort,
+  onHoldingsSortChange,
   watchItems,
   watchPending,
   watchError,
@@ -181,6 +197,8 @@ export function HoldingsWatchlistPreview({
           isPending={holdingsPending}
           isError={holdingsError}
           onRetry={() => holdingsRefetch()}
+          sort={holdingsSort}
+          onSortChange={onHoldingsSortChange}
         />
       ) : (
         <WatchlistPanel
@@ -278,6 +296,8 @@ type HoldingsPanelProps = {
   isPending: boolean;
   isError: boolean;
   onRetry: () => void;
+  sort: PortfolioSort;
+  onSortChange: (sort: PortfolioSort) => void;
 };
 
 function HoldingsPanel({
@@ -285,6 +305,8 @@ function HoldingsPanel({
   isPending,
   isError,
   onRetry,
+  sort,
+  onSortChange,
 }: HoldingsPanelProps) {
   if (isPending) {
     return <PreviewSkeleton />;
@@ -306,6 +328,24 @@ function HoldingsPanel({
 
   return (
     <div className="flex flex-col">
+      {/* 정렬 (`WATCH_SORTS`와 같은 원칙). 목록이 있을 때만 나온다 */}
+      <div className="flex items-center gap-3.5 pb-2.5">
+        {HOLDINGS_SORTS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onSortChange(option.value)}
+            aria-pressed={option.value === sort}
+            className={`py-0.5 text-caption ${
+              option.value === sort
+                ? 'font-bold text-text-primary'
+                : 'font-medium text-text-muted'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
       {preview.map((holding) => (
         <StockRow
           key={holding.stockCode}

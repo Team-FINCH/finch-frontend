@@ -6,6 +6,7 @@ import {
   evaluationTotals as computeEvaluationTotals,
   toQuoteMap,
 } from '@/shared/lib/applyQuotes';
+import type { PortfolioSort } from '@/shared/types/portfolio';
 import type { WatchlistSort } from '@/shared/types/stock';
 
 import { useAccountSummary } from '../api/useAccountSummary';
@@ -27,12 +28,15 @@ import { useHomeWatchlist } from '../api/useHomeWatchlist';
  * TODO(계약): 일간 손익 필드가 나중에 추가되면 이 훅과 `TotalAssetsSummary` 를
  * 함께 고친다. 지금은 "평가손익"(누적)으로 라벨을 바꿔 실제 있는 값만 보여준다.
  *
- * 관심 종목 정렬은 화면이 고른 값을 그대로 받는다 — 정렬 버튼은 목록 안에 있지만
- * 쿼리는 이 훅이 갖고 있어 상태를 페이지까지 올렸다.
+ * 내 종목·관심 종목 정렬은 둘 다 화면이 고른 값을 그대로 받는다 — 정렬 버튼은
+ * 목록 안에 있지만 쿼리는 이 훅이 갖고 있어 상태를 페이지까지 올렸다.
  */
-export function useHomeData(watchSort: WatchlistSort) {
+export function useHomeData(
+  portfolioSort: PortfolioSort,
+  watchSort: WatchlistSort,
+) {
   const account = useAccountSummary();
-  const portfolio = useHomePortfolio();
+  const portfolio = useHomePortfolio(portfolioSort);
   const watchlist = useHomeWatchlist(watchSort);
 
   const stockCodes = useMemo(() => {

@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 
 import { toQuoteMap } from '@/shared/lib/applyQuotes';
 import type { AiBriefingItem } from '@/shared/types/ai/briefing';
+import type { PortfolioSort } from '@/shared/types/portfolio';
 import { hasQuoteValues } from '@/shared/types/stock';
 
 import { useHomePortfolio } from '../api/useHomePortfolio';
@@ -74,6 +75,13 @@ export type BriefingStockFacts = {
 const WATCHLIST_SORT = 'REGISTERED';
 
 /**
+ * 보유 목록 정렬. 같은 이유로 홈의 기본값(`HomePage` 의 `holdingsSort` 초깃값,
+ * 티켓 FINCH-292)과 맞춘다 — `PROFIT_RATE` 가 아니면 홈에서 들어와도
+ * `/portfolio` 를 다시 부른다.
+ */
+const PORTFOLIO_SORT: PortfolioSort = 'PROFIT_RATE';
+
+/**
  * 브리핑 항목들이 가리키는 종목의 이름과 등락률을 모아 종목코드로 찾게 해 준다.
  *
  * 항목 하나가 여러 종목을 가리킬 수 있지만 행 머리에는 하나만 그리므로
@@ -91,7 +99,7 @@ export function useBriefingStockFacts(
     return Array.from(new Set(codes));
   }, [items]);
 
-  const portfolio = useHomePortfolio();
+  const portfolio = useHomePortfolio(PORTFOLIO_SORT);
   const watchlist = useHomeWatchlist(WATCHLIST_SORT);
   const quotes = useHomeStockQuotes(stockCodes);
 
