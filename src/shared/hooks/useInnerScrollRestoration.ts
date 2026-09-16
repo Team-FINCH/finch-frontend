@@ -2,21 +2,36 @@ import { useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 
 /**
- * 하단 탭 화면 넷의 **안쪽** 스크롤 위치를 라우트별로 기억했다가 뒤로가기에서 되돌린다.
+ * 앱 셸 **안쪽** 스크롤 위치를 라우트별로 기억했다가 뒤로가기에서 되돌린다.
  *
  * ## 왜 따로 필요한가
  *
  * `RootLayout` 의 `<ScrollRestoration />` 은 **창(window) 스크롤만 본다** —
  * `node_modules/react-router` 구현이 `window.scrollY` 를 저장하고 `window.scrollTo` 로
  * 되돌린다. `getKey` 옵션은 저장에 쓰는 키 문자열만 갈아 끼울 뿐 되돌리는 대상을
- * 바꾸지 못한다. 그런데 `TabBarLayout` 이 `h-dvh overflow-hidden` 이라 이 넷에서는
+ * 바꾸지 못한다. 그런데 앱 셸(`h-dvh flex-col overflow-hidden`)을 두른 화면에서는
  * 창이 아니라 `PageMain`(`flex-1 overflow-y-auto`) 안쪽이 굴러간다. 그래서 목록에서
  * 상세로 갔다 돌아오면 보던 자리가 아니라 맨 위였다.
  *
- * **`ScrollRestoration` 을 지우지 않는다.** `RootLayout` 바로 아래 화면(입금·주문·
- * 브리핑 등)은 여전히 문서가 굴러가므로 그쪽 복원은 그것이 맡는다. 이 훅은
- * `TabBarLayout` 안에서만 돌아 둘의 담당 구역이 겹치지 않는다 — 탭 화면에서는 창이
- * 아예 스크롤하지 않으므로 `ScrollRestoration` 은 늘 0 을 저장하고 0 을 되돌린다.
+ * **`ScrollRestoration` 을 지우지 않는다.** 껍데기가 없는 화면(로그인)은 여전히
+ * 문서가 굴러가므로 그쪽 복원은 그것이 맡는다. 담당 구역이 겹치지도 않는다 —
+ * 껍데기가 있는 화면에서는 창이 아예 스크롤하지 않으므로 `ScrollRestoration` 은
+ * 늘 0 을 저장하고 0 을 되돌린다.
+ *
+ * ## 어디에 붙어 있나
+ *
+ * 처음에는 `app/layouts/TabBarLayout` 전용(`useTabBarScrollRestoration`)이었다.
+ * 껍데기가 하단 탭 넷과 종목 상세에만 있던 시절이라 그 자리로 충분했다.
+ * FINCH-297 이 껍데기를 모든 화면으로 넓히면서 `pages/` 도 이 훅이 필요해졌는데,
+ * `app/` 아래 있으면 부를 수 없다 — 의존 방향이 `app → pages → features → shared`
+ * 단방향이고 ESLint `import-x/no-restricted-paths` 가 그것을 막는다. 그래서
+ * `shared/hooks` 로 옮기고 이름에서 탭 바를 뺐다. 훅 자체는 탭 바에 기대는 것이
+ * 하나도 없었다 — 컨테이너 안의 `<main>` 하나만 본다.
+ *
+ * **붙이는 기준은 "목록을 내려보다 다른 화면으로 들어갔다 돌아오는가" 다.**
+ * 그런 경로가 없는 화면(입금·출금·주문 같은 폼, 결제 결과)은 붙여도 티가 나지 않아
+ * 붙이지 않았다. 붙인 곳은 `TabBarLayout`(홈·탐색·포트폴리오·내 정보)과
+ * 브리핑 전체·알림함·매매 내역·AI 채팅이다.
  *
  * ## 고른 것 넷
  *
@@ -44,9 +59,12 @@ import { useLocation, useNavigationType } from 'react-router-dom';
  */
 
 /**
- * 히스토리 항목 하나당 위치 하나. 컴포넌트 밖에 두는 이유는 `TabBarLayout` 이
- * 탭 밖 화면(종목 상세 등)으로 나갈 때 통째로 언마운트되기 때문이다 — 상태로 들고
- * 있으면 되돌릴 값이 바로 그 순간 함께 사라진다.
+ * 히스토리 항목 하나당 위치 하나. 컴포넌트 밖에 두는 이유는 화면을 떠날 때 셸이
+ * 통째로 언마운트되기 때문이다 — 상태로 들고 있으면 되돌릴 값이 바로 그 순간 함께
+ * 사라진다.
+ *
+ * **모듈 하나를 여러 화면이 함께 쓰지만 서로 섞이지 않는다.** 키가 `location.key`
+ * 라 히스토리 항목마다 고유하고, 같은 항목을 두 화면이 나눠 갖는 일이 없다.
  *
  * 세션 저장소에 쓰지 않는다. 새로고침 뒤의 뒤로가기까지 되돌리려면 그래야 하지만,
  * 스크롤마다 직렬화가 붙고 깨진 값·용량 초과를 다뤄야 한다. 되돌아오는 흔한 경로는
@@ -63,7 +81,7 @@ const RESTORE_TIMEOUT_MS = 1500;
  * 노드를 붙잡아 두지 않고 매번 다시 찾는다 — lazy 청크를 받는 동안에는
  * `RouteFallback` 의 `<main>` 이 서 있다가 화면이 도착하면 다른 노드로 갈린다.
  *
- * **`PageHeader` 가 `PageMain` 밖으로 나가도(FINCH-231) 이 판정은 그대로다** —
+ * **헤더가 `PageMain` 밖으로 나가도(FINCH-231 · -297) 이 판정은 그대로다** —
  * 헤더는 `<div>` 이고 굴러가는 요소는 여전히 `<main>` 하나다. 컨테이너 안에 두 번째
  * `<main>` 을 두지 않는 것이 이 훅의 전제다.
  */
@@ -71,7 +89,7 @@ function findScrollElement(container: HTMLElement) {
   return container.querySelector('main');
 }
 
-export function useTabBarScrollRestoration() {
+export function useInnerScrollRestoration() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { key } = useLocation();
   const navigationType = useNavigationType();

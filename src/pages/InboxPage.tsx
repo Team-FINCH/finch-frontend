@@ -1,5 +1,6 @@
 import { InboxList } from '@/features/inbox';
 import { useCreateWikiThesis } from '@/features/portfolio/api/useCreateWikiThesis';
+import { useInnerScrollRestoration } from '@/shared/hooks/useInnerScrollRestoration';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
@@ -32,19 +33,26 @@ export function InboxPage() {
     props 로 내리는 것이 규약이라 여기서 부른다.
   */
   const createThesis = useCreateWikiThesis();
+  const shellRef = useInnerScrollRestoration();
 
   return (
-    <PageMain>
+    <div ref={shellRef} className="flex h-dvh flex-col overflow-hidden">
+      {/* 목록을 내려보다 항목을 눌러 나갔다 뒤로 돌아오는 화면이라 안쪽 스크롤
+          위치를 되돌린다. react-router 의 `ScrollRestoration` 은 `window.scrollY`
+          만 보므로 껍데기 안쪽은 되돌리지 못한다 — 근거는 훅 파일에 있다. */}
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
       <SubPageHeader title="알림함" className="pb-1" />
-      <InboxList
-        recordSubmit={{
-          mutate: createThesis.mutate,
-          isPending: createThesis.isPending,
-          isError: createThesis.isError,
-          error: createThesis.error,
-          reset: createThesis.reset,
-        }}
-      />
-    </PageMain>
+      <PageMain>
+        <InboxList
+          recordSubmit={{
+            mutate: createThesis.mutate,
+            isPending: createThesis.isPending,
+            isError: createThesis.isError,
+            error: createThesis.error,
+            reset: createThesis.reset,
+          }}
+        />
+      </PageMain>
+    </div>
   );
 }

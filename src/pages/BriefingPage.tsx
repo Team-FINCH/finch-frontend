@@ -1,4 +1,5 @@
 import { BriefingFullList } from '@/features/home/components/BriefingFullList';
+import { useInnerScrollRestoration } from '@/shared/hooks/useInnerScrollRestoration';
 import { PageMain } from '@/shared/ui/PageMain';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
@@ -21,10 +22,25 @@ import { SubPageHeader } from '@/shared/ui/SubPageHeader';
  * 되돌리는 것으로 바꿨다. 들어온 곳이 홈이라 결과는 같고, 새 탭에서 바로 열면 홈으로 간다.
  */
 export function BriefingPage() {
+  const shellRef = useInnerScrollRestoration();
+
   return (
-    <PageMain>
+    <div
+      ref={shellRef}
+      className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:96px]"
+    >
+      {/* 목록을 내려보다 항목을 눌러 나갔다 뒤로 돌아오는 화면이라 안쪽 스크롤
+          위치를 되돌린다. react-router 의 `ScrollRestoration` 은 `window.scrollY`
+          만 보므로 껍데기 안쪽은 되돌리지 못한다 — 근거는 훅 파일에 있다. */}
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
+      {/* 96px 은 프로토타입 `.hasfab .sc{padding-bottom:96px}` 다 — `브리핑 물어보기`
+          플로팅 버튼(`app/layouts/AiFloatingOverlay`)이 이 화면에만 떠 있어서
+          그만큼 비워 두지 않으면 마지막 항목이 버튼 밑에 깔린다. 종목 상세가 쓰는
+          값과 같다(`pages/StockDetailPage` 머리 주석). */}
       <SubPageHeader title="데일리 브리핑" className="pb-1" />
-      <BriefingFullList />
-    </PageMain>
+      <PageMain>
+        <BriefingFullList />
+      </PageMain>
+    </div>
   );
 }

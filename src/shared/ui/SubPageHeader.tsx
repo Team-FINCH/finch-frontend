@@ -24,9 +24,20 @@ import { HomeLink } from '@/shared/ui/HomeLink';
  * - `.navt` — 18px/700, `letter-spacing:-.01em`, `flex:1`. 뒤로가기 뒤에 오면
  *   `padding-left:0`, 뒤로가기가 없으면 `padding-left:11px`(본문 여백 26px 에 맞춘다)
  *
- * 좌우 15px 은 `PageMain` 의 본문 여백 26px 보다 11px 안쪽이라 `-mx-2.75` 로
- * 그만큼 밖으로 뺀다. 눌림 배경은 프로토타입이 `rgba(31,35,40,.06)` 인데 대응 토큰이
- * 없어 주문 화면 인라인 뒤로가기가 쓰던 `--color-primary-soft` 를 따른다.
+ * 눌림 배경은 프로토타입이 `rgba(31,35,40,.06)` 인데 대응 토큰이 없어 주문 화면
+ * 인라인 뒤로가기가 쓰던 `--color-primary-soft` 를 따른다.
+ *
+ * ## 스크롤 밖에 선다 — `PageMain` 의 형제다
+ *
+ * **`PageHeader` 와 같은 자리에 선다.** `PageMain` 안이 아니라 바로 앞 형제다 —
+ * 안에 있으면 본문과 함께 굴러 올라가 잘린다. 근거와 경위(`sticky top-0 -mt-6` 로
+ * 흉내 내다 실패한 FINCH-231)는 `PageHeader` 주석의 같은 절에 있고, 하위 화면
+ * 전부를 그 구조로 맞춘 것이 FINCH-297 이다.
+ *
+ * 그래서 좌우 여백·최대 너비·가운데 정렬을 **직접 갖는다**
+ * (`mx-auto w-full max-w-md px-3.75`). 좌우 15px 은 프로토타입 `.nav` 실측값이다.
+ * 전에는 `PageMain` 안에 있는 것을 전제로 그 26px 여백에서 `-mx-2.75`(−11px) 를
+ * 빼 15px 을 만들었는데, 밖으로 나오면 뺄 여백 자체가 없다.
  *
  * **뒤로가기 동작은 프로토타입 `back()` 과 같다** — 히스토리 스택을 하나 되돌리고,
  * 스택이 비었으면 홈으로 간다(`app-logic.js` `back(){ ... k.pop()||"home" }`).
@@ -81,7 +92,7 @@ export function SubPageHeader({
 
   return (
     <div
-      className={`-mx-2.75 flex h-(--page-header-height) flex-none items-center gap-1 ${className}`}
+      className={`mx-auto flex h-(--page-header-height) w-full max-w-md flex-none items-center gap-1 px-3.75 ${className}`}
     >
       {showBack ? (
         <button

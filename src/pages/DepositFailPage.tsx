@@ -31,45 +31,48 @@ export function DepositFailPage() {
   const message = depositFailMessage(code) ?? '입금을 진행하지 못했어요.';
 
   return (
-    <PageMain>
+    <div className="flex h-dvh flex-col overflow-hidden">
+      {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
       {/*
        * 프로토타입 `isPayReturn`(L2714)은 제목 `결제 결과` 만 두고 **뒤로가기를 일부러
        * 뺐다** — 결제가 끝난 자리라 되돌아가면 이중 확정이 난다. 성공 복귀와 같다.
        */}
       <SubPageHeader title="결제 결과" showBack={false} />
-      <div className="flex flex-col items-center px-6 pt-14.5 pb-5 text-center">
-        <span
-          aria-hidden="true"
-          className="mb-4 flex size-9.5 items-center justify-center rounded-full bg-ai-status-icon-surface text-ai-status-title font-medium text-text-primary"
-        >
-          !
-        </span>
-        <b className="text-ai-status-title tracking-[-.01em] text-text-primary">
-          입금이 완료되지 않았어요
-        </b>
-        <p className="mt-2 text-label text-pretty text-text-secondary">
-          {message}
-        </p>
-        {/*
-         * 보조 동작 `나중에 하기` 를 주 버튼과 함께 둔다 — `design.md:968`
-         * "어느 실패든 빠져나갈 보조 동작을 함께 둔다. 이 화면에는 탭바도
-         * 뒤로가기도 없어 주 동작 하나만 두면 갇힌다". 이 화면은 주 동작이
-         * 입금 화면으로만 가서 홈으로 빠져나갈 길이 아예 없었다.
-         * 라벨과 세로 10px 배치는 프로토타입 `payDone` 블록을 따른다
-         * (template L2747-2752 · `app-logic.js` `paySecondaryLabel`).
-         */}
-        <div className="mt-8 flex w-full flex-col gap-2.5">
-          <Button onClick={() => navigate(ROUTES.deposit, { replace: true })}>
-            다시 시도하기
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => navigate(ROUTES.home, { replace: true })}
+      <PageMain>
+        <div className="flex flex-col items-center px-6 pt-14.5 pb-5 text-center">
+          <span
+            aria-hidden="true"
+            className="mb-4 flex size-9.5 items-center justify-center rounded-full bg-ai-status-icon-surface text-ai-status-title font-medium text-text-primary"
           >
-            나중에 하기
-          </Button>
+            !
+          </span>
+          <b className="text-ai-status-title tracking-[-.01em] text-text-primary">
+            입금이 완료되지 않았어요
+          </b>
+          <p className="mt-2 text-label text-pretty text-text-secondary">
+            {message}
+          </p>
+          {/*
+           * 보조 동작 `나중에 하기` 를 주 버튼과 함께 둔다 — `design.md:968`
+           * "어느 실패든 빠져나갈 보조 동작을 함께 둔다. 이 화면에는 탭바도
+           * 뒤로가기도 없어 주 동작 하나만 두면 갇힌다". 이 화면은 주 동작이
+           * 입금 화면으로만 가서 홈으로 빠져나갈 길이 아예 없었다.
+           * 라벨과 세로 10px 배치는 프로토타입 `payDone` 블록을 따른다
+           * (template L2747-2752 · `app-logic.js` `paySecondaryLabel`).
+           */}
+          <div className="mt-8 flex w-full flex-col gap-2.5">
+            <Button onClick={() => navigate(ROUTES.deposit, { replace: true })}>
+              다시 시도하기
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => navigate(ROUTES.home, { replace: true })}
+            >
+              나중에 하기
+            </Button>
+          </div>
         </div>
-      </div>
-    </PageMain>
+      </PageMain>
+    </div>
   );
 }
