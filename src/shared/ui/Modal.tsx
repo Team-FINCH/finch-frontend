@@ -36,6 +36,9 @@ import { useSheetOverlayStore } from '@/shared/hooks/useSheetOverlayStore';
  *   320px 에서 280px 이다
  * - 높이는 `max-h` 로 묶고 안쪽이 구른다. 시트와 달리 위아래로 잘릴 수 있어서
  *   컨테이너가 스크롤을 맡는다
+ * - 안쪽 여백 24px (FINCH-305). 전에는 20px 이었는데 화면 여백(`PageMain`
+ *   의 26px)보다 좁아 카드 안이 답답했다. 26px 까지 올리지 않은 것은 최소 지원
+ *   320px 에서 글줄이 232px 밑으로 내려가기 때문이다
  *
  * ## 탭바·AI 버튼에 스스로 알린다
  *
@@ -51,10 +54,16 @@ type ModalProps = {
   onOpenChange: (open: boolean) => void;
   /**
    * 접근성 상 필수(Radix 가 `aria-labelledby` 로 연결한다).
-   * 본문에 같은 제목이 이미 보이면 `hideTitle` 로 화면에서만 숨긴다.
+   *
+   * **보이는 제목이 곧 이것이 되게 하는 편이 낫다** — 꾸밈은 `titleClassName` 으로
+   * 준다. `hideTitle` 로 숨기고 본문에 같은 문장을 한 번 더 그리면 스크린리더가
+   * 제목을 두 번 읽는다 (FINCH-305 에서 그 모양을 걷어냈다). `hideTitle` 은
+   * 제목 자리가 글자가 아닌 화면을 위해 남겨 둔다.
    */
   title: string;
   hideTitle?: boolean;
+  /** 보이는 제목의 꾸밈. `hideTitle` 이 켜져 있으면 무시된다. */
+  titleClassName?: string;
   children: ReactNode;
   className?: string;
 };
@@ -64,6 +73,7 @@ export function Modal({
   onOpenChange,
   title,
   hideTitle = false,
+  titleClassName,
   children,
   className = '',
 }: ModalProps) {
@@ -87,14 +97,14 @@ export function Modal({
             // 두려면 래퍼가 하나 더 필요한데, Radix 가 `Content` 에 직접 포커스와
             // 애니메이션 상태를 붙여서 그 사이에 요소를 끼우면 둘이 어긋난다.
             'scroll-touch fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-4rem)] w-[calc(100%-2.5rem)] max-w-82 ' +
-            '-translate-1/2 flex-col overflow-y-auto overscroll-contain rounded-card bg-surface p-5 shadow-float ' +
+            '-translate-1/2 flex-col overflow-y-auto overscroll-contain rounded-card bg-surface p-6 shadow-float ' +
             // 등장은 크기로 말한다 (`styles/index.css` 의 `modal-pop-in` 주석).
             // `prefers-reduced-motion` 에서는 끈다 — `Toast` 와 같은 처리다.
             'data-[state=open]:animate-[modal-pop-in_var(--motion-sheet)_var(--ease-standard)] motion-reduce:animate-none ' +
             className
           }
         >
-          <Dialog.Title className={hideTitle ? 'sr-only' : undefined}>
+          <Dialog.Title className={hideTitle ? 'sr-only' : titleClassName}>
             {title}
           </Dialog.Title>
           {children}
