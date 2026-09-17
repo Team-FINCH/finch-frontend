@@ -165,15 +165,32 @@ export function StockDetailHeader({
               </span>
             </p>
             <div className="mt-2 flex items-baseline justify-between gap-3">
+              {/*
+                거래정지 종목은 등락·등락률을 `—`로 두고 글씨를 `--t3`(text-text-muted)로
+                내린다 (design.md §7.3 L445). 현재가는 그대로 둔다 — 마지막 체결가로서
+                의미가 있는 것은 현재가뿐이고, 그 줄을 `—`로 바꾸라는 것은 등락·등락률
+                뿐이다. `values`는 시세가 있는 갈래(거래정지 여부와 무관하게 채워진다)라
+                손대지 않으면 정지 종목도 상승·하락 색이 그대로 붙는다.
+
+                같은 판단이 §7.4(L528)의 차트 제거에도 있다 — "갱신이 멈춘 시세를
+                캔들로 그리면 살아 있는 차트로 읽힌다"며 차트를 통째로 뺐다. 차트는
+                살아 보일까 봐 뺐는데 헤더에서 상승·하락 색이 그대로면 앞뒤가 안 맞는다.
+                §5(L197) "상승·하락 색상은 금융 의미 전달에만 사용하고 장식용·상태용으로
+                쓰지 않는다"도 같은 결이다 — 갱신이 멈춘 값은 금융 의미가 없다.
+              */}
               <span
                 className={`text-body-1 font-medium whitespace-nowrap tabular-nums ${
-                  DIRECTION_TEXT_CLASS[getPriceDirection(values.changeRate)]
+                  detail.suspended
+                    ? 'text-text-muted'
+                    : DIRECTION_TEXT_CLASS[getPriceDirection(values.changeRate)]
                 }`}
               >
-                {formatSignedAmountWithRate(
-                  values.changeAmount,
-                  values.changeRate,
-                )}
+                {detail.suspended
+                  ? '—'
+                  : formatSignedAmountWithRate(
+                      values.changeAmount,
+                      values.changeRate,
+                    )}
               </span>
               {/*
                 여기 기준 시각만 초까지 적는다(사용자 피드백, 2026-09-17). 장중에는
