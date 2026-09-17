@@ -306,20 +306,29 @@ function analysisSections(stock: MockStock) {
  * 답변 픽스처. **동기 경로(`POST /ai/chat`)와 비동기 job 이 같은 것을 쓴다** —
  * 둘이 다른 답을 내면 화면에서 무엇이 바뀐 것인지가 경로 차이인지 본문 차이인지
  * 구분되지 않는다 (FINCH-290).
+ *
+ * **한 문단 안에 근거 각주(`[^cit_N]`)를 두 개 심어 뒀다** (FINCH-315).
+ * 전에는 이 픽스처에 각주가 하나도 없어 채팅 말풍선에 각주가 그대로 새는
+ * 버그(사용자가 실제 화면에서 본 것)를 이 목만으로는 재현할 수 없었다. `cit_1`·
+ * `cit_2` 는 `MOCK_CITATIONS`(`mocks/lib/ai.ts`)에 있는 id 라 `aiResponse()` 의
+ * 기본 `citations` 로 그대로 검증된다.
  */
 const CHAT_ANSWER_TEXT =
-  '보유 중인 삼성전자는 어제보다 1.21% 내렸어요. 반도체 비중이 62.4%로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.';
+  '보유 중인 삼성전자는 어제보다 1.21% 내렸어요[^cit_1]. 반도체 업종 전반의 약세 흐름이 함께 언급됐고, 반도체 비중이 62.4%로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요[^cit_2].';
 
 function chatAnswerContent(conversationId: string) {
   return {
     conversationId,
     // answer.title 은 항상 null 이다. 말풍선 제목은 프론트가 정한다 (contracts C53).
+    // 세그먼트를 이어 붙이면 CHAT_ANSWER_TEXT 와 정확히 일치해야 한다(contracts C55).
     answer: section(null, CHAT_ANSWER_TEXT, [
       textSegment('보유 중인 삼성전자는 어제보다 '),
       metricSegment('1.21%', -0.0121, 'ratio', 'price', 'down'),
-      textSegment(' 내렸어요. 반도체 비중이 '),
+      textSegment(
+        ' 내렸어요[^cit_1]. 반도체 업종 전반의 약세 흐름이 함께 언급됐고, 반도체 비중이 ',
+      ),
       metricSegment('62.4%', 0.624, 'ratio', 'portfolio_engine', 'up'),
-      textSegment('로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요.'),
+      textSegment('로 높은 편이라 같은 방향으로 함께 움직이기 쉬워요[^cit_2].'),
     ]),
     toolsUsed: ['get_quote', 'get_portfolio'],
   };

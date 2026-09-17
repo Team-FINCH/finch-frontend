@@ -1,3 +1,4 @@
+import { stripCitationMarkers } from '@/shared/lib/citationMarkers';
 import { type AiChatHistoryMessage } from '@/shared/types/ai/chat';
 import { type AiCitation, type AiSection } from '@/shared/types/ai/envelope';
 import { type IdempotencyKey } from '@/shared/types/primitives';
@@ -143,6 +144,11 @@ export function findRetryTargetId(messages: ChatMessage[]): string | null {
  * 최소 모양이다(`ChatBubble` 이 `segments` 를 순회하지 않고 `text` 만 그리는
  * 기본 렌더링 경로를 그대로 쓴다). `requestId`·`disclaimer` 는 `null`, `restored`
  * 는 `true` 다 — 타자 효과를 끄고 피드백 슬롯·문구를 생략하는 신호다.
+ *
+ * **`text` 에서 근거 각주(`[^cit_2]`)를 여기서 지운다** (FINCH-315). 서버가
+ * 준 이력 원문에도 각주가 그대로 박혀 있어, 지우지 않으면 새로고침 뒤 되살아난
+ * 옛 답변에도 표기가 샌다. `ChatBubble`·`ChatMarkdown` 은 이 함수가 넘긴 `text` 를
+ * 그대로 받으므로 이 모델 정규화 단계 한 곳만 지키면 된다.
  */
 export function toRestoredMessage(entry: AiChatHistoryMessage): ChatMessage {
   if (entry.role === 'user') {
@@ -154,7 +160,7 @@ export function toRestoredMessage(entry: AiChatHistoryMessage): ChatMessage {
     requestId: null,
     section: {
       title: null,
-      text: entry.content,
+      text: stripCitationMarkers(entry.content),
       segments: [],
       cached: false,
       cachedAt: null,
