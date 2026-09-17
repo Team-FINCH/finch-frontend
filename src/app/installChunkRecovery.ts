@@ -1,3 +1,5 @@
+import { rememberChunkRecoveryPath } from './bootLanding';
+
 /**
  * 배포가 도는 동안 청크를 못 받으면 새 문서를 받아 스스로 낫는다 (FINCH-304).
  *
@@ -55,6 +57,18 @@
  *
  * 가드에 걸려 새로고침을 포기하면 **에러를 삼키지 않는다.** 그대로 던지게 두면
  * 라우터의 `errorElement` 가 받아 사용자용 오류 화면을 낸다 (`app/RouteErrorPage`).
+ *
+ * ## 새로고침 뒤에 어디에 떨어지나 (FINCH-320)
+ *
+ * 여기서 문서를 새로 받으면 재진입 착지 규칙(`app/bootLanding`, FINCH-295)이
+ * 그것을 "밖에서 주소를 들고 들어왔다" 로 읽고 **홈으로 보낸다.** 그래서 화면을
+ * 옮기다 청크를 못 받은 사용자는 가려던 화면 대신 홈에 떨어졌다 — 설치형 PWA 에서
+ * 잦았고 2026-09-17 에 실기기로 관측됐다. 복구가 사용자 눈에는 "탭을 잘못 눌렀다"
+ * 로만 보인 것이다.
+ *
+ * 새로고침을 걸기 직전에 `rememberChunkRecoveryPath` 로 지금 주소를 적어 두면, 새
+ * 문서의 `bootLanding` 이 그 한 번만 착지를 건너뛴다. **착지 규칙 자체는 그대로다** —
+ * 사용자가 직접 주소를 치거나 새로고침한 경우는 여전히 홈에서 시작한다.
  */
 
 const STORAGE_KEY = 'finch.chunkReload.at';
@@ -103,6 +117,15 @@ export function installChunkRecovery(): void {
       // 오류 화면을 내는 쪽이 무한 새로고침보다 낫다.
       return;
     }
+
+    /*
+     * 주소는 **새로고침이 확정된 뒤에** 적는다 (FINCH-320). 위의 두 `return`
+     * 보다 앞에서 적으면 새로고침 없이 표시만 남아, 나중에 사용자가 직접 새로고침한
+     * 문서가 착지를 건너뛴다.
+     *
+     * 키가 가드의 것과 달라서 위 `hasRecentReload` 판정에는 끼어들지 않는다.
+     */
+    rememberChunkRecoveryPath(window.location.pathname);
 
     // 이 문서는 어차피 버린다. 던지게 두면 새로고침이 시작되기까지 오류 화면이
     // 한 번 번쩍인다.
