@@ -397,7 +397,7 @@ export function ChatPage() {
   const isAwaitingAnswer = chatJobMutation.isPending || pendingJob !== null;
 
   /**
-   * 종목 진입 추천 칩 (FINCH-286, 311). 이 방문에서 메시지를 한 번이라도
+   * 추천 질문 칩 (FINCH-286, 311, 323). 이 방문에서 메시지를 한 번이라도
    * 보내면 일단 숨긴다 — `messages.length` 만 보면 안 된다. 답이 하나 오면
    * `messages` 가 다시 비지 않아 그 뒤로도 계속 보여야 할 이유가 없어진다.
    *
@@ -408,6 +408,12 @@ export function ChatPage() {
    * 되어 이 조건이 저절로 꺼진다. 그 재시도도 실패해 다시 소진되면 또 켜진다 —
    * `chipsSentThisVisit` 이 한 번 켜지면 계속 켜져 있는 것과 달리, 이 조건은
    * 매번 실패 여부로 다시 계산된다.
+   *
+   * **종목 상세로 들어온 경우로 가르지 않는다** (사용자 결정, 2026-09-17). 나갔다
+   * 다시 들어왔을 때 빈 입력창만 있으면 무엇을 물어야 할지 알기 어려운 것은
+   * 어느 진입이든 같다. 문구는 `emptyCopy.suggestions` 가 이미 맥락별로 가른다 —
+   * `chatContext.ticker` 가 `stock_detail` 일 때만 서지므로(`parseChatContext`),
+   * 종목 맥락이 아니면 `chatEmptyCopy(null)` 의 종목 무관 문구로 자연히 떨어진다.
    */
   const [chipsSentThisVisit, setChipsSentThisVisit] = useState(false);
   const lastMessage = messages.at(-1);
@@ -416,9 +422,7 @@ export function ChatPage() {
     lastMessage.role === 'assistant-error' &&
     lastMessage.retriesExhausted;
   const showContextChips =
-    chatContext.screen === 'stock_detail' &&
-    messages.length > 0 &&
-    (!chipsSentThisVisit || retriesExhausted);
+    messages.length > 0 && (!chipsSentThisVisit || retriesExhausted);
 
   /**
    * 빈 상태로 떨어뜨릴지. **기다리는 job 이 있으면 빈 상태가 아니다**
