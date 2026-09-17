@@ -54,6 +54,12 @@ import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
  * ChatMarkdown` 으로 바꿔 그린다(이슈의 "타자 중 평문 → 완료 후 Markdown" A 안).
  * `restored` 말풍선은 `useTypewriter` 가 처음부터 `isDone: true` 를 주므로 타자
  * 없이 바로 Markdown 이 붙는다 — 이 갈래를 따로 두지 않아도 된다.
+ *
+ * **`section.text` 의 근거 각주(`[^cit_2]`)는 이 컴포넌트에 오기 전에 이미
+ * 지워져 있다** (FINCH-315, `chatMessages.ts` `toRestoredMessage` ·
+ * `ChatPage` 의 job 완료 처리). 여기서 다시 지우지 않는다 — `useTypewriter` 가
+ * 원문 길이로 타자 속도를 계산하므로 늦게 지우면 타자가 도는 동안 각주가 그대로
+ * 보였다가 사라진다.
  */
 type ChatBubbleProps = {
   message: ChatMessage;

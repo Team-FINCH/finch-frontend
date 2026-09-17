@@ -39,6 +39,7 @@ import {
   getStoredConversationId,
   storeConversationId,
 } from '@/shared/lib/chatConversationId';
+import { stripCitationMarkers } from '@/shared/lib/citationMarkers';
 import { generateIdempotencyKey } from '@/shared/lib/idempotencyKey';
 import { type IdempotencyKey } from '@/shared/types/primitives';
 import { PageMain } from '@/shared/ui/PageMain';
@@ -285,7 +286,14 @@ export function ChatPage() {
           id: createMessageId(),
           role: 'assistant',
           requestId: answer.requestId,
-          section: answer.content.answer,
+          // `text` 의 근거 각주([^cit_2])는 여기서 지운다 (FINCH-315).
+          // `ChatBubble` 은 이 `section.text` 를 그대로 타자·Markdown 으로 넘기므로,
+          // 늦게(ChatMarkdown 직전에) 지우면 타자가 도는 동안 각주가 그대로 찍힌다 —
+          // 메시지 모델을 만드는 이 지점에서 한 번만 지워야 그 경로가 안 생긴다.
+          section: {
+            ...answer.content.answer,
+            text: stripCitationMarkers(answer.content.answer.text),
+          },
           citations: answer.citations,
           disclaimer: answer.disclaimer,
           // 방금 도착한 응답이다. 타자 효과를 그대로 건다.
