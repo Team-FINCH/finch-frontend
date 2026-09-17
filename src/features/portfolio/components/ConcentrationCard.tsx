@@ -2,6 +2,8 @@ import { type AiFinding } from '@/shared/types/ai/diagnosis';
 import { type Holding } from '@/shared/types/portfolio';
 import { Card } from '@/shared/ui/Card';
 
+import { RISK_GRADE } from '../lib/riskGrade';
+
 /**
  * "종목 집중도" 카드 — 스택 바 + 상위 종목 + insight 한 줄 (FINCH-325).
  * (프로토타입 `concentration`, proto L2259–L2274 · L4008–L4013 · `design.md` §7.9.)
@@ -88,13 +90,6 @@ const CONCENTRATION_LEVELS = [
 /** 스택 바에는 전부 그리고 목록만 접는다. */
 const VISIBLE_SLICE_COUNT = 3;
 
-/**
- * `findings[].severity` 를 사람 말로 (`ai/diagnosis.ts`). 카드 머리의 등급 배지다.
- * **`CONCENTRATION_LEVELS` 의 종목별 수준과 다른 눈금이다** — 그쪽은 비중 구간으로
- * 종목 하나를 재고 이쪽은 규칙 엔진이 계좌 전체의 집중도를 판정한 값이다.
- */
-const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as const;
-
 type ConcentrationCardProps = {
   holdings: Holding[];
   /** 등급 배지와 insight 한 줄의 출처. 걸리지 않았으면 배열에 없다 */
@@ -139,9 +134,19 @@ export function ConcentrationCard({
     <Card className="mt-8">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-section-title text-text-primary">종목 집중도</h2>
+        {/*
+          카드 머리의 등급. **`lib/riskGrade` 의 사전을 쓴다** — Hero 의 KPI 3열과
+          같은 말에 같은 색이어야 한다. `CONCENTRATION_LEVELS` 의 종목별 수준과는
+          다른 눈금이다(그쪽은 비중 구간으로 종목 하나를 재고 이쪽은 규칙 엔진이
+          계좌 전체의 집중도를 판정한 값이다). 두 눈금이 `다소 높음` 이라는 말을
+          공유하므로 색도 같은 값에서 가져왔다.
+        */}
         {finding !== undefined && (
-          <span className="flex-none text-body-2 font-bold text-text-secondary">
-            {SEVERITY_LABEL[finding.severity]}
+          <span
+            className="flex-none text-body-2 font-bold"
+            style={{ color: RISK_GRADE[finding.severity].color }}
+          >
+            {RISK_GRADE[finding.severity].label}
           </span>
         )}
       </div>

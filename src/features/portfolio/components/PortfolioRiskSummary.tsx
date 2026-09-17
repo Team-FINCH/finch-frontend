@@ -5,6 +5,8 @@ import {
 } from '@/shared/types/ai/diagnosis';
 import { Card } from '@/shared/ui/Card';
 
+import { METRIC_FINDING_ID, type RiskGrade, gradeOf } from '../lib/riskGrade';
+
 /**
  * AI 진단 Hero — 점수 · 등급 · 핵심 위험 한 줄 · KPI 3열 (FINCH-325).
  *
@@ -28,6 +30,9 @@ import { Card } from '@/shared/ui/Card';
  * 높은 편이에요" 를 지어내면 임계값 판정을 새로 하는 것이고 `ia.md` §4 "프론트는
  * AI 응답을 조립하지 않는다" 를 어긴다. 걸린 항목이 없으면 이 줄을 접는다.
  *
+ * 등급 라벨의 색은 `lib/riskGrade` 가 갖는다 — 아래 `ConcentrationCard` 의 배지와
+ * 같은 사전을 쓴다. 같은 말이 한 화면에서 두 색으로 보이면 안 된다.
+ *
  * ## 점수에 색을 얹지 않는다
  *
  * `design.md` §7.9 가 "상태색은 등급 막대와 종목 집중도 스택 바 안에서만 쓴다" 고
@@ -41,28 +46,6 @@ const RISK_LEVEL_LABEL: Record<AiRiskLevel, string> = {
   moderate: '보통',
   high: '높음',
 };
-
-/**
- * 등급 라벨과 색 (proto L4004–L4007). **`PortfolioStateSection` 에서 그대로 옮겼다** —
- * 판정 로직을 새로 쓰지 않는다.
- *
- * `medium` 은 색을 갖지 않는다. 전에는 `high` 와 같은 주황이라 어휘 넷이 색 셋으로
- * 그려져 `다소 높음` 과 `높음` 의 차이가 색으로 읽히지 않았다. `design.md` §7.9 의
- * "Red / Orange 상태색 남발 금지" 를 따라 가장 나쁜 하나만 칠한다.
- */
-const METRIC_GRADE = {
-  none: { label: '양호', color: '#1B7F5A' },
-  info: { label: '보통', color: 'var(--color-text-secondary)' },
-  medium: { label: '다소 높음', color: 'var(--color-text-secondary)' },
-  high: { label: '높음', color: '#C2691C' },
-} as const;
-
-/** 지표 3개가 각각 어느 `findings[].id` 를 등급으로 받는지 (`ai/diagnosis.ts`). */
-const METRIC_FINDING_ID = {
-  concentration: 'ticker_concentration',
-  sectorConcentration: 'sector_concentration',
-  volatility: 'volatility',
-} as const;
 
 type PortfolioRiskSummaryProps = {
   riskScore: number | null;
@@ -180,7 +163,7 @@ function MetricCell({
   value,
 }: {
   label: string;
-  grade: (typeof METRIC_GRADE)[keyof typeof METRIC_GRADE];
+  grade: RiskGrade;
   value: string | null;
 }) {
   return (
@@ -199,14 +182,6 @@ function MetricCell({
       )}
     </span>
   );
-}
-
-/** 걸린 항목이 없으면 `양호` 다 — 규칙 엔진이 짚지 않았다는 뜻이다. */
-function gradeOf(findings: AiFinding[], findingId: string) {
-  const finding = findings.find((item) => item.id === findingId);
-  return finding === undefined
-    ? METRIC_GRADE.none
-    : METRIC_GRADE[finding.severity];
 }
 
 /** 자릿수는 프로토타입과 같은 정수 % 다 (`toFixed(0)`, proto L4000-4002). */
