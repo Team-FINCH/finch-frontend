@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import {
@@ -121,6 +121,29 @@ export function StockDetailPage() {
   const quote = useStockQuote(stockCode);
   const toggleWatch = useToggleWatchlist();
 
+  // 스크롤 경계선(FINCH-326) — 고정 묶음 아래로 내용이 지나갈 때만 선을
+  // 보인다. `PageMain` 은 고칠 수 없어(공유 컴포넌트) 이 껍데기의 ref 로
+  // `<main>` 을 찾아 직접 리스너를 단다. `isScrolled` 는 `scrollTop` 이 0 을
+  // 넘는 경계를 지날 때만 바뀌므로 매 스크롤 프레임마다 리렌더되지 않는다.
+  const shellRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const scrollArea = shellRef.current?.querySelector('main');
+    if (!scrollArea) {
+      return;
+    }
+
+    const handleScroll = () => {
+      const scrolled = scrollArea.scrollTop > 0;
+      setIsScrolled((prev) => (prev === scrolled ? prev : scrolled));
+    };
+
+    handleScroll();
+    scrollArea.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollArea.removeEventListener('scroll', handleScroll);
+  }, [detail.isPending, detail.isError]);
+
   /**
    * 탭·봉 종류는 URL 에 쓴다 (탭은 ia.md §2, 봉 종류는 위 주석 참고).
    * `replace: true` 로 덮어써서 탭을 오간 횟수만큼 히스토리가 쌓이지 않게 한다 —
@@ -183,7 +206,10 @@ export function StockDetailPage() {
   const data = detail.data;
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:96px]">
+    <div
+      ref={shellRef}
+      className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:96px]"
+    >
       {/* 고정 묶음 — 프로토타입 `.nav` 와 현재가 블록. 위 주석 "스크롤 경계" 참고.
 
           **두 티켓이 같은 어긋남을 각자 고쳤고 합쳐서 이 모양이 됐다.**
@@ -207,8 +233,18 @@ export function StockDetailPage() {
 
           위 여백은 없다 — `PageHeader`·`SubPageHeader` 를 쓰는 다른 화면은 전부
           헤더가 화면 맨 위에 붙는다(둘 다 `pt` 없이 높이만 정해져 있다). 여기만
-          24px 을 주면 제목이 다른 화면보다 내려와 보인다. */}
-      <div className="mx-auto w-full max-w-md flex-none px-6.5">
+          24px 을 주면 제목이 다른 화면보다 내려와 보인다.
+
+          아래 `border-b` 는 항상 그려 두고 색만 바꾼다 — `isScrolled` 를 따라
+          클래스 자체를 넣었다 뺐다 하면 1px 만큼 높이가 바뀌어 스크롤이
+          맨 위로 돌아오는 순간 그 아래 내용이 1px 튄다. 투명 → `--color-border`
+          로 색만 바꾸면 높이는 그대로다. 맨 위에서 투명인 것은 잘리는 내용이
+          없어 선이 군더더기이기 때문이다(FINCH-326). */}
+      <div
+        className={`mx-auto w-full max-w-md flex-none border-b px-6.5 transition-colors duration-(--motion-normal) ease-standard ${
+          isScrolled ? 'border-border' : 'border-transparent'
+        }`}
+      >
         <StockDetailHeader
           detail={data}
           quote={quote.snapshot}
