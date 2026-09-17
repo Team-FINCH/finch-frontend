@@ -13,7 +13,17 @@ import {
 import { DivergingBar } from './DivergingBar';
 
 /**
- * "무엇이 수익률을 만들었나요?" — 시장·업종·종목 선택 세 축 (FINCH-308).
+ * "수익률 기여" — 시장·업종·종목 선택 세 축 (FINCH-308).
+ *
+ * ## 제목을 줄였다 (FINCH-327)
+ *
+ * 전에는 `무엇이 수익률을 만들었나요?` 였다. 프로토타입에 없는 우리 copy 라 바꿔도
+ * 디자인 원본과 어긋나지 않고, 바로 아래 `종목별 기여` 와 나란히 서서 **요인별 →
+ * 종목별** 이라는 두 단이 제목만으로 읽힌다. 질문형은 한 줄을 다 쓰면서 아래
+ * 섹션과의 관계를 말해 주지 않았다.
+ *
+ * 세 요인의 라벨(`시장 영향`·`업종 영향`·`종목 선택`)은 그대로다 —
+ * **프로토타입 원문이다.** 코드에서만 줄이면 디자인 원본과 갈린다.
  *
  * ## 라벨과 값을 붙여 놓는다
  *
@@ -69,12 +79,10 @@ export function ReturnAttributionSection({
   const allZero = values.every((value) => value === 0);
 
   return (
-    <section className="mt-12">
-      <h2 className="text-section-title text-text-primary">
-        무엇이 수익률을 만들었나요?
-      </h2>
+    <section className="mt-8">
+      <h2 className="text-section-title text-text-primary">수익률 기여</h2>
 
-      <div className="mt-5 flex flex-col gap-5">
+      <div className="mt-4 flex flex-col gap-4">
         {ATTRIBUTION_FACTOR_ORDER.map((factor) => (
           <AttributionRow
             key={factor}
@@ -88,7 +96,7 @@ export function ReturnAttributionSection({
 
       {/* 셋이 모두 0 인 기간에는 "가장 컸다" 고 말할 것이 없다. */}
       {!allZero && (
-        <p className="mt-5 text-body-2 text-text-secondary">
+        <p className="mt-4 text-body-2 text-text-secondary">
           {ATTRIBUTION_FACTOR_NOTE[mainFactor]}
         </p>
       )}
@@ -132,7 +140,7 @@ function AttributionRow({
         </span>
       </div>
 
-      <DivergingBar value={value} scale={scale} className="mt-2.5" />
+      <DivergingBar value={value} scale={scale} className="mt-2" />
     </div>
   );
 }

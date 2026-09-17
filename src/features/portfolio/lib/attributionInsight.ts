@@ -173,6 +173,11 @@ export function sortByImpact(
 
 /**
  * 접었을 때 보여 줄 종목 수. 이보다 적으면 `전체 보기` 를 만들지 않는다 —
- * 여섯 줄을 다섯 줄로 줄이자고 누를 것을 만들면 상호작용만 늘고 얻는 것이 없다.
+ * 네 줄을 세 줄로 줄이자고 누를 것을 만들면 상호작용만 늘고 얻는 것이 없다.
+ *
+ * **다섯에서 셋으로 내렸다** (FINCH-327). 기본 화면이 보유 종목 수에 끌려
+ * 길어지던 것을 막는다. 셋이면 `sortByImpact` 의 절댓값 정렬 덕에 가장 크게 올린
+ * 종목과 가장 크게 깎은 종목이 보통 함께 남는다 — 위에서부터 부호가 섞여 있기
+ * 때문이다. 둘로 내리면 한쪽 방향만 남는 기간이 생긴다.
  */
-export const CONTRIBUTION_COLLAPSED_COUNT = 5;
+export const CONTRIBUTION_COLLAPSED_COUNT = 3;
