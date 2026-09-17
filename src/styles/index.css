@@ -827,6 +827,42 @@ body {
   /* 가로 스크롤은 버그로 본다 (컨벤션 §9). */
   overflow-x: hidden;
   background-color: var(--color-page-surround);
+  /*
+   * 위아래 안전영역만 앱 배경으로 덮는다 (FINCH-321, 2026-09-17 iOS 실기기 관측).
+   *
+   * 설치형 PWA(iOS, standalone)에서 상단 상태바 영역에 이 `body` 의
+   * --color-page-surround(#DFE4EA) 가 그대로 비쳐서 앱과 색이 갈라져 보였다.
+   * `viewport-fit=cover`(이 파일 상단, `index.html`)로 문서가 노치 밑까지 깔리는데,
+   * 그 자리를 칠하는 것이 위 `body` 배경이기 때문이다.
+   *
+   * **미디어 쿼리를 쓰지 않는다.** 컨벤션 §8 이 커스텀 브레이크포인트와
+   * `max-width` 쿼리를 둘 다 금지한다(`frontConvention.md` §8). 대신 위
+   * `--color-page-surround` 주석이 쓴 것과 같은 기법을 쓴다 — 실제 지오메트리로
+   * 좁은/넓은 화면을 가른다. `env(safe-area-inset-*)` 는 노치 없는 기기·데스크톱
+   * 브라우저에서 0 이라 이 그라디언트 띠도 그 환경에서는 높이 0 으로 저절로
+   * 사라진다. 뷰포트 폭을 묻지 않아도 된다.
+   *
+   * 너비는 `min(100%, 448px)` 로 앱 기둥(`max-w-md`, `RootLayout.tsx`)폭을
+   * 넘지 않게 막는다. 노치가 있는 기기가 항상 기둥보다 좁다는 보장이 없다 —
+   * 아이패드처럼 화면이 기둥보다 넓으면서 상단 안전영역도 0 이 아닌 기기가
+   * 있을 수 있어, 그 폭까지 앱 색을 칠하면 기둥 바깥 색(`--color-page-surround`)이
+   * 위쪽 모서리에서만 지워진다. 폭을 기둥 크기로 막으면 그 경우에도 기둥 밖은
+   * 그대로 `--color-page-surround` 로 남는다. 실기기로 이 경로는 확인하지 못했다.
+   *
+   * `background-color` 를 직접 바꾸지 않고 `linear-gradient(단색, 단색)` 두 장을
+   * 얹는 이유 — `background-size` 로 층마다 다른 크기를 줄 수 있는 것은
+   * `background-image` 뿐이다. `background-color` 는 항상 전체를 채운다.
+   */
+  background-image:
+    linear-gradient(var(--color-bg), var(--color-bg)),
+    linear-gradient(var(--color-bg), var(--color-bg));
+  background-repeat: no-repeat, no-repeat;
+  background-position:
+    top center,
+    bottom center;
+  background-size:
+    min(100%, 448px) env(safe-area-inset-top),
+    min(100%, 448px) env(safe-area-inset-bottom);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
 }
