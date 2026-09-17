@@ -1,4 +1,11 @@
-import { type AiRiskLevel } from '@/shared/types/ai/diagnosis';
+import { useState } from 'react';
+
+import {
+  type AiIndicators,
+  type AiRiskLevel,
+} from '@/shared/types/ai/diagnosis';
+
+import { RiskScoreBasisSheet } from './RiskScoreBasisSheet';
 
 /**
  * AI 진단에서 가장 먼저 읽히는 자리 (FINCH-325).
@@ -31,6 +38,15 @@ import { type AiRiskLevel } from '@/shared/types/ai/diagnosis';
  * 어휘를 `PortfolioStateSection` 의 등급(`양호`·`보통`·`다소 높음`·`높음`)과 맞추지
  * 않았다. 그쪽은 **지표 하나**가 임계값에 걸렸는지를 말하는 4단 눈금이고 이쪽은
  * **계좌 전체**의 3단 판정이라, 같은 말을 쓰면 두 눈금이 같은 것처럼 읽힌다.
+ *
+ * ## 기준을 볼 길을 함께 둔다
+ *
+ * 점수를 화면에서 가장 큰 글자로 올리면서 **근거를 볼 자리도 같이 만든다.** 숫자만
+ * 크게 키우고 어디서 왔는지 말하지 않으면 전보다 나빠진다 — 전에는 작아서 안 보였고
+ * 이제는 커서 묻게 된다. 내용은 `RiskScoreBasisSheet` 에 있다.
+ *
+ * 시트를 이 컴포넌트가 소유한다. 여는 자리가 점수 바로 아래라 상태를 위로 올릴
+ * 이유가 없고, `DiagnosisTab` 은 순서만 정하는 파일로 남는다.
  */
 
 /** 규칙 엔진의 3단 판정 (AI 명세 §5). LLM 이 정하는 값이 아니다. */
@@ -41,6 +57,8 @@ const RISK_LEVEL_LABEL: Record<AiRiskLevel, string> = {
 };
 
 type RiskScoreHeroProps = {
+  /** 기준 시트가 값을 그대로 보여준다. 점수를 프론트가 다시 계산하지는 않는다 */
+  indicators: AiIndicators;
   /** 0~100 정수. 판정을 보류하면 `null` */
   riskScore: number | null;
   /** 판정을 보류하면 `null` */
@@ -54,10 +72,12 @@ type RiskScoreHeroProps = {
 };
 
 export function RiskScoreHero({
+  indicators,
   riskScore,
   riskLevel,
   insufficientHistory,
 }: RiskScoreHeroProps) {
+  const [basisOpen, setBasisOpen] = useState(false);
   const levelLabel = riskLevel === null ? null : RISK_LEVEL_LABEL[riskLevel];
 
   // 판정이 둘 다 보류면 이 자리에 쓸 것이 없다. 빈 머리를 그리지 않는다 —
@@ -99,6 +119,20 @@ export function RiskScoreHero({
           거래 기록이 짧아 변동성 지표는 아직 비어 있어요.
         </p>
       )}
+
+      <button
+        type="button"
+        onClick={() => setBasisOpen(true)}
+        className="mt-3 text-body-2 font-medium text-text-secondary"
+      >
+        점수 기준 보기 ›
+      </button>
+
+      <RiskScoreBasisSheet
+        open={basisOpen}
+        onOpenChange={setBasisOpen}
+        indicators={indicators}
+      />
     </section>
   );
 }

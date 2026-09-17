@@ -26,9 +26,10 @@ import { StockConcentrationSection } from './StockConcentrationSection';
  *
  * ```
  * 위험 점수        57 / 100 · 보통   ← 엔진. 화면에서 가장 큰 글자
+ *                  [점수 기준 보기 ›] → 구성 지표 다섯 + 참고 지표 시트
  * 포트폴리오 상태   집중도 · 업종 집중 · 변동성
  * 종목 집중도       스택 막대
- * 확인된 사항       findings + 위험 지표 시트
+ * 확인된 사항       findings (엔진 판정 + AI 문장)
  * FINCH가 진단했어요 ← AI 는 맨 뒤다. 근거·고지가 여기 딸린다
  * ```
  *
@@ -54,7 +55,7 @@ import { StockConcentrationSection } from './StockConcentrationSection';
  *
  * 상위 종목 비중 43%가 AI 문장 · `포트폴리오 상태` 집중도 줄 · `위험 지표`
  * `1위 종목 비중` 에 각각 다른 말투와 다른 반올림으로 적혀 있었다. 셋 중 하나도
- * 지우지 않고 **위험 지표를 시트로 접어** 처음 읽는 동선에서만 뺐다.
+ * 지우지 않고 **지표 목록을 점수 기준 시트로 옮겨** 처음 읽는 동선에서만 뺐다.
  *
  * ## 섹션 간격
  *
@@ -151,6 +152,7 @@ export function DiagnosisTab() {
   return (
     <div>
       <RiskScoreHero
+        indicators={indicators}
         riskScore={riskScore}
         riskLevel={riskLevel}
         insufficientHistory={insufficientHistory}
@@ -162,7 +164,7 @@ export function DiagnosisTab() {
         <StockConcentrationSection holdings={portfolio.data.holdings} />
       )}
 
-      <DiagnosisFindingSection findings={findings} indicators={indicators} />
+      <DiagnosisFindingSection findings={findings} />
 
       <DiagnosisInsightPanel
         text={summary?.text ?? null}
