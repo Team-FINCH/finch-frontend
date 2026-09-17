@@ -162,17 +162,23 @@ export function StockDetailPage() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:96px]">
       {/* 고정 묶음 — 프로토타입 `.nav` · 현재가 블록 · `.tabs`. 위 주석 참고.
-          좌우 15px(`px-3.75`)은 `SubPageHeader` 와 같은 값이고 프로토타입 `.nav`
-          실측값이다. `‹` 뒤로가기가 있는 화면 열이 전부 그 값을 쓰므로 종목 상세도
-          맞춘다(2026-09-16).
-          이 한 줄이 헤더뿐 아니라 현재가 블록·탭까지 함께 감싸므로, 15px 을 쓰면
-          그 안의 내용물이 본문(`PageMain`)의 26px 과 11px 어긋난다. 그것을 알고
-          고른 값이다 — 헤더만 15px 로 두고 나머지를 26px 로 맞추려면 이 줄을
-          둘로 쪼개야 하는데 이번 범위가 아니다.
+
+          좌우 26px(`px-6.5`)은 본문 `PageMain` 과 같은 값이다. **여기 있는 것이
+          헤더만이 아니기 때문이다** — 현재가·보유 카드·탭까지 이 한 줄이 감싸고,
+          그 아래 차트는 `PageMain` 안이라 26px 이다. 한때 `SubPageHeader` 와
+          같은 15px 을 썼는데(2026-09-16) 그러면 같은 화면에서 왼쪽 기준선이
+          둘로 갈린다 — 현재가·보유는 15px, 차트는 26px 이었다. `‹` 버튼만
+          15px 자리를 지키면 되고 그것은 아래 `StockDetailHeader` 가 음수 마진으로
+          한다(FINCH-319).
+
+          `StockDetailTabNav` 가 `-mx-6.5 … px-6.5` 로 적힌 것도 이 값을 전제한
+          것이다. 15px 이던 동안은 그 전체 너비 경계선이 앱 기둥 밖으로 11px 씩
+          넘쳐 있었다.
+
           위 여백은 없다 — `PageHeader`·`SubPageHeader` 를 쓰는 다른 화면은 전부
           헤더가 화면 맨 위에 붙는다(둘 다 `pt` 없이 높이만 정해져 있다). 여기만
           24px 을 주면 제목이 다른 화면보다 내려와 보인다. */}
-      <div className="mx-auto w-full max-w-md flex-none px-3.75">
+      <div className="mx-auto w-full max-w-md flex-none px-6.5">
         <StockDetailHeader
           detail={data}
           quote={quote.snapshot}

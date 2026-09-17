@@ -67,7 +67,30 @@ export function StockDetailHeader({
 
   return (
     <header>
-      <div className="flex items-start gap-1 pt-1.5">
+      {/*
+        아이콘 줄만 −11px(`-mx-2.75`) 로 뺀다 (FINCH-319).
+
+        바깥 묶음은 본문과 같은 26px 인데(`StockDetailPage`), 44px 버튼을 그 선에
+        그대로 세우면 안쪽 글리프가 한가운데 놓여 **본문보다 18px 쯤 더 들어가
+        보인다.** 바로 아래 현재가가 큰 글씨로 붙어 있어 그 어긋남이 드러났다.
+
+        −11px 을 고른 이유는 둘이다.
+        - 버튼 상자가 15px 에서 시작한다 — `SubPageHeader` 를 쓰는 다른 화면의
+          `‹` 와 **같은 좌표**다. 화면을 옮겨 다닐 때 뒤로가기가 움직이지 않는다
+        - 오른쪽이 정확히 맞는다. 홈 글리프는 44px 상자 안의 22px 이라 잉크
+          가장자리가 `15 + (44−22)/2 = 26px` — 본문 오른쪽 여백선과 같다
+
+        왼쪽은 정확히 맞출 수 없다. `‹` 는 SVG 가 아니라 **글자**(U+2039)라
+        잉크 폭이 글꼴마다 다르고, 그 폭에 맞춰 마진을 더 빼면 다른 화면의
+        뒤로가기와 좌표가 어긋난다. 18px 이던 차이가 8px 쯤으로 줄고 **앱 전체가
+        같은 어긋남을 공유하는 상태**가 되는 것이 여기서 고를 수 있는 최선이다.
+        `‹` 를 마스크 SVG 로 바꾸면 없앨 수 있지만 그것은 `SubPageHeader` 까지
+        함께 가는 일이라 이 티켓의 범위가 아니다.
+
+        터치 영역 44px 은 줄이지 않는다. 버튼을 작게 만들거나 글리프를 상자 안에서
+        왼쪽으로 붙이면 오른쪽 관심·홈 버튼과 비대칭이 된다.
+      */}
+      <div className="-mx-2.75 flex items-start gap-1 pt-1.5">
         <button
           type="button"
           onClick={() => void navigate(-1)}
@@ -97,16 +120,28 @@ export function StockDetailHeader({
           </span>
         )}
         {/*
-          관심 토글. 프로토타입은 색을 두 값으로 갈라 쓴다 —
-          선택 `#1F2328`(`--color-text-primary` 와 같은 값) ·
-          비선택 `#C6CEDA` (새 디코드 L3716 `starColor`).
+          관심 토글. 색을 두 값으로 갈라 쓰는 것은 프로토타입과 같다 —
+          선택 `#1F2328`(`--color-text-primary`) · 비선택은 한 단 낮은 값.
 
-          비선택 쪽은 글자색 계단이 아니라 **글리프 토큰**을 쓴다.
-          `--color-text-muted`(#78828E)는 흰 배경 대비 3.90 이라
-          `styles/index.css` 가 "캡션·기준 시각·출처에만" 으로 쓰는 자리를
-          좁혀 둔 색이고, `#C6CEDA` 는 그보다 더 옅다. 글자색 계단에 넷째로
-          붙이면 그 결정을 뒤집는 것이 되므로 읽을 필요가 없는 장식 글리프
-          전용 토큰으로 분리했다. 라벨·본문에는 쓰지 않는다.
+          **비선택 값이 프로토타입과 다르다** (FINCH-319). 프로토타입은
+          `#C6CEDA`(새 디코드 L3716 `starColor`)를 쓰고 우리도 그것을
+          `--color-glyph-disabled` 로 옮겨 뒀지만, 흰 배경 대비 1.59 라
+          **바로 옆 홈 버튼(#1F2328, 15.6)과 나란히 서면 꺼진 버튼처럼 읽힌다.**
+          관심에 담긴 `♥` 상태에서는 둘 다 #1F2328 이라 어긋나지 않고,
+          담기지 않은 상태에서만 그렇게 보인다.
+
+          프로토타입에는 이 자리에 진한 글리프가 나란히 설 일이 없었다 —
+          홈 버튼은 프로토타입에 없던 우리 추가분이다(FINCH-269).
+          옅은 값의 근거가 그 전제 위에 있었으므로 전제가 깨진 쪽을 따른다.
+
+          그래서 `--color-text-secondary`(#565C66, 대비 6.73)로 올린다. 선택
+          상태와 여전히 구분되고, 옆 홈 버튼과 같은 계열로 읽힌다.
+
+          **반대 방향 둘은 택하지 않았다.**
+          - 홈을 옅게 내리면 `HomeLink` 를 공유하는 하위 화면 전부와
+            `PageHeader` 의 알림함 아이콘까지 1.59 대비로 따라 내려간다
+          - 둘을 같은 색으로 두면 담김 여부가 `♥`/`♡` 채움 하나로만 남는다.
+            20px 글자 글리프에서는 그 차이가 잘 보이지 않는다
         */}
         <button
           type="button"
@@ -115,7 +150,7 @@ export function StockDetailHeader({
           aria-pressed={detail.watched}
           aria-label={detail.watched ? '관심 종목 해제' : '관심 종목 담기'}
           className={`flex size-11 flex-none items-center justify-center rounded-12 text-[20px] leading-none active:bg-primary-soft disabled:opacity-40 ${
-            detail.watched ? 'text-text-primary' : 'text-glyph-disabled'
+            detail.watched ? 'text-text-primary' : 'text-text-secondary'
           }`}
         >
           {detail.watched ? '♥' : '♡'}
