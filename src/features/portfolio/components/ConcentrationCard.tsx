@@ -1,8 +1,28 @@
+import { type AiFinding } from '@/shared/types/ai/diagnosis';
 import { type Holding } from '@/shared/types/portfolio';
+import { Card } from '@/shared/ui/Card';
 
 /**
- * "종목 집중도" — 색색 스택 바 + 항목별 색점 · 이름 · 수준 · 비율
- * (프로토타입 `concentration`, proto L2259–L2274 · L4008–L4013 · `design.md` §7.9).
+ * "종목 집중도" 카드 — 스택 바 + 상위 종목 + insight 한 줄 (FINCH-325).
+ * (프로토타입 `concentration`, proto L2259–L2274 · L4008–L4013 · `design.md` §7.9.)
+ *
+ * ## `확인된 사항` 을 여기로 흡수했다
+ *
+ * 전에는 같은 사실이 세 군데서 반복됐다 — 이 스택 바, `확인된 사항` 의
+ * `종목 집중도가 높아요 / 가장 비중이 큰 종목 하나가 41.68%예요`, 그리고 FINCH
+ * 문장. **셋 다 같은 `ticker_concentration` 을 말하고 있었다.**
+ *
+ * 그래서 이 카드 안에 등급 배지와 insight 한 줄을 넣고 `확인된 사항` 섹션을
+ * 없앴다. insight 문장은 **`findings[].text` 를 그대로 쓴다** — 프론트가 지표를
+ * 보고 문장을 새로 쓰면 `ia.md` §4 를 어긴다. 걸린 항목이 없으면 줄을 접는다.
+ *
+ * ## 상위 셋만 펼친다
+ *
+ * 나머지는 `그 외 N종목` 한 줄로 합친다. 스택 바에는 **전부 그린다** — 칸 너비의
+ * 합이 100% 여야 하고, 접힌 종목의 칸이 사라지면 바가 거짓이 된다.
+ *
+ * 전체 목록을 위한 시트를 따로 만들지 않았다. `보유` 탭이 이미 종목별 비중을 다
+ * 보여주므로 같은 목록을 한 번 더 두는 것이 이 티켓이 없애려는 중복이다.
  *
  * 비중은 응답에 필드가 없어 화면이 계산한다 — 평가금액 합계가 이미 있어서
  * 지어내는 값이 아니다(`HoldingsTab` 의 보유 행 비중과 같은 근거). 분모도
@@ -65,13 +85,26 @@ const CONCENTRATION_LEVELS = [
   { min: 0, level: '적정' },
 ] as const;
 
-type StockConcentrationSectionProps = {
+/** 스택 바에는 전부 그리고 목록만 접는다. */
+const VISIBLE_SLICE_COUNT = 3;
+
+/**
+ * `findings[].severity` 를 사람 말로 (`ai/diagnosis.ts`). 카드 머리의 등급 배지다.
+ * **`CONCENTRATION_LEVELS` 의 종목별 수준과 다른 눈금이다** — 그쪽은 비중 구간으로
+ * 종목 하나를 재고 이쪽은 규칙 엔진이 계좌 전체의 집중도를 판정한 값이다.
+ */
+const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as const;
+
+type ConcentrationCardProps = {
   holdings: Holding[];
+  /** 등급 배지와 insight 한 줄의 출처. 걸리지 않았으면 배열에 없다 */
+  findings: AiFinding[];
 };
 
-export function StockConcentrationSection({
+export function ConcentrationCard({
   holdings,
-}: StockConcentrationSectionProps) {
+  findings,
+}: ConcentrationCardProps) {
   const priced = holdings.filter(
     (holding) => holding.evaluationAmount !== null,
   );
@@ -97,12 +130,21 @@ export function StockConcentrationSection({
     })
     .sort((a, b) => b.percent - a.percent);
 
+  const finding = findings.find((item) => item.id === 'ticker_concentration');
+  const visible = slices.slice(0, VISIBLE_SLICE_COUNT);
+  const rest = slices.slice(VISIBLE_SLICE_COUNT);
+  const restPercent = rest.reduce((sum, slice) => sum + slice.percent, 0);
+
   return (
-    <section className="mt-12">
-      {/* 프로토타입이 이 두 섹션에서만 `.sht` 를 20px 로 덮어 쓴다 (proto L2262). */}
-      <h2 className="mb-3.5 text-[20px] leading-7 font-bold tracking-[-0.02em] text-text-primary">
-        종목 집중도
-      </h2>
+    <Card className="mt-8">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-section-title text-text-primary">종목 집중도</h2>
+        {finding !== undefined && (
+          <span className="flex-none text-body-2 font-bold text-text-secondary">
+            {SEVERITY_LABEL[finding.severity]}
+          </span>
+        )}
+      </div>
 
       {/*
         스택 바는 장식이 아니라 아래 목록의 그림이라 같은 색을 쓴다.
@@ -117,7 +159,7 @@ export function StockConcentrationSection({
       */}
       <div
         aria-hidden="true"
-        className="mb-4 flex h-3.5 overflow-hidden rounded-[7px]"
+        className="mt-3.5 mb-4 flex h-3.5 overflow-hidden rounded-[7px]"
       >
         {slices.map((slice, index) => (
           <div
@@ -135,7 +177,7 @@ export function StockConcentrationSection({
       </div>
 
       <div className="flex flex-col gap-3">
-        {slices.map((slice) => (
+        {visible.map((slice) => (
           <div
             key={slice.stockCode}
             className="flex items-center justify-between"
@@ -161,7 +203,29 @@ export function StockConcentrationSection({
             </span>
           </div>
         ))}
+
+        {rest.length > 0 && (
+          <div className="flex items-center justify-between">
+            <span className="min-w-0 truncate text-body-1 text-text-secondary">
+              그 외 {rest.length}종목
+            </span>
+            <span className="flex-none text-body-1 font-medium text-text-secondary tabular-nums">
+              {Math.round(restPercent)}%
+            </span>
+          </div>
+        )}
       </div>
-    </section>
+
+      {/*
+        insight 한 줄. **AI 가 쓴 `findings[].text` 를 그대로 옮긴다** — 위 파일 머리
+        주석 "`확인된 사항` 을 여기로 흡수했다" 참고. 문장 생성이 막히면 `text` 가
+        `null` 이고 그때는 등급 배지만 남는다.
+      */}
+      {finding?.text != null && (
+        <p className="mt-4 text-body-2 text-pretty text-text-secondary">
+          {finding.text}
+        </p>
+      )}
+    </Card>
   );
 }

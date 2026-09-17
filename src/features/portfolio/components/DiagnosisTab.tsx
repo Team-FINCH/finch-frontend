@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   isInsufficientDataErrorCode,
   isRetryableAiErrorCode,
@@ -11,11 +13,10 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import { usePortfolio } from '../api/usePortfolio';
 import { usePortfolioDiagnosis } from '../api/usePortfolioDiagnosis';
 
-import { DiagnosisFindingSection } from './DiagnosisFindingSection';
-import { DiagnosisInsightPanel } from './DiagnosisInsightPanel';
-import { PortfolioStateSection } from './PortfolioStateSection';
-import { RiskScoreHero } from './RiskScoreHero';
-import { StockConcentrationSection } from './StockConcentrationSection';
+import { AnalysisEvidenceSheet } from './AnalysisEvidenceSheet';
+import { ConcentrationCard } from './ConcentrationCard';
+import { FinchInsightCard } from './FinchInsightCard';
+import { PortfolioRiskSummary } from './PortfolioRiskSummary';
 
 /**
  * "AI 진단" 탭 (프로토타입 `isPfDiag` 블록, AI 슬롯 5번).
@@ -25,42 +26,53 @@ import { StockConcentrationSection } from './StockConcentrationSection';
  * 이 파일은 그리지 않는다. **무엇을 어떤 차례로 놓을지**만 정한다.
  *
  * ```
- * 위험 점수        57 / 100 · 보통   ← 엔진. 화면에서 가장 큰 글자
- *                  [점수 기준 보기 ›] → 구성 지표 다섯 + 참고 지표 시트
- * 포트폴리오 상태   집중도 · 업종 집중 · 변동성
- * 종목 집중도       스택 막대
- * 확인된 사항       findings (엔진 판정 + AI 문장)
- * FINCH가 진단했어요 ← AI 는 맨 뒤다. 근거·고지가 여기 딸린다
+ * 결과        PortfolioRiskSummary   점수 · 등급 배지 · 핵심 위험 한 줄 · KPI 3열
+ * 시각적 근거  ConcentrationCard      스택 바 · 상위 종목 · insight 한 줄
+ * 해석        FinchInsightCard       metric anchor · 요약 · 진단 자세히 보기
+ * 상세        근거 N개 · 계산 기준 보기 › → AnalysisEvidenceSheet
  * ```
  *
- * **프로토타입 순서에서 벗어난다.** 프로토타입은 AI 카드 → `포트폴리오 상태` →
- * `종목 집중도` 다(proto L2231–L2275). 전에는 그것을 그대로 따라 검정 `AiCard` 가
- * 맨 위에 있었고, 그래서 사용자가 자기 계좌의 숫자보다 AI 문장을 먼저 읽었다.
- * `CauseTab` 이 같은 이유로 같은 판단을 먼저 했다(FINCH-308) — 검정 면은 어떤
- * 위계를 주더라도 흰 배경 위에서 가장 먼저 눈에 들어온다.
+ * **카드는 셋뿐이다.** 나머지를 카드로 감싸면 카드가 겹겹이 쌓인 대시보드가 된다.
+ *
+ * ## 무엇을 없앴나
+ *
+ * 같은 사실이 세 군데서 반복되던 것을 걷어냈다 — 상위 종목 비중 43%가 AI 문장 ·
+ * `포트폴리오 상태` 집중도 줄 · `위험 지표` `1위 종목 비중` 에 각각 다른 말투와
+ * 다른 반올림(43.2% / 43% / 43%)으로 적혀 있었다.
+ *
+ * | 없앤 것 | 어디로 갔나 |
+ * | --- | --- |
+ * | `PortfolioStateSection` 3행 + 막대 | Hero 안 KPI 3열 |
+ * | `확인된 사항` 섹션 | 집중도 항목은 `ConcentrationCard` insight 줄, 나머지는 진단 시트 |
+ * | `위험 지표` 6행 | `AnalysisEvidenceSheet` — 점수에 들어가는 것과 아닌 것으로 갈라서 |
+ * | 상시 노출되던 근거 목록·면책 단락 | 같은 시트. 본문에는 한 줄만 남는다 |
+ *
+ * **`확인된 사항` 을 그냥 지우면 정보가 없어진다.** `findings[].id` 6종 중
+ * `correlation`·`liquidity`·`macro_exposure` 는 대응하는 시각화가 없어서,
+ * `FinchInsightCard` 의 `진단 자세히 보기` 시트가 그 셋을 받는다.
+ *
+ * ## 시트를 여는 입구가 둘인 이유
+ *
+ * `AnalysisEvidenceSheet` 의 열림 상태를 이 파일이 갖는다. Hero 의 KPI 와 본문
+ * 맨 아래 한 줄이 **같은 시트**를 열기 때문이다 — 내용이 같아 두 시트로 나눌 이유가
+ * 없고, 상태를 위로 올리지 않으면 두 컴포넌트가 각자 사본을 갖는다.
  *
  * ## 계산값과 AI 해석값
  *
  * | 블록 | source of truth |
  * | --- | --- |
- * | `RiskScoreHero` | 엔진 — `riskScore` · `riskLevel` · `insufficientHistory` |
- * | `PortfolioStateSection` | 엔진 — `indicators` · `findings[].severity` |
- * | `StockConcentrationSection` | 원장 — 보유 종목 평가금액 |
- * | `DiagnosisFindingSection` | 엔진 판정 + **AI** 가 쓴 `findings[].text` |
- * | `DiagnosisInsightPanel` | **AI** — `summary.text` |
+ * | `PortfolioRiskSummary` | 엔진 — `riskScore` · `riskLevel` · `indicators` · `findings[].severity` / **AI** — `findings[0].title` |
+ * | `ConcentrationCard` | 원장 — 보유 평가금액 / **AI** — `findings[].text` |
+ * | `FinchInsightCard` | **AI** — `summary` · `findings[]` |
+ * | `AnalysisEvidenceSheet` | 엔진 — `indicators` / 봉투 — `citations` · `disclaimer` |
  *
- * 프론트가 계산하는 것은 **순서와 강조**뿐이다. 숫자를 만들지 않는다.
+ * 프론트가 계산하는 것은 **순서와 강조**뿐이다. 수치를 만들지 않는다 — 종목 비중만
+ * 화면이 내는데 그것도 평가금액 합계라 지어낸 값이 아니다(`ConcentrationCard`).
  *
- * ## 같은 사실을 세 번 말하던 것
+ * ## 간격
  *
- * 상위 종목 비중 43%가 AI 문장 · `포트폴리오 상태` 집중도 줄 · `위험 지표`
- * `1위 종목 비중` 에 각각 다른 말투와 다른 반올림으로 적혀 있었다. 셋 중 하나도
- * 지우지 않고 **지표 목록을 점수 기준 시트로 옮겨** 처음 읽는 동선에서만 뺐다.
- *
- * ## 섹션 간격
- *
- * `mt-12`(48px) 하나로 통일하고 각 섹션이 자기 위 여백을 갖는다 — `CauseTab` 과
- * 같은 규칙이다. 아래 여백은 주지 않는다(`PageMain` 이 이미 더한다).
+ * 섹션 사이 `mt-8`(32px) 하나로 통일한다. 좌우 여백은 `PageMain` 의 26px 을 그대로
+ * 쓴다 — **여기만 바꾸면 4탭의 좌우선이 어긋난다.**
  *
  * **피드백을 붙이지 않는다.** 프로토타입 실제 UI에서 피드백이 붙는 자리는 셋뿐이고
  * 이 탭은 그중 하나가 아니다(ia.md §4 "피드백 슬롯 배치 규칙" 각주).
@@ -71,6 +83,7 @@ import { StockConcentrationSection } from './StockConcentrationSection';
  * 개수를 모를 때는 요청을 보낸다 — 곁가지 실패가 본문을 막지 않게 한다.
  */
 export function DiagnosisTab() {
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const portfolio = usePortfolio('EVALUATION');
   const isColdStart = portfolio.data?.holdings.length === 0;
   const { data, isPending, isError, error, refetch } = usePortfolioDiagnosis(
@@ -151,23 +164,50 @@ export function DiagnosisTab() {
 
   return (
     <div>
-      <RiskScoreHero
-        indicators={indicators}
+      <PortfolioRiskSummary
         riskScore={riskScore}
         riskLevel={riskLevel}
         insufficientHistory={insufficientHistory}
+        findings={findings}
+        indicators={indicators}
+        onOpenDetail={() => setEvidenceOpen(true)}
       />
 
-      <PortfolioStateSection indicators={indicators} findings={findings} />
-
       {portfolio.data !== undefined && (
-        <StockConcentrationSection holdings={portfolio.data.holdings} />
+        <ConcentrationCard
+          holdings={portfolio.data.holdings}
+          findings={findings}
+        />
       )}
 
-      <DiagnosisFindingSection findings={findings} />
+      <FinchInsightCard summary={summary} findings={findings} />
 
-      <DiagnosisInsightPanel
-        text={summary?.text ?? null}
+      {/*
+        근거 줄. 개수를 화면이 세는 것은 `citations.length` 뿐이고 문구는 고정이다.
+        근거가 하나도 없어도 **계산 기준은 늘 있으므로** 줄을 감추지 않는다.
+      */}
+      <button
+        type="button"
+        onClick={() => setEvidenceOpen(true)}
+        className="mt-8 flex w-full items-center justify-between gap-3 py-2 text-left"
+      >
+        <span className="min-w-0 truncate text-body-2 text-text-secondary">
+          {aiMeta.citations.length > 0
+            ? `근거 ${aiMeta.citations.length}개 · 계산 기준 보기`
+            : '계산 기준 보기'}
+        </span>
+        <span
+          aria-hidden="true"
+          className="flex-none text-body-2 text-text-muted"
+        >
+          ›
+        </span>
+      </button>
+
+      <AnalysisEvidenceSheet
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+        indicators={indicators}
         citations={aiMeta.citations}
         disclaimer={aiMeta.disclaimer}
       />
