@@ -424,8 +424,15 @@ export function ChatPage() {
    * 빈 상태로 떨어뜨릴지. **기다리는 job 이 있으면 빈 상태가 아니다**
    * (FINCH-290) — 복원 직후 질문 말풍선이 붙기 전 한 프레임 동안 빈 상태가
    * 번쩍이는 것을 막는다.
+   *
+   * **이력 조회가 도는 동안도 같은 이유로 빈 상태가 아니다** (FINCH-323).
+   * `historySettled` 는 이미 이 판정을 갖고 있다 — 저장된 대화가 없으면 처음부터
+   * 참이라 그 사용자는 그대로 즉시 빈 상태로 떨어지고, 저장된 대화가 있으면 조회가
+   * 끝나기 전까지 거짓이라 이력이 `messages` 에 반영되기 전에 빈 상태가 한 프레임
+   * 그려졌다 이력으로 바뀌는 번쩍임이 없어진다.
    */
-  const showEmptyState = messages.length === 0 && !isAwaitingAnswer;
+  const showEmptyState =
+    historySettled && messages.length === 0 && !isAwaitingAnswer;
 
   function resetConversation() {
     setMessages([]);
