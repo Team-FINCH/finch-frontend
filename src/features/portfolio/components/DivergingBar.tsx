@@ -29,7 +29,7 @@ import { divergingWidth } from '../lib/attributionInsight';
  * ## 낭독기에 내보내지 않는다
  *
  * 같은 값이 언제나 바로 곁에 글자로 서 있다 (`AttributionRow` 는 같은 줄 오른쪽,
- * `StockContributionRow` 는 바로 위). `StockConcentrationSection` 의 스택 바와 같은
+ * `StockContributionRow` 는 바로 위). `ConcentrationCard` 의 스택 바와 같은
  * 처리다.
  */
 

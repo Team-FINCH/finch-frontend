@@ -1,12 +1,11 @@
+import { useState } from 'react';
+
 import {
   isInsufficientDataErrorCode,
   isRetryableAiErrorCode,
   readAiErrorCode,
   readAiErrorMessage,
 } from '@/shared/lib/aiErrorRetry';
-import { formatPercent } from '@/shared/lib/formatNumber';
-import { AiCard } from '@/shared/ui/AiCard';
-import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
@@ -14,19 +13,66 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import { usePortfolio } from '../api/usePortfolio';
 import { usePortfolioDiagnosis } from '../api/usePortfolioDiagnosis';
 
-import { PortfolioStateSection } from './PortfolioStateSection';
-import { StockConcentrationSection } from './StockConcentrationSection';
-
-const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as const;
+import { AnalysisEvidenceSheet } from './AnalysisEvidenceSheet';
+import { ConcentrationCard } from './ConcentrationCard';
+import { FinchInsightCard } from './FinchInsightCard';
+import { PortfolioRiskSummary } from './PortfolioRiskSummary';
 
 /**
  * "AI 진단" 탭 (프로토타입 `isPfDiag` 블록, AI 슬롯 5번).
  *
- * 섹션 순서는 프로토타입을 따른다 — AI 카드 → `포트폴리오 상태` → `종목 집중도`
- * (proto L2231–L2275). 그 뒤의 `확인된 사항`·`위험 지표`·근거·면책은 프로토타입에
- * 대응물이 없는 우리 쪽 추가분이라 뒤에 붙인다. `findings[]`·`indicators` 는 실제
- * 응답이 주는 것 전부이고, 프로토타입의 지표 3개는 그중 셋을 골라 그린 것이라
- * 두 묶음이 겹쳐도 지우지 않는다.
+ * ## 읽기 순서가 이 파일의 내용이다 (FINCH-325)
+ *
+ * 이 파일은 그리지 않는다. **무엇을 어떤 차례로 놓을지**만 정한다.
+ *
+ * ```
+ * 결과        PortfolioRiskSummary   점수 · 등급 배지 · 핵심 위험 한 줄 · KPI 3열
+ * 시각적 근거  ConcentrationCard      스택 바 · 상위 종목 · insight 한 줄
+ * 해석        FinchInsightCard       metric anchor · 요약 · 진단 자세히 보기
+ * 상세        근거 N개 · 계산 기준 보기 › → AnalysisEvidenceSheet
+ * ```
+ *
+ * **카드는 셋뿐이다.** 나머지를 카드로 감싸면 카드가 겹겹이 쌓인 대시보드가 된다.
+ *
+ * ## 무엇을 없앴나
+ *
+ * 같은 사실이 세 군데서 반복되던 것을 걷어냈다 — 상위 종목 비중 43%가 AI 문장 ·
+ * `포트폴리오 상태` 집중도 줄 · `위험 지표` `1위 종목 비중` 에 각각 다른 말투와
+ * 다른 반올림(43.2% / 43% / 43%)으로 적혀 있었다.
+ *
+ * | 없앤 것 | 어디로 갔나 |
+ * | --- | --- |
+ * | `PortfolioStateSection` 3행 + 막대 | Hero 안 KPI 3열 |
+ * | `확인된 사항` 섹션 | 집중도 항목은 `ConcentrationCard` insight 줄, 나머지는 진단 시트 |
+ * | `위험 지표` 6행 | `AnalysisEvidenceSheet` — 점수에 들어가는 것과 아닌 것으로 갈라서 |
+ * | 상시 노출되던 근거 목록·면책 단락 | 같은 시트. 본문에는 한 줄만 남는다 |
+ *
+ * **`확인된 사항` 을 그냥 지우면 정보가 없어진다.** `findings[].id` 6종 중
+ * `correlation`·`liquidity`·`macro_exposure` 는 대응하는 시각화가 없어서,
+ * `FinchInsightCard` 의 `진단 자세히 보기` 시트가 그 셋을 받는다.
+ *
+ * ## 시트를 여는 입구가 둘인 이유
+ *
+ * `AnalysisEvidenceSheet` 의 열림 상태를 이 파일이 갖는다. Hero 의 KPI 와 본문
+ * 맨 아래 한 줄이 **같은 시트**를 열기 때문이다 — 내용이 같아 두 시트로 나눌 이유가
+ * 없고, 상태를 위로 올리지 않으면 두 컴포넌트가 각자 사본을 갖는다.
+ *
+ * ## 계산값과 AI 해석값
+ *
+ * | 블록 | source of truth |
+ * | --- | --- |
+ * | `PortfolioRiskSummary` | 엔진 — `riskScore` · `riskLevel` · `indicators` · `findings[].severity` / **AI** — `findings[0].title` |
+ * | `ConcentrationCard` | 원장 — 보유 평가금액 / **AI** — `findings[].text` |
+ * | `FinchInsightCard` | **AI** — `summary` · `findings[]` |
+ * | `AnalysisEvidenceSheet` | 엔진 — `indicators` / 봉투 — `citations` · `disclaimer` |
+ *
+ * 프론트가 계산하는 것은 **순서와 강조**뿐이다. 수치를 만들지 않는다 — 종목 비중만
+ * 화면이 내는데 그것도 평가금액 합계라 지어낸 값이 아니다(`ConcentrationCard`).
+ *
+ * ## 간격
+ *
+ * 섹션 사이 `mt-8`(32px) 하나로 통일한다. 좌우 여백은 `PageMain` 의 26px 을 그대로
+ * 쓴다 — **여기만 바꾸면 4탭의 좌우선이 어긋난다.**
  *
  * **피드백을 붙이지 않는다.** 프로토타입 실제 UI에서 피드백이 붙는 자리는 셋뿐이고
  * 이 탭은 그중 하나가 아니다(ia.md §4 "피드백 슬롯 배치 규칙" 각주).
@@ -37,6 +83,7 @@ const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as c
  * 개수를 모를 때는 요청을 보낸다 — 곁가지 실패가 본문을 막지 않게 한다.
  */
 export function DiagnosisTab() {
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const portfolio = usePortfolio('EVALUATION');
   const isColdStart = portfolio.data?.holdings.length === 0;
   const { data, isPending, isError, error, refetch } = usePortfolioDiagnosis(
@@ -105,101 +152,65 @@ export function DiagnosisTab() {
     return null;
   }
 
-  const { riskScore, summary, findings, indicators, aiMeta } = data;
+  const {
+    riskScore,
+    riskLevel,
+    insufficientHistory,
+    summary,
+    findings,
+    indicators,
+    aiMeta,
+  } = data;
 
   return (
-    <div className="pt-4">
-      <AiCard
-        label="AI 진단"
-        headline={summary?.text ?? '진단 결과를 준비하지 못했어요.'}
-        caption={riskScore === null ? undefined : `위험 점수 ${riskScore}/100`}
+    <div>
+      <PortfolioRiskSummary
+        riskScore={riskScore}
+        riskLevel={riskLevel}
+        insufficientHistory={insufficientHistory}
+        findings={findings}
+        indicators={indicators}
+        onOpenDetail={() => setEvidenceOpen(true)}
       />
 
-      <PortfolioStateSection indicators={indicators} findings={findings} />
-
       {portfolio.data !== undefined && (
-        <StockConcentrationSection holdings={portfolio.data.holdings} />
+        <ConcentrationCard
+          holdings={portfolio.data.holdings}
+          findings={findings}
+        />
       )}
 
-      <div className="mt-8">
-        <h2 className="mb-3.5 text-section-title text-text-primary">
-          확인된 사항
-        </h2>
-        {findings.length === 0 ? (
-          <p className="py-3.5 text-body-1 text-text-secondary">
-            특별히 짚어드릴 사항이 없어요.
-          </p>
-        ) : (
-          <div className="flex flex-col divide-y divide-border">
-            {findings.map((finding) => (
-              <div key={finding.id} className="py-3.5">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-5 flex-none items-center rounded-xs bg-surface-soft px-1.5 text-caption font-medium text-text-secondary">
-                    {SEVERITY_LABEL[finding.severity]}
-                  </span>
-                  <span className="text-body-1 font-semibold text-text-primary">
-                    {finding.title}
-                  </span>
-                </div>
-                {finding.text !== null && (
-                  <p className="mt-1.5 text-body-2 text-pretty text-text-secondary">
-                    {finding.text}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <FinchInsightCard summary={summary} findings={findings} />
 
-      <div className="mt-8">
-        <h2 className="mb-3.5 text-section-title text-text-primary">
-          위험 지표
-        </h2>
-        <div className="flex flex-col gap-2.5">
-          <IndicatorRow label="1위 종목 비중" ratio={indicators.top1Weight} />
-          <IndicatorRow label="상위 3종목 비중" ratio={indicators.top3Weight} />
-          <IndicatorRow label="섹터 집중도(HHI)" ratio={indicators.sectorHhi} />
-          <IndicatorRow
-            label="연환산 변동성"
-            ratio={indicators.annualizedVolatility}
-          />
-          <IndicatorRow
-            label="최근 1년 최대 낙폭"
-            ratio={indicators.maxDrawdown1y}
-          />
-          <IndicatorRow label="현금 비중" ratio={indicators.cashRatio} />
-        </div>
-        {indicators.rateSensitivity !== null && (
-          <p className="mt-3 text-caption text-text-secondary">
-            금리 민감도 {indicators.rateSensitivity}
-          </p>
-        )}
-      </div>
+      {/*
+        근거 줄. 개수를 화면이 세는 것은 `citations.length` 뿐이고 문구는 고정이다.
+        근거가 하나도 없어도 **계산 기준은 늘 있으므로** 줄을 감추지 않는다.
+      */}
+      <button
+        type="button"
+        onClick={() => setEvidenceOpen(true)}
+        className="mt-8 flex w-full items-center justify-between gap-3 py-2 text-left"
+      >
+        <span className="min-w-0 truncate text-body-2 text-text-secondary">
+          {aiMeta.citations.length > 0
+            ? `근거 ${aiMeta.citations.length}개 · 계산 기준 보기`
+            : '계산 기준 보기'}
+        </span>
+        <span
+          aria-hidden="true"
+          className="flex-none text-body-2 text-text-muted"
+        >
+          ›
+        </span>
+      </button>
 
-      <AiCitationList citations={aiMeta.citations} className="mt-6" />
-
-      <p className="mt-6 text-caption text-text-secondary">
-        {aiMeta.disclaimer}
-      </p>
-    </div>
-  );
-}
-
-/** 비율은 프로토타입과 같은 정수 % 다 (`toFixed(0)`, proto L4000-4001). */
-function IndicatorRow({
-  label,
-  ratio,
-}: {
-  label: string;
-  ratio: number | null;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-body-2 text-text-secondary">{label}</span>
-      <span className="text-body-1 font-medium text-text-primary tabular-nums">
-        {ratio === null ? '—' : formatPercent(ratio, 0)}
-      </span>
+      <AnalysisEvidenceSheet
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+        indicators={indicators}
+        citations={aiMeta.citations}
+        disclaimer={aiMeta.disclaimer}
+      />
     </div>
   );
 }

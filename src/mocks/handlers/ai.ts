@@ -959,6 +959,7 @@ export const aiHandlers = [
           ],
           // 여기 비율은 전부 0~1 소수다. 등락률 계열이 아니다 (contracts C18 대비).
           indicators: {
+            sectorCount: 3,
             hhi: 0.3421,
             top1Weight: 0.4168,
             top3Weight: 0.9312,
@@ -1140,6 +1141,7 @@ export const aiHandlers = [
           feasible,
           shortfall: feasible ? null : ordersValue - store.cashBalance,
           before: {
+            sectorCount: 3,
             hhi: 0.3421,
             top1Weight: 0.4168,
             top3Weight: 0.9312,
@@ -1154,6 +1156,7 @@ export const aiHandlers = [
             topSectorWeight: 0.624,
           },
           after: {
+            sectorCount: 2,
             hhi: 0.3944,
             top1Weight: 0.4712,
             top3Weight: 0.9512,
@@ -1169,6 +1172,7 @@ export const aiHandlers = [
           },
           // 숫자 지표만 담긴다. rateSensitivity 처럼 문자열인 지표는 키째로 빠진다 (AI 명세 §7)
           delta: {
+            sectorCount: 21,
             hhi: 0.0523,
             top1Weight: 0.0544,
             top3Weight: 0.02,
