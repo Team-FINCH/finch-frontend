@@ -51,11 +51,19 @@ import {
  * 붙는 것만 더했고 실측 치수(탭 사이 24px · 아래 1px 경계선 · 버튼 위 14px
  * 아래 12px)는 그대로다.
  *
- * 위 여백 18px(`pt-4.5`)은 사용자가 화면을 보고 정한 값이다(2026-09-17). 전에는
- * 30px 이었다. 보유 카드가 있든 없든 같은 값으로 선다 — 여백이 이 줄 자신의
- * `padding` 이라 앞 형제가 무엇인지에 기대지 않는다. 붙박이가 된 뒤에는 이 18px
- * 도 배경이 덮으므로 스크롤 영역 맨 위에 18px 짜리 불투명 띠가 남는다. 그것이
+ * 위 여백은 사용자가 화면을 보고 정한 값이다. 30px → 18px(`pt-4.5`, 2026-09-17
+ * 첫 결정) → **8px(`pt-2`, 같은 날 재조정)** 순으로 줄었다. 붙었을 때(sticky)
+ * 현재가 섹션과 탭 사이 틈이 여전히 커 보인다는 것이 이유다. `pt-0` 으로는
+ * 가지 않는다 — 막대가 불투명해 내용이 비치지는 않지만 탭 글자 위가 0이면
+ * 답답하다. 보유 카드가 있든 없든 같은 값으로 선다 — 여백이 이 줄 자신의
+ * `padding` 이라 앞 형제가 무엇인지에 기대지 않는다. 붙박이가 된 뒤에는 이 8px
+ * 도 배경이 덮으므로 스크롤 영역 맨 위에 8px 짜리 불투명 띠가 남는다. 그것이
  * `margin` 을 쓰지 않은 대가이고, 그 자리로 탭 내용이 비치지 않는 것이 목적이다.
+ *
+ * **줄어든 10px 은 보유 카드가 자기 아래 여백(`mb-2.5`)으로 되돌린다**
+ * (`StockHoldingBox` 참고) — 펼친 상태에서 보유 카드와 탭 사이 간격이 그대로
+ * 18px 로 남도록. **보유 카드가 없는 종목은 그 10px 이 통째로 없다** — 이
+ * 여백이 보유 카드 쪽에 있어서다. 그 종목은 헤더 바로 아래 이 8px 만 남는다.
  */
 const TAB_LABEL: Record<StockDetailTab, string> = {
   chart: '차트',
@@ -75,7 +83,7 @@ export function StockDetailTabNav({
     <div
       role="tablist"
       aria-label="종목 상세 보기 전환"
-      className="sticky top-0 z-9 -mx-6.5 flex gap-6 border-b border-border bg-bg px-6.5 pt-4.5"
+      className="sticky top-0 z-9 -mx-6.5 flex gap-6 border-b border-border bg-bg px-6.5 pt-2"
     >
       {STOCK_DETAIL_TABS.map((tab) => {
         const isActive = tab === activeTab;

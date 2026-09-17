@@ -67,8 +67,15 @@ export function StockHoldingBox({ holding }: StockHoldingBoxProps) {
       전에는 20px 이었는데, 이 카드가 고정 묶음에서 스크롤 안으로 내려오면서
       현재가 바로 아래에 붙게 됐다 — 굴러 올라가 사라질 것이라 그만큼의 틈을
       둘 이유가 없다.
+
+      아래 여백 10px(`mb-2.5`)은 같은 티켓의 후속 조정이다(같은 날). `StockDetailTabNav`
+      의 위 여백을 18px(`pt-4.5`)에서 8px(`pt-2`)로 줄이면서, 펼친 상태에서 이 카드와
+      탭 사이 간격이 그만큼 좁아지지 않도록 여기서 되돌린다. 8 + 10 = 18 — 줄이기
+      전과 같은 간격이다. **보유 카드가 없는 종목에는 이 10px 이 없다** — 여백이
+      탭이 아니라 이 카드에 있어서다. 그 종목은 헤더 바로 아래 탭의 8px 만 남는다
+      (`StockDetailTabNav` 주석 참고).
     */
-    <section className="mt-2">
+    <section className="mt-2 mb-2.5">
       {/*
         `SoftBox` 기본 안쪽 여백(16px, `p-4`)을 이 자리에서만 줄인다 — 다섯 화면이
         함께 쓰는 기본값은 그대로 두고 `className` 으로 위아래만 덮는다.
