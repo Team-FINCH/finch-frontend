@@ -115,11 +115,7 @@ export function DiagnosisTab() {
         caption={riskScore === null ? undefined : `위험 점수 ${riskScore}/100`}
       />
 
-      <PortfolioStateSection
-        indicators={indicators}
-        findings={findings}
-        holdingCount={portfolio.data?.holdings.length ?? null}
-      />
+      <PortfolioStateSection indicators={indicators} findings={findings} />
 
       {portfolio.data !== undefined && (
         <StockConcentrationSection holdings={portfolio.data.holdings} />
