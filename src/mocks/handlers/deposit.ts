@@ -43,7 +43,7 @@ import { nowKstIso } from '../lib/time';
  * | `ready` `amount > 1,000만` | `409 DEPOSIT_PER_REQUEST_LIMIT_EXCEEDED` |
  * | `ready` 계정 누적 1억 초과 | `409 DEPOSIT_LIMIT_EXCEEDED` |
  * | `ready` `paymentMethod: 'KAKAOPAY'` | `checkoutUrl` 이 **결제 복귀 성공 화면**으로 바로 간다. 이 목은 실제 카카오 결제창을 흉내 내지 않는다 — 승인 성공을 즉시 흉내 낸다 |
- * | `ready` `paymentMethod: 'TRANSFER'` | `checkoutUrl` 이 모의 이체 화면(`/deposit/transfer?paymentId&amount`)으로 간다 |
+ * | `ready` `paymentMethod: 'TRANSFER'` | `checkoutUrl` 이 모의 이체 화면(`/deposit/transfer?paymentId`)으로 간다. **서버와 같이 `amount` 를 싣지 않는다** (계약 C90) |
  * | `mock-approve` 모르는 `paymentId` | `404 DEPOSIT_NOT_FOUND` |
  * | `mock-approve` 이미 확정된 결제 | `409 DEPOSIT_INVALID_STATE` |
  * | `mock-approve` `scenario` 로 실패를 예약 | 이 응답 자체는 `200` 이다. 실패는 다음 `confirm` 에서 난다(아래) |
@@ -179,20 +179,24 @@ export const depositHandlers = [
     });
 
     /*
-     * **`TRANSFER` 쪽에도 `amount` 를 싣는다.** 모의 이체 화면이 맨 위에 입금
-     * 금액 카드를 그리는데(프로토타입 `isMock` L2727), 그 값을 얻을 길이
-     * `checkoutUrl` 의 쿼리밖에 없다 — `GET /deposits/{paymentId}` 가 계약에 없고
-     * `mock-approve` 응답의 `amount` 는 승인을 누른 **뒤에야** 온다.
-     * 카카오 복귀 URL 이 이미 같은 이름으로 금액을 싣고 있어 그 모양을 따랐다.
+     * **`TRANSFER` 쪽에는 `amount` 를 싣지 않는다.** 서버 `MockTransferGateway.ready`
+     * 가 `?paymentId` 하나만 붙인다(계약 C90, 2026-09-17 `MockTransferGateway.java:32-36`
+     * 확인). 전에는 목이 `?paymentId&amount` 로 줬는데, **목이 계약보다 관대하면
+     * 실제 중계에 붙이기 전까지 금액 자리가 빈 모습을 개발 중에 한 번도 볼 수 없다.**
+     * 화면이 깨지는 문제가 아니라 볼 수 없는 것이 문제라 목을 서버에 맞춘다.
      *
-     * **실제 백엔드가 이 값을 실어 주는지는 아직 모른다**(미확정 P38). 계약이
-     * 정한 것은 경로 `/deposit/transfer` 뿐이다(C90). 그래서 화면 쪽은 `amount`
-     * 가 없어도 깨지지 않게 그 줄만 접는다.
+     * `DepositTransferPage` 는 `amount` 가 없어도 견디게 이미 쓰여 있다 — 승인에
+     * 쓰는 값이 아니고(확정에 넣는 금액은 `mock-approve` 응답이 준다) 금액 카드
+     * 한 줄만 접힌다.
+     *
+     * **`KAKAOPAY` 쪽은 그대로 둔다.** 그쪽 복귀 URL 은 서버가 `?paymentId&
+     * paymentKey&amount` 를 싣는 것이 계약이다(C84·C89). 두 수단의 쿼리가 다른
+     * 것이 맞는 모양이라 한쪽에 맞춰 통일하지 않는다.
      */
     const checkoutUrl =
       method === 'KAKAOPAY'
         ? `${ROUTES.depositComplete}?paymentId=${paymentId}&paymentKey=${paymentKey}&amount=${amount}`
-        : `${ROUTES.depositTransfer}?paymentId=${paymentId}&amount=${amount}`;
+        : `${ROUTES.depositTransfer}?paymentId=${paymentId}`;
 
     return HttpResponse.json({ paymentId, checkoutUrl }, { status: 201 });
   }),
