@@ -71,7 +71,21 @@ export const AiBriefingItemSchema = z.object({
   text: z.string(),
   segments: z.array(AiSegmentSchema),
   relatedTickers: z.array(StockCodeSchema),
-  /** 화면 내 이동 경로 (`/stocks/000660?tab=ai`). 라우터 경로와 대조해서 쓴다 */
+  /**
+   * 화면 내 이동 경로 (`/stocks/000660?tab=ai`). AI 서버가 만들어 보낸다.
+   *
+   * **여기서 좁히지 않는다** (FINCH-324). 앱 밖 주소(`https://…` ·
+   * `javascript:…` · `//evil.example`)가 오면 `Link` 가 앱을 나가 버리므로
+   * 거르기는 해야 하는데, 그것을 이 스키마에서 하면 **값 하나가 이상할 때
+   * `items` 배열 전체가 파싱에 실패해 브리핑이 통째로 사라진다.** 같은 사고를
+   * 바로 아래 `citations`·`eventType` 주석이 적은 자리들(FINCH-255 ·
+   * 265)과 시세 필드(FINCH-314)에서 이미 겪었다.
+   *
+   * 그래서 스키마는 `z.string()` 으로 넓게 받고, **그리는 쪽에서 링크만 걷는다** —
+   * `features/home/lib/internalDeeplink.ts` 와 그것을 쓰는
+   * `features/home/components/BriefingFullList.tsx` 의 `BriefingRow` 다.
+   * 걸린 항목은 감추지 않고 누를 수 없는 줄로 그대로 그린다.
+   */
   deeplink: z.string(),
   /**
    * 근거 ID 목록 (AI 명세 §8, GitLab 이슈 `#86`). `AiCitationSchema` 객체 배열이

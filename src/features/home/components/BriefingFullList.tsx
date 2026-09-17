@@ -17,6 +17,7 @@ import { NoValue } from '@/shared/ui/StockRow';
 
 import { useHomeBriefing } from '../api/useHomeBriefing';
 import { countBriefingEventTypes } from '../lib/briefingEventLabel';
+import { isInternalDeeplink } from '../lib/internalDeeplink';
 import {
   useBriefingStockFacts,
   type BriefingStockFacts,
@@ -239,8 +240,28 @@ function BriefingRow({
       ? null
       : { stockCode, facts: factsOf(stockCode, item) };
 
-  return (
-    <Link to={item.deeplink} className={`block ${style.shell}`}>
+  /**
+   * **`deeplink` 를 검증하는 자리는 스키마가 아니라 여기다** (FINCH-324).
+   *
+   * `deeplink` 는 AI 서버가 만든 값이라(`ia.md` §2) 앱 밖 주소가 올 수 있고,
+   * 그러면 `Link` 가 SPA 링크가 아니라 평범한 `<a href>` 로 그려 앱을 나간다
+   * (`../lib/internalDeeplink` 주석).
+   *
+   * **그런데 `shared/types/ai/briefing.ts` 의 `z.string()` 을 좁히지 않았다.**
+   * `items` 는 배열이라 원소 하나가 검증에 걸리면 `safeParse` 가 실패하고
+   * **브리핑 응답 전체가 사라진다.** 링크 하나가 이상하다고 오늘 소식 네 건을
+   * 통째로 감추는 것은 AI 가 준 정보를 우리가 버리는 것이다. 같은 자리를
+   * 이미 세 번 겪었다 — 검색(FINCH-255) · 관심 종목(FINCH-265) ·
+   * 시세 필드 하나로 종목 상세가 통째로 죽던 것(FINCH-314). 스키마는
+   * 넓게 받고 **화면에서 링크만 걷는 쪽**이 그 셋의 결론이다.
+   *
+   * 걷었을 때 행을 지우지 않는 것도 같은 이유다. 소식 내용(제목·근거·시세)은
+   * 그대로 두고 `Link` 를 `div` 로만 바꿔 **누를 수 없는 줄**로 만든다.
+   * `shared/ui/AiCitationList` 가 `url` 이 없는 근거에 쓰는 것과 같은 방식이다.
+   */
+  const shellClass = `block ${style.shell}`;
+  const body = (
+    <>
       {head === null ? null : (
         <span className={`flex items-center ${style.head} ${style.headGap}`}>
           <StockLogo
@@ -286,6 +307,16 @@ function BriefingRow({
           {head.facts.meta}
         </span>
       )}
+    </>
+  );
+
+  if (!isInternalDeeplink(item.deeplink)) {
+    return <div className={shellClass}>{body}</div>;
+  }
+
+  return (
+    <Link to={item.deeplink} className={shellClass}>
+      {body}
     </Link>
   );
 }
