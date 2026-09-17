@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-import { formatKstShortTime } from '@/shared/lib/formatDate';
+import { formatKstTime } from '@/shared/lib/formatDate';
 import {
   formatAmount,
   formatSignedAmountWithRate,
@@ -154,8 +154,13 @@ export function StockDetailHeader({
               >
                 {formatSignedAmountWithRate(changeAmount, changeRate)}
               </span>
+              {/*
+                여기 기준 시각만 초까지 적는다(사용자 피드백, 2026-09-17). 장중에는
+                폴링 응답이 이 값을 계속 갱신하므로 시:분만으로는 방금 온 값인지
+                가늠할 수 없다 — 다른 자리(홈 총자산·AI 분석)는 갱신이 뜸해 시:분으로 충분하다.
+              */}
               <span className="text-[12px] whitespace-nowrap text-text-muted">
-                {formatKstShortTime(asOf)} 기준
+                {formatKstTime(asOf)} 기준
               </span>
             </div>
           </>
