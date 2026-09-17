@@ -1,10 +1,21 @@
+import { useState } from 'react';
+
 import { type AiCitation } from '@/shared/types/ai/envelope';
 
 /**
  * AI 근거 목록 (ia.md §4 "★ 근거 표시").
  *
- * **접거나 생략하지 않는다** — "이 목록이 없으면 AI 답변과 유튜브 추천이 화면에서
- * 구별되지 않는다" (ia.md §4). 빈 배열이면 슬롯을 실패로 다루지 않고 이 영역만 감춘다.
+ * **원칙은 접거나 생략하지 않는다** — "이 목록이 없으면 AI 답변과 유튜브 추천이
+ * 화면에서 구별되지 않는다" (ia.md §4). 빈 배열이면 슬롯을 실패로 다루지 않고 이
+ * 영역만 감춘다.
+ *
+ * **채팅은 예외다** (`collapsible`, 2026-09-17 사용자 결정, FINCH-315). 채팅
+ * 말풍선에서는 목록이 다섯 줄까지 늘어나 본문보다 길어지는 문제가 있었고, `ia.md`
+ * §4 의 "접어두거나 생략하지 않는다" 를 사용자가 알고도 채팅에 한해 접기로 정했다.
+ * `ia.md` 는 이 결정과 별개로 팀 문서 쪽 반영 여부가 정해지지 않아 고치지 않았다 —
+ * 그래서 그 문서와 이 주석이 채팅에 한해 서로 다른 말을 하는 것처럼 보일 수 있다.
+ * `collapsible` 이 꺼져 있는 나머지 두 호출부(포트폴리오 `DiagnosisTab`·
+ * `AiInsightPanel`)는 이 예외와 무관하게 원칙 그대로 전부 펼쳐 그린다.
  *
  * **`features/stocks` 와 `features/portfolio` 에 따로 있던 두 벌을 여기로 올렸다**
  * (frontConvention §2 "두 feature 가 같은 것을 필요로 하면 shared 로 올린다").
@@ -108,6 +119,14 @@ function groupByDocument(citations: readonly AiCitation[]): CitationGroup[] {
   return groups.sort((a, b) => b.relevance - a.relevance);
 }
 
+/**
+ * 접었을 때 그대로 보이는 줄 수 (`collapsible`, 2026-09-17 사용자 결정). 채팅
+ * 말풍선 하나에 맞춘 값이라 호출부가 고르게 두지 않았다 — 지금 이 값이 필요한
+ * 자리가 채팅 하나뿐이라, 값을 더 만들면 아직 없는 쓰임을 미리 설계하는 것이 된다.
+ * 다른 화면이 다른 값을 필요로 하면 그때 props 로 뺀다.
+ */
+const COLLAPSED_VISIBLE_COUNT = 1;
+
 type AiCitationListProps = {
   citations: readonly AiCitation[];
   /** 목록 제목. 넘기면 `<section>` 으로 감싸고 제목을 그린다 (종목 상세 "근거"). */
@@ -117,6 +136,14 @@ type AiCitationListProps = {
    * 두 줄 판은 한 줄 판보다 뱃지·글자가 한 단계 크다 (종목 상세 실측).
    */
   showPublisher?: boolean;
+  /**
+   * 상위 `COLLAPSED_VISIBLE_COUNT`건만 펼쳐 두고 나머지를 `더 보기` 뒤로 접는다
+   * (2026-09-17 사용자 결정, FINCH-315). **채팅만 켠다** — 포트폴리오
+   * `DiagnosisTab`·`AiInsightPanel` 은 기본값 `false` 그대로 전부 펼친다. 정렬
+   * (`relevance` 최댓값 내림차순)은 접힘과 무관하게 그대로다 — 위쪽 항목만
+   * 보여주는 것이라 별도 기준이 필요 없다.
+   */
+  collapsible?: boolean;
   className?: string;
 };
 
@@ -124,8 +151,12 @@ export function AiCitationList({
   citations,
   title,
   showPublisher = false,
+  collapsible = false,
   className = '',
 }: AiCitationListProps) {
+  // 한 번 펼치면 되접지 않는다 — "여는 동작은 누르는 것 하나" (사용자 결정).
+  const [expanded, setExpanded] = useState(false);
+
   if (citations.length === 0) {
     return null;
   }
@@ -133,10 +164,15 @@ export function AiCitationList({
   // 같은 문서를 한 줄로 접고 묶음의 relevance 최댓값으로 내림차순 정렬한다.
   // 원본 배열은 건드리지 않는다.
   const groups = groupByDocument(citations);
+  const hiddenCount = groups.length - COLLAPSED_VISIBLE_COUNT;
+  const isCollapsed = collapsible && !expanded && hiddenCount > 0;
+  const visibleGroups = isCollapsed
+    ? groups.slice(0, COLLAPSED_VISIBLE_COUNT)
+    : groups;
 
   const list = (
     <ul className={`flex flex-col ${showPublisher ? 'gap-2.5' : 'gap-2'}`}>
-      {groups.map(({ head: citation }) => {
+      {visibleGroups.map(({ head: citation }) => {
         const label = CITATION_TYPE_LABEL[citation.type] ?? citation.type;
         const rowClass = showPublisher
           ? 'flex items-start gap-2.5'
@@ -186,6 +222,17 @@ export function AiCitationList({
           </li>
         );
       })}
+      {isCollapsed && (
+        <li>
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="text-caption font-medium text-text-secondary underline underline-offset-2"
+          >
+            근거 {hiddenCount}건 더 보기
+          </button>
+        </li>
+      )}
     </ul>
   );
 
