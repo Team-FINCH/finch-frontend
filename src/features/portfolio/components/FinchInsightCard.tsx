@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { type AiFinding } from '@/shared/types/ai/diagnosis';
 import { type AiSection, type AiSegment } from '@/shared/types/ai/envelope';
+import { AiGlyph } from '@/shared/ui/AiCard';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 import { Card } from '@/shared/ui/Card';
 
@@ -38,6 +39,20 @@ import { Card } from '@/shared/ui/Card';
  * `id` 6종 중 `correlation`·`liquidity`·`macro_exposure` 는 대응하는 시각화가 없어서,
  * `확인된 사항` 섹션을 없앨 때 이 시트가 없으면 화면에서 사라진다.
  *
+ * ## 제목 앞에 AI 글리프를 둔다
+ *
+ * 이 카드가 화면에서 **유일하게 AI 가 쓴 내용**이라 표시가 필요하다. 검정 `AiCard`
+ * 를 걷어내면서 그 셸이 달고 있던 글리프도 함께 사라졌고, 흰 카드 셋 중 어느 것이
+ * AI 인지 제목 글자만으로는 드러나지 않았다.
+ *
+ * `AiCard` 가 export 하는 `AiGlyph` 를 그대로 쓴다. `design.md` §3 이 "화면마다 다른
+ * AI 아이콘을 임의로 혼용하지 않는다", §8.4 가 "AI Glyph 위치/크기 통일" 이라고
+ * 못박아서 이 카드용 아이콘을 새로 만들지 않는다. 브랜드 심볼을 마스크로 깔고
+ * `currentColor` 로 칠하는 방식이라 흰 면에서도 그대로 보인다.
+ *
+ * **빈 상태 캐릭터(`.est>img`)를 쓰지 않는다.** 그쪽은 폭 120px·불투명도 0.16 으로
+ * 깔리는 삽화라 제목 옆 아이콘 자리가 아니다.
+ *
  * **피드백을 붙이지 않는다.** 프로토타입 실제 UI 에서 피드백이 붙는 자리는 셋뿐이고
  * 이 탭은 그중 하나가 아니다(`ia.md` §4 각주).
  */
@@ -61,7 +76,10 @@ export function FinchInsightCard({ summary, findings }: FinchInsightCardProps) {
 
   return (
     <Card className="mt-8">
-      <h2 className="text-section-title text-text-primary">FINCH 진단</h2>
+      <h2 className="flex items-center gap-1.75 text-section-title text-text-primary">
+        <AiGlyph />
+        FINCH 진단
+      </h2>
 
       {anchors.length > 0 && (
         <dl className="mt-4 flex gap-8">
