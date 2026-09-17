@@ -298,8 +298,11 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   ].join(' · ');
 
   return (
-    // 위 4px · 아래 24px 은 프로토타입 실측이다 (새 디코드 L1926·L1994).
-    <div className="mt-1 pb-6">
+    // 위 여백은 차트 탭과 같은 18px 이다 — `pages/StockDetailPage.tsx` 주석의
+    // "탭 내용의 위 여백은 각 탭이 스스로 갖는다(프로토타입 18px)" 근거를
+    // 이 탭도 따른다 (2026-09-17 사용자 결정). 전에 `mt-1`(4px)이었던 이유는
+    // 남아 있지 않다. 아래 24px 은 프로토타입 실측이다 (새 디코드 L1994).
+    <div className="mt-4.5 pb-6">
       <AiCard
         label="AI 종목 분석"
         headline={
