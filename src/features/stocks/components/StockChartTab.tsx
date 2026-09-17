@@ -57,8 +57,11 @@ type StockChartTabProps = {
   /** 거래정지면 차트·기간 탭을 그리지 않는다 (프로토타입 `d.tradableChart`). */
   suspended: boolean;
   suspendedReason: string | null;
-  /** 정지 화면의 `마지막 체결가`. */
-  currentPrice: number;
+  /**
+   * 정지 화면의 `마지막 체결가`. **시세가 없는 종목이면 `null` 이다**
+   * (contracts C102) — 그때는 금액 대신 `—` 를 둔다.
+   */
+  currentPrice: number | null;
 };
 
 export function StockChartTab({
@@ -125,7 +128,13 @@ export function StockChartTab({
           <SoftBox className="mt-1">
             <SoftBoxRow
               label="마지막 체결가"
-              value={`${formatAmount(currentPrice)} 원`}
+              value={
+                currentPrice === null ? (
+                  <NoValue label="마지막 체결가가 오지 않음" />
+                ) : (
+                  `${formatAmount(currentPrice)} 원`
+                )
+              }
               valueClassName="font-semibold"
             />
             {/* 사유는 서버가 준 문장이다. 프로토타입의 목 문구(`감사의견 거절`)를

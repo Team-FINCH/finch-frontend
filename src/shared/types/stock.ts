@@ -84,23 +84,64 @@ export type StockHoldingSummary = z.infer<typeof StockHoldingSummarySchema>;
  *
  * **이 호출 자체가 최근 본 종목 기록이다.** 별도 등록 API 가 없다 (contracts C51).
  * `watched` 는 관심 종목 토글의 초기 상태다.
+ *
+ * **가격 네 필드가 `null` 일 수 있다** (contracts C102). `StockDetailRes` 가
+ * `currentPrice`·`changeAmount`·`changeRate`·`asOf` 를 전부 박스 타입으로 두고
+ * `PriceSnapshot` 값을 그대로 싣는다 — 시세가 없는 종목이면 넷이 함께 `null` 이고,
+ * `holding` 의 평가 두 필드도 같은 분기에서 `null` 이 된다(C93 과 같은 조건).
+ * apiSpec §5.2 예시는 숫자만 적고 있지만 **구현이 기준이다**(2026-09-17 백엔드
+ * `StockDetailRes.java:15-38,49-55` 확인).
+ *
+ * **`previousClose` 는 `null` 이 아니다.** 종목 마스터 값이라 시세 유무와 무관하다.
+ * 넷과 함께 묶지 않는다.
+ *
+ * `StockQuoteSchema` 와 같은 이유로 "넷이 함께 있거나 함께 없다" 는 교차 검증을
+ * 걸지 않았다 — 서버가 규칙을 어겼을 때 파싱을 실패시키면 화면이 통째로 죽는다.
+ * 좁히는 것은 `hasDetailQuoteValues` 로 한다.
  */
 export const StockDetailResponseSchema = z.object({
   stockCode: StockCodeSchema,
   stockName: z.string(),
   market: MarketSchema,
-  currentPrice: KrwAmountSchema,
+  currentPrice: KrwAmountSchema.nullable(),
   previousClose: KrwAmountSchema,
-  changeAmount: KrwAmountSchema,
+  changeAmount: KrwAmountSchema.nullable(),
   /** 백분율 */
-  changeRate: PercentSchema,
+  changeRate: PercentSchema.nullable(),
   suspended: z.boolean(),
   suspendedReason: z.string().nullable(),
   watched: z.boolean(),
-  asOf: IsoDateTimeSchema,
+  asOf: IsoDateTimeSchema.nullable(),
   holding: StockHoldingSummarySchema.nullable(),
 });
 export type StockDetailResponse = z.infer<typeof StockDetailResponseSchema>;
+
+/** 가격 값이 실려 있는 종목 상세. `hasQuoteValues` 의 상세 응답 판이다. */
+export type StockDetailWithQuote = StockDetailResponse & {
+  currentPrice: KrwAmount;
+  changeAmount: KrwAmount;
+  changeRate: Percent;
+  asOf: IsoDateTime;
+};
+
+/**
+ * 상세 응답의 가격 영역을 그릴 수 있는지 판정한다 (contracts C102).
+ * `false` 면 가격 자리를 비우고 주문 진입도 막는다.
+ *
+ * `hasQuoteValues`(폴링 응답)와 판정 규칙이 같다. 둘을 하나로 합치지 않은 이유는
+ * `StockQuote` 에는 `stale` 이 있고 상세 응답에는 없어서 타입 술어의 대상이
+ * 다르기 때문이다 — 합치면 둘 중 하나가 구조적 타입에 억지로 맞춰진다.
+ */
+export function hasDetailQuoteValues(
+  detail: StockDetailResponse,
+): detail is StockDetailWithQuote {
+  return (
+    detail.currentPrice !== null &&
+    detail.changeAmount !== null &&
+    detail.changeRate !== null &&
+    detail.asOf !== null
+  );
+}
 
 /**
  * 캔들 기간 (apiSpec §5.3 v0.8.4 확정 · 이슈 #37 회신 · ia.md §2 "쿼리 파라미터로

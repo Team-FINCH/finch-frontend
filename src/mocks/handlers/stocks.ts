@@ -381,22 +381,37 @@ export const stockHandlers = [
           ? null
           : (holdingPrice - holding.avgBuyPrice) * holding.quantity;
 
+      /*
+       * **시세가 없으면 최상위 가격 네 필드도 `null` 이다** (contracts C102,
+       * 백엔드 `StockDetailRes.java:15-38` 확인). `toStockSummary`·`toStockQuote`
+       * 가 이미 같은 규칙으로 갈리고 있는데 이 핸들러만 `quoteState` 를 보지 않아
+       * **`058610`(에스피지) 「시세 없음」 픽스처가 상세에서는 한 번도 재현되지
+       * 않았다** — 보유 목록·관심 목록·검색에서는 이미 그 상태가 나오던 종목이다.
+       * 목이 계약보다 관대하면 실서버에 붙기 전까지 이 갈래를 볼 수 없다.
+       *
+       * **`previousClose` 는 함께 비우지 않는다.** 종목 마스터 값이라 시세 유무와
+       * 무관하고, 계약도 그 하나만 필수로 남겨 뒀다.
+       */
+      const missing = stock.quoteState === 'missing';
+
       return HttpResponse.json({
         stockCode: stock.stockCode,
         stockName: stock.stockName,
         market: stock.market,
-        currentPrice: stock.currentPrice,
+        currentPrice: missing ? null : stock.currentPrice,
         previousClose: stock.previousClose,
-        changeAmount: stock.currentPrice - stock.previousClose,
-        changeRate:
-          Math.round(
-            ((stock.currentPrice - stock.previousClose) / stock.previousClose) *
-              10000,
-          ) / 100,
+        changeAmount: missing ? null : stock.currentPrice - stock.previousClose,
+        changeRate: missing
+          ? null
+          : Math.round(
+              ((stock.currentPrice - stock.previousClose) /
+                stock.previousClose) *
+                10000,
+            ) / 100,
         suspended: stock.suspended,
         suspendedReason: stock.suspendedReason,
         watched: store.watchlist.some((entry) => entry.stockCode === stockCode),
-        asOf: nowKstIso(),
+        asOf: missing ? null : nowKstIso(),
         holding:
           holding === undefined
             ? null

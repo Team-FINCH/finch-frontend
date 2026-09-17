@@ -20,7 +20,10 @@ import { isHttpError } from '@/shared/api';
 import { ROUTES, STOCK_CODE_PARAM } from '@/shared/config/routes';
 import { showToast } from '@/shared/hooks/useToastStore';
 import { STOCK_ERROR_CODES } from '@/shared/types/errorCodes';
-import { type CandleInterval } from '@/shared/types/stock';
+import {
+  hasDetailQuoteValues,
+  type CandleInterval,
+} from '@/shared/types/stock';
 import { PageMain } from '@/shared/ui/PageMain';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { TradeTabBar } from '@/shared/ui/TabBar';
@@ -78,6 +81,9 @@ import { TradeTabBar } from '@/shared/ui/TabBar';
  *
  * 매수/매도는 주문 화면으로 보낸다 (`?side=buy|sell`, ia.md §2).
  * **거래정지 종목은 진입을 막는다** (contracts C46 "뱃지 노출 + 매수·매도 차단").
+ * **시세가 없는 종목도 막는다** (contracts C102, 2026-09-17 결정) — 주문은 시장가뿐이라
+ * 현재가가 없으면 예상 체결 금액을 만들 수 없고, 매도만 열어 두면 보유자가 금액을
+ * 모른 채 파는 화면이 된다. 두 조건은 독립이고 함께 참일 수 있다(`TradeTabBar` 참고).
  */
 export function StockDetailPage() {
   const params = useParams();
@@ -261,6 +267,7 @@ export function StockDetailPage() {
         stockCode={data.stockCode}
         stockName={data.stockName}
         suspended={data.suspended}
+        priceUnavailable={!hasDetailQuoteValues(data)}
         onBuy={() => {
           void navigate(`${ROUTES.stockOrder(stockCode)}?side=buy`);
         }}

@@ -251,6 +251,12 @@ type TradeTabBarProps = {
   stockName?: string;
   /** 거래정지면 매수·매도 대신 비활성 캡슐 한 줄을 그린다 (contracts C46). */
   suspended?: boolean;
+  /**
+   * 시세를 받지 못한 종목이면 같은 모양의 비활성 캡슐로 바꾼다 (contracts C102).
+   * **`suspended` 와 다른 조건이다** — 거래정지가 아닌데 시세만 없는 종목이 있다.
+   * 둘 다 참이면 `suspended` 가 이긴다 (아래 렌더 주석 참고).
+   */
+  priceUnavailable?: boolean;
   onBuy: () => void;
   onSell: () => void;
 };
@@ -291,9 +297,40 @@ export function TradeTabBar({
   onBuy,
   onSell,
   suspended,
+  priceUnavailable,
   stockCode,
   stockName,
 }: TradeTabBarProps) {
+  /*
+    주문 불가 사유. **둘 다 참일 수 있고 그때는 거래정지가 이긴다** — 이미 계약이
+    있는 쪽(C46)이 우선이고, 거래정지 종목은 시세가 함께 끊기는 것이 정상이라
+    "시세를 못 받는다" 고만 적으면 진짜 이유를 감춘다.
+
+    거래정지 문구는 프로토타입 실측값 그대로다 (`design.md` §6 "Tab Bar 변형" 셋째 줄).
+
+    **시세 없음 문구는 `현재 거래할 수 없어요` 로 바꿨다(사용자 결정 2026-09-17).**
+    전 판(`시세를 받지 못한 종목이에요`)은 §6 의 결(`{조건} + 종목이에요`)에
+    맞춘 임시값이었는데, 실제로 넣어 보니 캡슐이 좁아(390px 기기에서 152px)
+    두 줄로 접혀 `이 종목 물어보기` 캡슐이 바의 절반을 먹었다.
+
+    **이 문구도 152px 캡슐에서는 여전히 두 줄로 접힌다** (CDP 로 확인 —
+    `현재 거래할` / `수 없어요`, `getClientRects` 로 2행). 캡슐 폭 자체가
+    `이 종목 물어보기` 확장 라벨에 밀려 좁은 것이라 문구 길이만으로는 한 줄이
+    안 된다. 다만 **거래정지 갈래(`거래정지된 종목이에요`)도 같은 폭에서 이미
+    두 줄로 접힌다** — `클로봇`(466100)으로 확인했다. 그러니 이 갈래도 두 줄로
+    접히는 것은 새 문제가 아니라 기존 캡슐의 정상 렌더와 같아진 것이다. 46px
+    높이(`h-12`)에 22.5px 두 줄(45px)이 들어가 넘치지도 않는다. `px-3
+    text-balance break-keep` 은 그대로 둔다 — 폭을 늘려도 못 없앨 줄바꿈을
+    두 줄 사이에서 보기 좋게 나누는 역할은 여전하다. **`design.md` §6 표에
+    이 줄을 올리는 것은 이 티켓 범위 밖이라 감독관에게 보고한다.**
+  */
+  const blockedLabel =
+    suspended === true
+      ? '거래정지된 종목이에요'
+      : priceUnavailable === true
+        ? '현재 거래할 수 없어요'
+        : null;
+
   return (
     <TabBarShell
       aiExpandedLabel="이 종목 물어보기"
@@ -302,13 +339,13 @@ export function TradeTabBar({
       aiStockName={stockName}
     >
       <div className={`${PILL_BASE_CLASS} gap-1.5`}>
-        {suspended === true ? (
+        {blockedLabel !== null ? (
           <button
             type="button"
             disabled
-            className={`h-12 flex-1 rounded-full border border-border text-[15px] font-medium text-text-muted ${TAB_ITEM_IN_CLASS}`}
+            className={`h-12 flex-1 rounded-full border border-border px-3 text-[15px] font-medium text-balance break-keep text-text-muted ${TAB_ITEM_IN_CLASS}`}
           >
-            거래정지된 종목이에요
+            {blockedLabel}
           </button>
         ) : (
           <>
