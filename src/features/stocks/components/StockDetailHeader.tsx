@@ -1,5 +1,6 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
+import { ROUTES } from '@/shared/config/routes';
 import { formatKstTime } from '@/shared/lib/formatDate';
 import {
   formatAmount,
@@ -56,6 +57,33 @@ export function StockDetailHeader({
   isTogglePending,
 }: StockDetailHeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  /**
+   * 뒤로가기 (FINCH-324). **`navigate(-1)` 하나로는 앱 밖으로 나간다** —
+   * 이 화면은 브리핑 `deeplink` · 알림함 · 공유된 주소로 **바로 열리는 자리**라
+   * 첫 진입인 경우가 실제로 있고, 그때 되돌아갈 히스토리는 우리 앱이 아니다.
+   *
+   * 판정은 `useLocation().key` 로 한다. 앱이 처음 그린 위치의 key 는
+   * `"default"` 고, 앱 안에서 이동해 온 위치는 react-router 가 고유 key 를 준다.
+   * `history.state` 를 직접 읽지 않은 이유는 그쪽이 react-router 의 내부 표현이라
+   * 버전이 오르면 모양이 바뀔 수 있어서다 — 라우터가 공개한 값을 먼저 쓴다.
+   *
+   * `shared/ui/SubPageHeader` 가 이미 같은 판정을 하고 있어 그 결을 그대로
+   * 따랐다(그쪽 주석의 프로토타입 `back(){ ... k.pop()||"home" }` 근거).
+   * 이 헤더는 `SubPageHeader` 를 쓰지 않는다 — 제목 아래 현재가·등락 묶음이
+   * 붙는 화면 전용 머리라 모양이 다르다.
+   *
+   * 갈 곳은 홈 하나다. `replace` 로 가서 이 화면이 히스토리에 남지 않게 한다 —
+   * 남기면 홈에서 다시 뒤로가기를 눌렀을 때 같은 자리로 되돌아온다.
+   */
+  function handleBack() {
+    if (location.key === 'default') {
+      void navigate(ROUTES.home, { replace: true });
+      return;
+    }
+    void navigate(-1);
+  }
 
   // 폴링 값이 있고 실제 숫자가 실려 있을 때만 갈아끼운다.
   const live = quote !== undefined && hasQuoteValues(quote) ? quote : null;
@@ -111,7 +139,7 @@ export function StockDetailHeader({
       <div className="-mx-2.75 flex items-start gap-1 pt-1.5">
         <button
           type="button"
-          onClick={() => void navigate(-1)}
+          onClick={handleBack}
           aria-label="뒤로 가기"
           className="flex size-11 flex-none items-center justify-center rounded-12 text-[20px] leading-none text-text-primary active:bg-primary-soft"
         >

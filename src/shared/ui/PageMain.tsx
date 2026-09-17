@@ -65,7 +65,7 @@ import { type ComponentProps } from 'react';
  * 24px 로 그려진 이유가 이것이다. 기본값을 두지 않으면 이 다툼 자체가 없다.
  *
  * 24px 이 필요한 화면은 **그 화면이 직접 `pt-6` 을 준다.** 헤더가 없는 화면
- * (`RouteFallback`·`RoutePlaceholder`·AI 채팅·배선 점검·카카오 콜백·404 와
+ * (`RouteFallback`·AI 채팅·배선 점검·카카오 콜백·404 와
  * 주문·종목 상세의 로딩/에러 상태)이 그렇다. `PageHeader`·`SubPageHeader` 를
  * 쓰는 화면은 헤더가 화면 맨 위에 붙어야 하므로 위 여백이 없다.
  *

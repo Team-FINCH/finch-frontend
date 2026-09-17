@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import {
   RecentKeywordChips,
@@ -15,7 +15,6 @@ import {
 } from '@/features/stocks';
 import { useDeleteRecentStock } from '@/features/stocks/api/useRecentStocks';
 import { STOCK_SEARCH_MIN_KEYWORD_LENGTH } from '@/shared/config/apiContract';
-import { ROUTES } from '@/shared/config/routes';
 import { showToast } from '@/shared/hooks/useToastStore';
 import { type StockSummary } from '@/shared/types/stock';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -180,20 +179,23 @@ export function SearchPage() {
             </section>
 
             <section className="mt-9 pb-5">
-              <SearchSectionHeader
-                label="최근 본 종목"
-                className="mb-1.5"
-                action={
-                  viewedStocks.length > 0 ? (
-                    <Link
-                      to={ROUTES.recent}
-                      className="text-caption text-text-muted"
-                    >
-                      전체 보기
-                    </Link>
-                  ) : undefined
-                }
-              />
+              {/* **`전체 보기` 링크는 일부러 없다 — 되살리지 마라**
+                  (FINCH-324, 2026-09-17 사용자 결정).
+
+                  전에는 이 자리에 `/recent` 로 가는 `전체 보기` 가 있었는데, 그
+                  라우트는 개발용 자리표시 화면이었다. 하단 탭 바도 뒤로가기도 홈
+                  버튼도 없어 한 번 들어가면 나올 길이 없었다.
+
+                  **`/recent` 전체 화면은 만들지 않기로 확정했다.** 최근 검색어와
+                  최근 본 종목이 이미 이 화면에 있고, 서버가 최대 30건을 주지만
+                  미리보기 3건 위로 더 볼 만한 자리가 아니라고 봤다. 그래서 링크만
+                  걷지 않고 **라우트·`ROUTES.recent` 상수·자리표시 컴포넌트까지
+                  함께 지웠다** — 닿을 수 없는 화면이 남아 있으면 다음 사람이
+                  "만들다 만 화면" 으로 읽는다.
+
+                  그래서 머리에 `action` 을 넘기지 않는다. 바로 위 `최근 검색어`
+                  머리도 지울 것이 없으면 같은 방식으로 라벨만 그린다. */}
+              <SearchSectionHeader label="최근 본 종목" className="mb-1.5" />
               {viewedStocks.length > 0 ? (
                 <RecentStockList
                   stocks={viewedStocks}

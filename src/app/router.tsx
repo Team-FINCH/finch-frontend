@@ -11,7 +11,6 @@ import { RootLayout } from './layouts/RootLayout';
 import { StockCodeGuard } from './layouts/StockCodeGuard';
 import { TabBarLayout } from './layouts/TabBarLayout';
 import { RouteErrorPage } from './RouteErrorPage';
-import { RoutePlaceholder } from './RoutePlaceholder';
 
 /**
  * 라우트 트리. 화면 목록의 원본은 `frontend/docs/ia.md` §1·§2 다.
@@ -164,10 +163,6 @@ export const router = createBrowserRouter([
           },
 
           // ── 보호 + 탭 없음 ─────────────────────────────────────────────
-          {
-            path: ROUTES.recent,
-            element: <RoutePlaceholder screen="최근 본 종목" />,
-          },
           {
             path: ROUTES.transactions,
             element: <TransactionsPage />,

@@ -44,7 +44,6 @@ export const ROUTES = {
   onboarding: '/onboarding',
   oauthKakao: '/oauth/kakao',
   search: '/search',
-  recent: '/recent',
   stockDetail: (stockCode: string) => `/stocks/${stockCode}`,
   stockOrder: (stockCode: string) => `/stocks/${stockCode}/order`,
   portfolio: '/portfolio',
