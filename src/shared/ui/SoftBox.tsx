@@ -31,6 +31,19 @@ type SoftBoxRowProps = {
 /**
  * 키-값 한 줄. 줄 간격 10px 은 프로토타입 실측값이다.
  * 값은 고정폭 숫자로 그린다 — 시세·잔고가 갱신될 때 자리가 흔들리면 안 된다.
+ *
+ * **기본색 `text-text-primary` 는 값 `span` 이 아니라 행 `div` 에 둔다.**
+ * `valueClassName` 이 색 유틸리티(`text-stock-up` 등)를 넘기면 값 `span` 자신의
+ * 선언이 되고, 상속받은 색은 그 앞에서 진다 — 특이도나 스타일시트 순서와
+ * 무관하게 요소 자신에게 직접 붙은 선언이 상속값을 항상 이기는 캐스케이드
+ * 규칙이다. `valueClassName` 이 색을 넘기지 않으면(`font-bold` 처럼 굵기만
+ * 넘기거나 아예 안 넘기면) 값은 그냥 컨테이너의 `text-text-primary` 를
+ * 물려받는다. 이전 판은 값 `span` 에 기본색과 호출부 색을 특이도가 같은
+ * 유틸리티로 나란히 넣어서 승자가 스타일시트 순서로 갈렸다 — 그 함정은
+ * `DepositSummaryRow` 머리 주석이 설명한다. 조건 분기(`hasColorOverride`)로
+ * 문자열을 검사해 막던 것을, 색을 아예 값의 것으로만 두는 구조로 없앴다.
+ *
+ * 라벨 `span` 은 `text-text-secondary` 를 늘 명시하므로 컨테이너 색과 무관하다.
  */
 export function SoftBoxRow({
   label,
@@ -40,13 +53,13 @@ export function SoftBoxRow({
 }: SoftBoxRowProps) {
   return (
     <div
-      className={`flex items-center justify-between gap-3 first:mt-0 ${
+      className={`flex items-center justify-between gap-3 text-text-primary first:mt-0 ${
         divided ? 'mt-2.5 border-t border-border pt-2.5' : 'mt-2.5'
       }`}
     >
       <span className="text-body-2 text-text-secondary">{label}</span>
       <span
-        className={`text-body-1 font-medium text-text-primary tabular-nums ${valueClassName}`}
+        className={`text-body-1 font-medium tabular-nums ${valueClassName}`}
       >
         {value}
       </span>

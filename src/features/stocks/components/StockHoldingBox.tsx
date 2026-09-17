@@ -54,8 +54,11 @@ type StockHoldingBoxProps = {
 export function StockHoldingBox({ holding }: StockHoldingBoxProps) {
   const { evaluationProfit, evaluationProfitRate } = holding;
   const hasProfit = evaluationProfit !== null && evaluationProfitRate !== null;
+  // 방향은 비율이 아니라 금액으로 정한다 — `formatSignedAmountWithRate` 주석과 같은
+  // 기준이다. 반올림 경계에서 금액과 비율의 부호가 갈릴 수 있고, 화면이 대표하는
+  // 값은 "평가손익"(금액)이지 "수익률"이 아니다.
   const profitClass = hasProfit
-    ? DIRECTION_TEXT_CLASS[getPriceDirection(evaluationProfitRate)]
+    ? DIRECTION_TEXT_CLASS[getPriceDirection(evaluationProfit)]
     : 'text-text-secondary';
 
   return (
