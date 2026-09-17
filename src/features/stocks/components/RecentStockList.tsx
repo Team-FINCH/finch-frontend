@@ -7,7 +7,8 @@ import { StockRow } from '@/shared/ui/StockRow';
  *
  * **미리보기 3건만 그린다.** 프로토타입이 `slice(0,3)` 으로 자르고(proto L3647)
  * design.md L381 도 최대 3개를 적는다. 서버는 최대 30건을 내려주므로(contracts C51)
- * 나머지는 "전체 보기"(`/recent`)가 받는다.
+ * 나머지 27건은 화면에 나오지 않는다 — `/recent` 전체 화면을 만들지 않기로 했고
+ * 탐색 화면의 "전체 보기" 링크도 걷었다(FINCH-324, `SearchPage` 주석).
  *
  * **등락액이 없다.** `RecentStock` 은 `currentPrice`·`changeRate` 만 갖는다
  * (apiSpec §6.1) — 그래서 `changeAmount` 를 넘기지 않고, `StockRow` 가 등락률 한 줄만
