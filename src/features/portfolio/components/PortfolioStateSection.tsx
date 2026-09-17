@@ -40,12 +40,9 @@ import { type AiFinding, type AiIndicators } from '@/shared/types/ai/diagnosis';
  * 이라는 고정 문장을 쓰는데 우리가 확인할 수 없는 주장이라, 가진
  * 값(`annualizedVolatility`)을 그대로 옮긴다.
  *
- * **업종 집중만 숫자가 없는 줄이다.** `sectorHhi` 는 허핀달 지수라 비중이 아니고,
- * `35%` 처럼 적으면 "어느 업종이 35%" 로 읽힌다. 역수(`1/HHI`)를 유효 업종 수로
- * 옮기는 읽기가 있지만 응답이 업종 이름도 개수도 주지 않아 정수로 반올림하는 순간
- * 없는 정밀도가 생긴다. 전에 쓰던 `{N}종목에 나눠 담았어요` 는 업종이 아니라 종목
- * 수라 애초에 이 행의 대상이 아니었고, 그 숫자는 바로 아래 `종목 집중도` 섹션이
- * 종목별 비중까지 보여준다. 지수 값 자체는 `위험 지표` 의 `섹터 집중도(HHI)` 에 있다.
+ * 업종 집중 문장은 `sectorCount` 다 — 근거와 경위는 아래 `sectorNote` 주석에 있다.
+ * **막대와 문장이 서로 다른 필드를 쓴다**(지수 / 개수). 같은 값을 두 모양으로 두 번
+ * 말하지 않으려는 것이고, 이 행에서만 그렇다.
  *
  * 값이 `null` 인 지표는 막대와 설명을 함께 접는다 — `design.md` §7.9 "실제 Score가
  * 있을 때만 길이 사용" 이다. 0 으로 그리면 없는 값이 "0%" 로 읽힌다.
@@ -67,7 +64,21 @@ const METRIC_GRADE = {
     color: 'var(--color-text-secondary)',
     barColor: '#9AA3AF',
   },
-  medium: { label: '다소 높음', color: '#C2691C', barColor: '#D98A3D' },
+  /**
+   * **`medium` 은 색을 갖지 않는다** (FINCH-325). 전에는 `high` 와 같은
+   * `#C2691C`·`#D98A3D` 였다 — 어휘는 넷인데 색이 셋이라 `다소 높음` 과 `높음` 의
+   * 차이가 색으로는 전혀 읽히지 않았다.
+   *
+   * 색을 하나 더 만들지 않고 `medium` 을 중립으로 내린 이유는 `design.md` §7.9 가
+   * "Red / Orange 상태색 남발 금지" 를 적었기 때문이다. 넷을 다 칠하는 것보다
+   * **가장 나쁜 하나만 눈에 띄는 쪽**이 잘 읽힌다. 등급 이름은 그대로 넷이라
+   * 색이 빠져도 잃는 정보가 없다.
+   */
+  medium: {
+    label: '다소 높음',
+    color: 'var(--color-text-secondary)',
+    barColor: '#9AA3AF',
+  },
   high: { label: '높음', color: '#C2691C', barColor: '#D98A3D' },
 } as const;
 
@@ -94,10 +105,11 @@ export function PortfolioStateSection({
   indicators,
   findings,
 }: PortfolioStateSectionProps) {
-  const { top1Weight, sectorHhi, annualizedVolatility } = indicators;
+  const { top1Weight, sectorHhi, sectorCount, annualizedVolatility } =
+    indicators;
 
   return (
-    <section className="mt-8">
+    <section className="mt-12">
       {/* 프로토타입이 이 두 섹션에서만 `.sht` 를 20px 로 덮어 쓴다 (proto L2240). */}
       <h2 className="mb-3.5 text-[20px] leading-7 font-bold tracking-[-0.02em] text-text-primary">
         포트폴리오 상태
@@ -120,9 +132,7 @@ export function PortfolioStateSection({
           // 허핀달 값을 그대로 채운다. 여집합(`1 - sectorHhi`)을 쓰면 막대만 반대
           // 방향이 된다 — 위 주석 "두 번째 행은 `분산` 이 아니라 `업종 집중` 이다".
           barRatio={sectorHhi}
-          note={
-            sectorHhi === null ? null : '같은 업종에 몰려 있으면 함께 움직여요.'
-          }
+          note={sectorNote(sectorCount)}
         />
         <MetricRow
           label="변동성"
@@ -184,6 +194,29 @@ function MetricRow({ label, grade, barRatio, note }: MetricRowProps) {
       )}
     </div>
   );
+}
+
+/**
+ * 업종 집중 행의 설명 줄 (FINCH-325).
+ *
+ * **318 에서 비웠던 자리를 `sectorCount` 가 채운다.** 그때는 "응답이 업종 이름도
+ * 개수도 주지 않는다" 가 사실이어서 숫자 없는 문장 하나로 두었는데, AI 명세 §5 에
+ * `sector_count` 가 생겼다 — 같은 업종을 한 번만 세고 현금을 뺀 정수다.
+ *
+ * `sectorHhi` 를 문장에 쓰지 않는 이유는 그대로다. 허핀달 지수는 비중이 아니라
+ * `41%` 로 적으면 "어느 업종이 41%" 로 읽힌다. 막대는 지수가 맡고 문장은 개수가
+ * 맡는다 — 같은 것을 두 번 말하지 않는다.
+ *
+ * 한 업종뿐이면 문장을 갈아탄다. `1개 업종에 나눠 담았어요` 는 나눠 담지 않았다는
+ * 뜻이라 말이 자기를 부정한다.
+ */
+function sectorNote(sectorCount: number | null): string | null {
+  if (sectorCount === null) {
+    return null;
+  }
+  return sectorCount <= 1
+    ? '한 업종에 모여 있어요.'
+    : `${sectorCount}개 업종에 나눠 담았어요.`;
 }
 
 /** 걸린 항목이 없으면 `양호` 다 — 규칙 엔진이 짚지 않았다는 뜻이다. */

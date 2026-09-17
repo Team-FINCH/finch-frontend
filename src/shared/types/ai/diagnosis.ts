@@ -81,11 +81,22 @@ export type AiFinding = z.infer<typeof AiFindingSchema>;
 
 /**
  * 숫자로만 이뤄진 위험 지표 (AI 명세 §5 `indicators`).
- * 열한 키는 항상 실려 나오고 **계산되지 않은 지표는 0 이 아니라 `null`** 이다.
+ * 열두 키는 항상 실려 나오고 **계산되지 않은 지표는 0 이 아니라 `null`** 이다.
  * 공통 거래일이 60일에 못 미치면 `annualizedVolatility`·`diversificationRatio` 가 `null` 이
  * 되지만 집중도·현금 비중은 유효하므로 **409 로 끊지 않는다.**
  */
 export const AiNumericIndicatorsSchema = z.object({
+  /**
+   * 보유 종목의 서로 다른 업종 수 (AI 명세 §5). 같은 업종은 한 번만 세고 현금은
+   * 제외하며, `sectorHhi` 와 같은 업종 버킷을 쓰므로 미분류·미매핑 업종도 값별로
+   * 센다. **히스토리가 짧아도 값이 온다** — 변동성 계열과 달리 거래일 수에
+   * 의존하지 않는다.
+   *
+   * 비율이 아니라 **개수**라 `RatioSchema` 를 쓰지 않는다.
+   * 명세는 항상 실린다고 적었지만 `nullable` 로 받는다 — "계산되지 않은 지표는
+   * `null`" 이 이 묶음 전체의 규칙이고, 화면은 `null` 이면 설명 줄을 접으면 된다.
+   */
+  sectorCount: z.number().int().nullable(),
   /** 허핀달 지수. 0~1 */
   hhi: RatioSchema.nullable(),
   top1Weight: RatioSchema.nullable(),
@@ -103,7 +114,7 @@ export const AiNumericIndicatorsSchema = z.object({
 });
 export type AiNumericIndicators = z.infer<typeof AiNumericIndicatorsSchema>;
 
-/** `indicators` 전체. 숫자 지표에 문자열 지표 `rateSensitivity` 가 더해진 열한 키다. */
+/** `indicators` 전체. 숫자 지표에 문자열 지표 `rateSensitivity` 가 더해진 열두 키다. */
 export const AiIndicatorsSchema = AiNumericIndicatorsSchema.extend({
   rateSensitivity: z.string().nullable(),
 });

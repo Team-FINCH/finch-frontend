@@ -98,7 +98,7 @@ export function StockConcentrationSection({
     .sort((a, b) => b.percent - a.percent);
 
   return (
-    <section className="mt-8">
+    <section className="mt-12">
       {/* 프로토타입이 이 두 섹션에서만 `.sht` 를 20px 로 덮어 쓴다 (proto L2262). */}
       <h2 className="mb-3.5 text-[20px] leading-7 font-bold tracking-[-0.02em] text-text-primary">
         종목 집중도
