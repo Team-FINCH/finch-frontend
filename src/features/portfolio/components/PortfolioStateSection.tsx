@@ -1,7 +1,7 @@
 import { type AiFinding, type AiIndicators } from '@/shared/types/ai/diagnosis';
 
 /**
- * "포트폴리오 상태" — 지표 3개(집중도 · 분산 · 변동성)에 등급 라벨 · 막대 · 설명 한 줄
+ * "포트폴리오 상태" — 지표 3개(집중도 · 업종 집중 · 변동성)에 등급 라벨 · 막대 · 설명 한 줄
  * (프로토타입 `metrics`, proto L2239–L2258 · L3999–L4007 · `design.md` §7.9).
  *
  * ## 등급을 어디서 받나
@@ -17,15 +17,35 @@ import { type AiFinding, type AiIndicators } from '@/shared/types/ai/diagnosis';
  * 적어 둔 "등급은 정해진 계산 규칙으로 나오고, FINCH는 이유만 설명해요." 가
  * 우리 계약에서도 그대로 참이다.
  *
+ * ## 두 번째 행은 `분산` 이 아니라 `업종 집중` 이다 (FINCH-318)
+ *
+ * 세 행 모두 **길수록 나쁨 · 등급이 높을수록 나쁨** 한 방향이다. 전에는 두 번째
+ * 행만 반대였다 — 이름이 `분산`, 막대가 `1 - sectorHhi`(길수록 좋음)인데 등급은
+ * `sector_concentration` 의 `severity`(높을수록 나쁨)를 그대로 받아서, 막대가 긴
+ * 계좌일수록 등급이 나빠 보였다. 사용자가 어느 쪽을 믿어야 할지 알 수 없었다.
+ *
+ * **프로토타입이 틀렸던 것이 아니라 우리가 반쪽만 옮겼다.** 프로토타입은 같은 값
+ * (`100 - 최대 업종 비중`)으로 막대를 그리고 **그 값에서** 등급까지 직접 냈다
+ * (`grade(p)`, proto L3386). 우리는 막대만 프로토타입을 따르고 등급은 서버 판정으로
+ * 바꿨는데, 서버 판정의 대상은 분산이 아니라 집중이라 극성이 뒤집혔다. 그래서 행
+ * 이름과 막대를 등급 쪽 극성에 맞춘다 — `METRIC_GRADE` 어휘 하나로 세 행을 계속
+ * 덮을 수 있고 `findings[].id` 와도 이름이 맞는다.
+ *
  * ## 설명 한 줄
  *
  * `design.md` §7.9 "진단 값만 보여주지 않고 의미를 한 줄로 번역" 이 요구하는 줄이다.
  * **AI 문장이 아니라 지표 라벨이다** — `indicators` 의 숫자를 우리가 문장 꼴로 적는
  * 것이고, 서버 문장(`summary.text` · `findings[].text`)에 값을 끼워 넣지 않는다.
- * 집중도 문장은 프로토타입 원문 그대로다. 분산은 프로토타입이 `{N}종목 · {M}개
- * 업종` 으로 적지만 **업종 개수를 주는 필드가 응답에 없어** 앞 절반만 쓴다.
- * 변동성은 프로토타입이 "시장 평균 수준" 이라는 고정 문장을 쓰는데 우리가 확인할
- * 수 없는 주장이라, 가진 값(`annualizedVolatility`)을 그대로 옮긴다.
+ * 집중도 문장은 프로토타입 원문 그대로다. 변동성은 프로토타입이 "시장 평균 수준"
+ * 이라는 고정 문장을 쓰는데 우리가 확인할 수 없는 주장이라, 가진
+ * 값(`annualizedVolatility`)을 그대로 옮긴다.
+ *
+ * **업종 집중만 숫자가 없는 줄이다.** `sectorHhi` 는 허핀달 지수라 비중이 아니고,
+ * `35%` 처럼 적으면 "어느 업종이 35%" 로 읽힌다. 역수(`1/HHI`)를 유효 업종 수로
+ * 옮기는 읽기가 있지만 응답이 업종 이름도 개수도 주지 않아 정수로 반올림하는 순간
+ * 없는 정밀도가 생긴다. 전에 쓰던 `{N}종목에 나눠 담았어요` 는 업종이 아니라 종목
+ * 수라 애초에 이 행의 대상이 아니었고, 그 숫자는 바로 아래 `종목 집중도` 섹션이
+ * 종목별 비중까지 보여준다. 지수 값 자체는 `위험 지표` 의 `섹터 집중도(HHI)` 에 있다.
  *
  * 값이 `null` 인 지표는 막대와 설명을 함께 접는다 — `design.md` §7.9 "실제 Score가
  * 있을 때만 길이 사용" 이다. 0 으로 그리면 없는 값이 "0%" 로 읽힌다.
@@ -61,21 +81,18 @@ const METRIC_BAR_TRACK = '#EDEFF2';
  */
 const METRIC_FINDING_ID = {
   concentration: 'ticker_concentration',
-  diversification: 'sector_concentration',
+  sectorConcentration: 'sector_concentration',
   volatility: 'volatility',
 } as const;
 
 type PortfolioStateSectionProps = {
   indicators: AiIndicators;
   findings: AiFinding[];
-  /** 보유 종목 수. 조회가 실패해 모르면 `null` 이고 분산 설명 줄을 접는다. */
-  holdingCount: number | null;
 };
 
 export function PortfolioStateSection({
   indicators,
   findings,
-  holdingCount,
 }: PortfolioStateSectionProps) {
   const { top1Weight, sectorHhi, annualizedVolatility } = indicators;
 
@@ -98,15 +115,13 @@ export function PortfolioStateSection({
           }
         />
         <MetricRow
-          label="분산"
-          grade={gradeOf(findings, METRIC_FINDING_ID.diversification)}
-          // 섹터 허핀달의 여집합이 곧 분산 정도다. 프로토타입도 막대에 집중도가
-          // 아니라 그 반대(`100 - 최대 업종 비중`)를 채운다 (proto L4002).
-          barRatio={sectorHhi === null ? null : 1 - sectorHhi}
+          label="업종 집중"
+          grade={gradeOf(findings, METRIC_FINDING_ID.sectorConcentration)}
+          // 허핀달 값을 그대로 채운다. 여집합(`1 - sectorHhi`)을 쓰면 막대만 반대
+          // 방향이 된다 — 위 주석 "두 번째 행은 `분산` 이 아니라 `업종 집중` 이다".
+          barRatio={sectorHhi}
           note={
-            holdingCount === null
-              ? null
-              : `${holdingCount}종목에 나눠 담았어요.`
+            sectorHhi === null ? null : '같은 업종에 몰려 있으면 함께 움직여요.'
           }
         />
         <MetricRow
