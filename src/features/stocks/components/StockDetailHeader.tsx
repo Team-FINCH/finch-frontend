@@ -12,7 +12,7 @@ import {
   type StockDetailResponse,
   type StockQuote,
 } from '@/shared/types/stock';
-import { hasQuoteValues } from '@/shared/types/stock';
+import { hasDetailQuoteValues, hasQuoteValues } from '@/shared/types/stock';
 import { HomeLink } from '@/shared/ui/HomeLink';
 
 /**
@@ -25,6 +25,12 @@ import { HomeLink } from '@/shared/ui/HomeLink';
  *
  * **값이 없는 것은 에러가 아니다** (contracts C42). 캐시 미스면 가격 3필드가 전부
  * `null` 로 오므로 `hasQuoteValues` 로 갈라 가격 자리를 비운다.
+ *
+ * **상세 응답 쪽도 비어 있을 수 있다** (contracts C102). 시세가 없는 종목이면
+ * `GET /stocks/{stockCode}` 가 가격 네 필드를 `null` 로 준다 — 폴링이 한 번도
+ * 오기 전에 이미 빈 상태다. 두 경로가 같은 자리를 비우므로 `values` 한 값으로
+ * 합쳐 판정한다. **거래정지와는 다른 조건이다** — 거래정지가 아닌데 시세만
+ * 없는 종목이 있을 수 있어 뱃지 유무로 갈음하지 않는다.
  *
  * 등락색은 숫자 두 줄에만 붙는다. 헤더 전체를 칠하지 않는다 (컨벤션 §11).
  */
@@ -53,17 +59,19 @@ export function StockDetailHeader({
 
   // 폴링 값이 있고 실제 숫자가 실려 있을 때만 갈아끼운다.
   const live = quote !== undefined && hasQuoteValues(quote) ? quote : null;
-  const currentPrice = live?.currentPrice ?? detail.currentPrice;
-  const changeAmount = live?.changeAmount ?? detail.changeAmount;
-  const changeRate = live?.changeRate ?? detail.changeRate;
-  const asOf = live?.asOf ?? detail.asOf;
 
-  // 캐시 미스로 값 자체가 없는 상태. 마지막 값도 없어서 가격 자리를 비운다.
-  const hasNoValue =
+  // 폴링이 캐시 미스를 알린 상태 (contracts C42). 상세 응답에 값이 남아 있어도
+  // 그쪽으로 되돌아가지 않는다 — "지금 시세를 모른다" 가 더 새 정보다.
+  const quoteMissing =
     quote !== undefined && !hasQuoteValues(quote) && quote.stale;
 
-  const changeClass = DIRECTION_TEXT_CLASS[getPriceDirection(changeRate)];
-  const showStaleNotice = quote?.stale === true && !hasNoValue;
+  // 상세 응답 자체에 시세가 없는 종목 (contracts C102). 폴링이 아직 오기 전이라도
+  // 여기서 이미 가격 자리가 빈다 — 거래정지와는 다른 조건이다.
+  const fallback = hasDetailQuoteValues(detail) ? detail : null;
+
+  const values = quoteMissing ? null : (live ?? fallback);
+
+  const showStaleNotice = quote?.stale === true && values !== null;
 
   return (
     <header>
@@ -135,14 +143,14 @@ export function StockDetailHeader({
       </div>
 
       <div className="pt-3.5">
-        {hasNoValue ? (
+        {values === null ? (
           <p className="text-title-2 text-text-secondary">
             시세를 불러오지 못했어요
           </p>
         ) : (
           <>
             <p className="text-display text-text-primary tabular-nums">
-              {formatAmount(currentPrice)}
+              {formatAmount(values.currentPrice)}
               <span className="text-[20px] font-medium text-text-secondary">
                 {' '}
                 원
@@ -150,9 +158,14 @@ export function StockDetailHeader({
             </p>
             <div className="mt-2 flex items-baseline justify-between gap-3">
               <span
-                className={`text-body-1 font-medium whitespace-nowrap tabular-nums ${changeClass}`}
+                className={`text-body-1 font-medium whitespace-nowrap tabular-nums ${
+                  DIRECTION_TEXT_CLASS[getPriceDirection(values.changeRate)]
+                }`}
               >
-                {formatSignedAmountWithRate(changeAmount, changeRate)}
+                {formatSignedAmountWithRate(
+                  values.changeAmount,
+                  values.changeRate,
+                )}
               </span>
               {/*
                 여기 기준 시각만 초까지 적는다(사용자 피드백, 2026-09-17). 장중에는
@@ -160,7 +173,7 @@ export function StockDetailHeader({
                 가늠할 수 없다 — 다른 자리(홈 총자산·AI 분석)는 갱신이 뜸해 시:분으로 충분하다.
               */}
               <span className="text-[12px] whitespace-nowrap text-text-muted">
-                {formatKstTime(asOf)} 기준
+                {formatKstTime(values.asOf)} 기준
               </span>
             </div>
           </>

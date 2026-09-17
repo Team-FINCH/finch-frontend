@@ -251,6 +251,12 @@ type TradeTabBarProps = {
   stockName?: string;
   /** 거래정지면 매수·매도 대신 비활성 캡슐 한 줄을 그린다 (contracts C46). */
   suspended?: boolean;
+  /**
+   * 시세를 받지 못한 종목이면 같은 모양의 비활성 캡슐로 바꾼다 (contracts C102).
+   * **`suspended` 와 다른 조건이다** — 거래정지가 아닌데 시세만 없는 종목이 있다.
+   * 둘 다 참이면 `suspended` 가 이긴다 (아래 렌더 주석 참고).
+   */
+  priceUnavailable?: boolean;
   onBuy: () => void;
   onSell: () => void;
 };
@@ -291,9 +297,32 @@ export function TradeTabBar({
   onBuy,
   onSell,
   suspended,
+  priceUnavailable,
   stockCode,
   stockName,
 }: TradeTabBarProps) {
+  /*
+    주문 불가 사유. **둘 다 참일 수 있고 그때는 거래정지가 이긴다** — 이미 계약이
+    있는 쪽(C46)이 우선이고, 거래정지 종목은 시세가 함께 끊기는 것이 정상이라
+    "시세를 못 받는다" 고만 적으면 진짜 이유를 감춘다.
+
+    거래정지 문구는 프로토타입 실측값 그대로다 (`design.md` §6 "Tab Bar 변형" 셋째 줄).
+
+    **시세 없음 문구는 `design.md` §7.7 의 것을 그대로 쓰지 않았다.** 그 표의
+    `시세를 불러올 수 없어 주문이 제한됩니다` 는 **주문 화면 CTA** 의 문구다 —
+    같은 표의 거래정지 줄이 탭바를 §6 으로 넘기고 있어 두 자리의 문구 위계가
+    갈려 있고, §6 에는 시세 없음 줄이 아직 없다. 실제로 넣어 보니 캡슐이 좁아
+    (390px 기기에서 152px) 세 줄로 넘쳐 48px 높이를 뚫었다. 그래서 §6 의 결
+    (`{조건} + 종목이에요`)에 맞춘 짧은 한 줄을 쓴다. **`design.md` §6 표에
+    이 줄을 올리는 것은 이 티켓 범위 밖이라 감독관에게 보고한다.**
+  */
+  const blockedLabel =
+    suspended === true
+      ? '거래정지된 종목이에요'
+      : priceUnavailable === true
+        ? '시세를 받지 못한 종목이에요'
+        : null;
+
   return (
     <TabBarShell
       aiExpandedLabel="이 종목 물어보기"
@@ -302,13 +331,13 @@ export function TradeTabBar({
       aiStockName={stockName}
     >
       <div className={`${PILL_BASE_CLASS} gap-1.5`}>
-        {suspended === true ? (
+        {blockedLabel !== null ? (
           <button
             type="button"
             disabled
-            className={`h-12 flex-1 rounded-full border border-border text-[15px] font-medium text-text-muted ${TAB_ITEM_IN_CLASS}`}
+            className={`h-12 flex-1 rounded-full border border-border px-3 text-[15px] font-medium text-balance break-keep text-text-muted ${TAB_ITEM_IN_CLASS}`}
           >
-            거래정지된 종목이에요
+            {blockedLabel}
           </button>
         ) : (
           <>
