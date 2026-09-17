@@ -33,6 +33,31 @@ import { Card } from '@/shared/ui/Card';
  * 앞 텍스트가 없거나 비면 그 조각은 건너뛴다. 라벨 없는 큰 숫자는 읽는 사람에게
  * 아무 말도 하지 않는다.
  *
+ * ## 못 믿을 라벨은 버린다
+ *
+ * 이 방식은 **원문이 지표명으로 시작할 때만 맞는다.** 목 데이터가 그 한계를 그대로
+ * 보여준다.
+ *
+ * ```
+ * "반도체 두 종목이 전체의 " + 62.4%   → 라벨 "반도체 두 종목이 전체"  ✗ 문장의 주어
+ * "…높아요. 최근 1년 최대 낙폭은 " + -22.14% → 라벨 "최근 1년 최대 낙폭"  ✓ 지표명
+ * ```
+ *
+ * 둘 다 4단어라 단어 수로는 갈릴 수 없고 글자 수는 13 대 11 이다. 그 경계 하나에
+ * 기대는 것이 얄팍해서 **조건을 둘 겹친다.**
+ *
+ * 1. 라벨이 `MAX_LABEL_LENGTH` 를 넘으면 버린다
+ * 2. 서술의 **첫 조각**에서 나온 라벨은, 그 조각 안에 문장 경계(`.`)가 있을 때만
+ *    받는다 — 경계가 없으면 그 문장의 **주어**를 라벨로 쓰는 셈이다
+ *
+ * 걸러진 수치는 사라지지 않는다. 아래 본문 문장에 그대로 있다. 큰 숫자로 세우지만
+ * 않는 것이고, **하나도 못 믿으면 앵커 줄 자체가 없어진다** — 잘린 문장 조각이
+ * 라벨 자리에 앉아 있는 것보다 낫다.
+ *
+ * TODO(계약): `segments[].label` 을 요청해 뒀다 —
+ * `_inbox/요청-ai-진단-점수근거.md`. 서버가 지표명을 주면 이 추론이 전부 사라지고
+ * 걸러 버린 수치도 앵커로 세울 수 있다.
+ *
  * ## 진단 자세히 보기
  *
  * 요약 전문과 **`findings` 전체**가 시트에 있다. 시트가 필요한 이유가 findings 다 —
@@ -58,6 +83,13 @@ const SEVERITY_LABEL = { high: '높음', medium: '보통', info: '참고' } as c
 
 /** 카드에 세우는 metric 개수. 셋 이상은 모바일 폭에서 줄이 무너진다. */
 const ANCHOR_LIMIT = 2;
+
+/**
+ * 라벨로 받아 줄 최대 글자 수. 지표명은 이 안에 들어오고(`최근 1년 최대 낙폭` 11자)
+ * 문장의 주어절은 넘는다(`반도체 두 종목이 전체` 13자). **경계가 좁다는 것을 알고
+ * 쓰는 값이라** 위 주석의 두 번째 조건을 함께 둔다.
+ */
+const MAX_LABEL_LENGTH = 12;
 
 type FinchInsightCardProps = {
   /** 문장 생성이 막히면 `null` 이고 지표는 그대로 나간다 */
@@ -175,7 +207,7 @@ function pickMetricAnchors(segments: readonly AiSegment[]): MetricAnchor[] {
       continue;
     }
 
-    const label = labelFromPrecedingText(segments[index - 1]);
+    const label = labelFromPrecedingText(segments[index - 1], index - 1 === 0);
     if (label === null) {
       continue;
     }
@@ -185,21 +217,37 @@ function pickMetricAnchors(segments: readonly AiSegment[]): MetricAnchor[] {
   return anchors;
 }
 
-/** 앞 조각이 `text` 가 아니거나 쓸 말이 남지 않으면 `null` 이다. */
-function labelFromPrecedingText(segment: AiSegment | undefined): string | null {
+/**
+ * 앞 조각에서 라벨을 뽑는다. 쓸 수 없으면 `null` 이고, 그러면 그 수치는 큰 숫자로
+ * 세우지 않고 본문 문장에만 남는다 — 판정 근거는 위 파일 머리 주석 "못 믿을 라벨은
+ * 버린다" 에 있다.
+ *
+ * `isNarrativeStart` 는 이 조각이 서술의 첫 조각인지다.
+ */
+function labelFromPrecedingText(
+  segment: AiSegment | undefined,
+  isNarrativeStart: boolean,
+): string | null {
   if (segment === undefined || segment.type !== 'text') {
     return null;
   }
 
-  const lastClause = segment.value
-    .split(/[.!?]\s*|\n/)
-    .at(-1)
-    ?.trim();
+  const clauses = segment.value.split(/[.!?]\s*|\n/);
+
+  // 서술의 첫 조각에 문장 경계가 없으면, 잘라 낸 절이 곧 그 문장의 주어다.
+  if (isNarrativeStart && clauses.length <= 1) {
+    return null;
+  }
+
+  const lastClause = clauses.at(-1)?.trim();
   if (lastClause === undefined || lastClause === '') {
     return null;
   }
 
   // 조사로 끝나는 절이 대부분이다 (`비중이 `·`낙폭은 `). 조사만 떼고 말은 그대로 둔다.
   const trimmed = lastClause.replace(/(이|가|은|는|을|를|의|도|와|과)$/u, '');
-  return trimmed === '' ? null : trimmed;
+  if (trimmed === '' || trimmed.length > MAX_LABEL_LENGTH) {
+    return null;
+  }
+  return trimmed;
 }
