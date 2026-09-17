@@ -52,13 +52,30 @@ import { TradeTabBar } from '@/shared/ui/TabBar';
  * `GET /api/v1/stocks/{stockCode}/candles?period=&interval=` ·
  * `GET /api/v1/stocks/{stockCode}/price` · `POST`/`DELETE /api/v1/watchlist`.
  *
- * ## 스크롤 경계 — 머리·시세·탭은 고정이고 탭 내용만 굴러간다
+ * ## 스크롤 경계 — 머리와 현재가만 고정이고 나머지는 굴러간다
  *
- * 프로토타입은 `.nav` · 현재가 블록 · `.tabs` 를 `flex:none` 으로 두고 `.sc` 만
- * `overflow-y:auto` 로 굴린다 (새 디코드 L1696 · L1704 · L1741 · L1746). 그래서
+ * 프로토타입은 `.nav` · 현재가 블록 · `.tabs` 를 **셋 다** `flex:none` 으로 두고
+ * `.sc` 만 `overflow-y:auto` 로 굴린다 (새 디코드 L1696 · L1704 · L1741 · L1746).
+ * **이 화면은 거기서 벗어난다** (FINCH-317, 2026-09-17 사용자 결정).
+ * 모바일에서 그 고정 묶음이 화면 높이의 절반 가까이를 먹어 AI 분석 탭을 읽을 때
+ * 남는 높이가 모자랐다. 실제 화면을 보고 정한 것이라 프로토타입과 맞추려고
+ * 되돌리지 않는다 — 되돌리면 같은 답답함이 그대로 돌아온다.
+ *
+ * ```
+ * 껍데기        h-dvh flex-col overflow-hidden  + --page-bottom-space:96px
+ *   고정 묶음   헤더 · 현재가                    <- 굴러가지 않는다
+ *   PageMain    flex-1 overflow-y-auto
+ *     보유 카드                                 <- 굴러 올라가 사라진다
+ *     탭 목록    sticky top-0                   <- 같이 올라가다 스크롤 위에 붙는다
+ *     탭 내용
+ *   TradeTabBar
+ * ```
+ *
  * 이 페이지도 `TabBarLayout` 과 같은 껍데기(`h-dvh flex-col overflow-hidden`)를
- * 직접 두르고, 고정 묶음을 껍데기에 두고 탭 내용만 `PageMain` 에 담는다 —
- * `PageMain` 은 바깥이 높이가 고정된 세로 flex 일 때만 스크롤 컨테이너가 된다.
+ * 직접 두른다 — `PageMain` 은 바깥이 높이가 고정된 세로 flex 일 때만 스크롤
+ * 컨테이너가 된다. 탭 목록이 **어떻게** 붙는지(좌우 음수 마진 · 불투명 배경 ·
+ * 위 여백을 `margin` 이 아니라 `padding` 으로 주는 이유)는
+ * `features/stocks/components/StockDetailTabNav` 주석에 있다.
  *
  * `app/layouts/TabBarLayout` 을 그대로 쓸 수 없다 — 그 레이아웃은 나브 변형
  * (`TabBar`)을 함께 렌더해서 홈·탐색·포트폴리오·마이페이지 탭이 잘못 뜬다.
@@ -167,19 +184,26 @@ export function StockDetailPage() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:96px]">
-      {/* 고정 묶음 — 프로토타입 `.nav` · 현재가 블록 · `.tabs`. 위 주석 참고.
+      {/* 고정 묶음 — 프로토타입 `.nav` 와 현재가 블록. 위 주석 "스크롤 경계" 참고.
 
-          좌우 26px(`px-6.5`)은 본문 `PageMain` 과 같은 값이다. **여기 있는 것이
-          헤더만이 아니기 때문이다** — 현재가·보유 카드·탭까지 이 한 줄이 감싸고,
-          그 아래 차트는 `PageMain` 안이라 26px 이다. 한때 `SubPageHeader` 와
-          같은 15px 을 썼는데(2026-09-16) 그러면 같은 화면에서 왼쪽 기준선이
-          둘로 갈린다 — 현재가·보유는 15px, 차트는 26px 이었다. `‹` 버튼만
-          15px 자리를 지키면 되고 그것은 아래 `StockDetailHeader` 가 음수 마진으로
-          한다(FINCH-319).
+          **두 티켓이 같은 어긋남을 각자 고쳤고 합쳐서 이 모양이 됐다.**
+          한 화면에서 왼쪽 기준선이 15px 과 26px 로 갈려 있던 것이 문제였다 —
+          이 묶음은 15px(`px-3.75`), 본문 `PageMain` 은 26px 이었다.
+          `FINCH-319` 는 묶음을 26px 로 올리고 `‹` 만 헤더 안에서 음수
+          마진으로 빼냈고, `FINCH-317` 은 26px 에 서야 할 보유 카드와 탭
+          목록을 묶음 밖 `PageMain` 안으로 옮겼다. 어느 한쪽만으로는 부족했다 —
+          319 만으로는 보유 카드가 고정된 채 화면 높이를 먹고, 317 만으로는
+          현재가가 여전히 본문과 11px 어긋난다.
 
-          `StockDetailTabNav` 가 `-mx-6.5 … px-6.5` 로 적힌 것도 이 값을 전제한
-          것이다. 15px 이던 동안은 그 전체 너비 경계선이 앱 기둥 밖으로 11px 씩
-          넘쳐 있었다.
+          좌우 26px(`px-6.5`)은 본문 `PageMain` 과 같은 값이다(FINCH-319).
+          여기 남은 것은 헤더와 현재가뿐인데, 현재가는 본문과 같은 열에 서야
+          하므로 15px 로 되돌리지 마라. `‹` 버튼만 15px 자리를 지키면 되고
+          그것은 아래 `StockDetailHeader` 가 자기 음수 마진(`-mx-2.75`)으로 한다.
+
+          `StockDetailTabNav` 의 `-mx-6.5 … px-6.5` 는 **이 줄이 아니라
+          `PageMain` 의 26px 을 전제한다** — 317 이 그 줄을 `PageMain` 안으로
+          옮겼다. 둘의 값이 같아 보이지만 기준이 다르므로 이 줄을 고쳐도 그쪽은
+          따라오지 않는다.
 
           위 여백은 없다 — `PageHeader`·`SubPageHeader` 를 쓰는 다른 화면은 전부
           헤더가 화면 맨 위에 붙는다(둘 다 `pt` 없이 높이만 정해져 있다). 여기만
@@ -223,16 +247,19 @@ export function StockDetailPage() {
           }}
           isTogglePending={toggleWatch.isPending}
         />
+      </div>
 
+      {/* 보유 카드부터 아래가 전부 굴러간다. 탭 내용의 위 여백은 각 탭이 스스로
+          갖는다(프로토타입 18px). */}
+      <PageMain className="pt-0">
         {/* 보유 블록은 `holding !== null` 로만 판단한다 — 전량 매도하면 `null` 이
-            내려온다 (contracts C76). 수량 0 으로 오지 않는다. */}
+            내려온다 (contracts C76). 수량 0 으로 오지 않는다.
+            **없는 종목에서는 탭 목록이 헤더 바로 아래에 온다** — 탭 목록의 위 여백이
+            자기 `padding` 이라 이 카드의 유무와 무관하게 같은 값으로 선다. */}
         {data.holding !== null && <StockHoldingBox holding={data.holding} />}
 
         <StockDetailTabNav activeTab={activeTab} onChange={handleTabChange} />
-      </div>
 
-      {/* 탭 내용만 굴러간다. 위 여백은 각 탭이 스스로 갖는다(프로토타입 18px). */}
-      <PageMain className="pt-0">
         {activeTab === 'chart' && (
           <StockChartTab
             stockCode={stockCode}

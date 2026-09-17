@@ -257,10 +257,19 @@ export function StockDetailHeader({
           안 그리면 켜질 때마다 `text-caption` 줄 높이만큼 아래가 밀린다 (FINCH-284).
           `invisible` 은 `visibility: hidden` 이라 스크린리더 트리에서도 빠지므로
           `aria-hidden` 을 겹쳐 명시적으로 맞춘다.
+
+          **`mt-2`(8px)는 뗐다(FINCH-317, 2026-09-17, 사용자 결정).** 이 줄이
+          늘 그려지는 값이라, 캡션이 꺼져 있는 평상시에도 위 8px 이 항상 비어
+          있었다 — 붙었을 때(sticky) 현재가 섹션과 탭 사이 틈을 줄이려는 이 티켓의
+          목적과 맞지 않는다. **대가는 캡션이 실제로 뜰 때다** (`시세가 지연되고
+          있어요` · `실시간 시세가 없어요`) — 등락 줄에 마진 없이 바짝 붙는다.
+          평상시 항상 비어 있는 8px 을 없애는 쪽을 사용자가 골랐다. 위 284 의
+          근거(안 그리면 켜질 때마다 밀린다)는 그대로 유효하다 — 지운 것은 여백이지
+          `visible`/`invisible` 토글이 아니다.
         */}
         <p
           aria-hidden={!showNotice}
-          className={`mt-2 text-caption text-text-muted ${
+          className={`text-caption text-text-muted ${
             showNotice ? 'visible' : 'invisible'
           }`}
         >
