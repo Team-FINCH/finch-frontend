@@ -82,6 +82,13 @@ export function StockHoldingBox({ holding }: StockHoldingBoxProps) {
             holding.avgBuyPrice,
           )}원`}
         />
+        {/*
+          `divided` 가 위 여백을 `mt-2.5`(10px) 에서 `mt-2.5 pt-2.5 border-t`(21px)
+          로 바꾼다 — 사용자 요청으로 넣은 가로 구분선이다(FINCH-317,
+          2026-09-17). 바로 위에서 `p-4`(32px) 를 `py-3`(24px) 로 줄여 8px 줄였던
+          자리라, 이 11px 증가로 원래(p-4·구분선 없음) 대비 순 +3px 이 된다.
+          사용자가 눈으로 보고 판단할 값이라 `py-*` 를 더 줄여 상쇄하지 않는다.
+        */}
         <SoftBoxRow
           label="평가손익"
           value={
@@ -93,6 +100,7 @@ export function StockHoldingBox({ holding }: StockHoldingBoxProps) {
               : '—'
           }
           valueClassName={profitClass}
+          divided
         />
       </SoftBox>
     </section>
