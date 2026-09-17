@@ -63,7 +63,13 @@ export function StockHoldingBox({ holding }: StockHoldingBoxProps) {
 
   return (
     <section className="mt-5">
-      <SoftBox>
+      {/*
+        `SoftBox` 기본 안쪽 여백(16px, `p-4`)을 이 자리에서만 줄인다 — 다섯 화면이
+        함께 쓰는 기본값은 그대로 두고 `className` 으로 위아래만 덮는다.
+        `p-4` 와 `py-3` 은 특이도가 같은 유틸리티라 문자열 순서로 승자가 갈리지
+        않는다 — 빌드된 CSS 에서 `py-3` 규칙이 뒤에 나오는 것을 확인했다(2026-09-17).
+      */}
+      <SoftBox className="py-3">
         <SoftBoxRow
           label="보유"
           value={`${formatAmount(holding.quantity)}주 · 평균 ${formatAmount(
