@@ -8,6 +8,7 @@ import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
 import { ChatContextSuggestionChips } from '@/features/chat/components/ChatContextSuggestionChips';
 import { ChatEmptyState } from '@/features/chat/components/ChatEmptyState';
+import { ChatHistorySkeleton } from '@/features/chat/components/ChatHistorySkeleton';
 import { ChatTypingIndicator } from '@/features/chat/components/ChatTypingIndicator';
 import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
 import {
@@ -397,7 +398,7 @@ export function ChatPage() {
   const isAwaitingAnswer = chatJobMutation.isPending || pendingJob !== null;
 
   /**
-   * 종목 진입 추천 칩 (FINCH-286, 311). 이 방문에서 메시지를 한 번이라도
+   * 추천 질문 칩 (FINCH-286, 311, 323). 이 방문에서 메시지를 한 번이라도
    * 보내면 일단 숨긴다 — `messages.length` 만 보면 안 된다. 답이 하나 오면
    * `messages` 가 다시 비지 않아 그 뒤로도 계속 보여야 할 이유가 없어진다.
    *
@@ -408,6 +409,12 @@ export function ChatPage() {
    * 되어 이 조건이 저절로 꺼진다. 그 재시도도 실패해 다시 소진되면 또 켜진다 —
    * `chipsSentThisVisit` 이 한 번 켜지면 계속 켜져 있는 것과 달리, 이 조건은
    * 매번 실패 여부로 다시 계산된다.
+   *
+   * **종목 상세로 들어온 경우로 가르지 않는다** (사용자 결정, 2026-09-17). 나갔다
+   * 다시 들어왔을 때 빈 입력창만 있으면 무엇을 물어야 할지 알기 어려운 것은
+   * 어느 진입이든 같다. 문구는 `emptyCopy.suggestions` 가 이미 맥락별로 가른다 —
+   * `chatContext.ticker` 가 `stock_detail` 일 때만 서지므로(`parseChatContext`),
+   * 종목 맥락이 아니면 `chatEmptyCopy(null)` 의 종목 무관 문구로 자연히 떨어진다.
    */
   const [chipsSentThisVisit, setChipsSentThisVisit] = useState(false);
   const lastMessage = messages.at(-1);
@@ -416,16 +423,32 @@ export function ChatPage() {
     lastMessage.role === 'assistant-error' &&
     lastMessage.retriesExhausted;
   const showContextChips =
-    chatContext.screen === 'stock_detail' &&
-    messages.length > 0 &&
-    (!chipsSentThisVisit || retriesExhausted);
+    messages.length > 0 && (!chipsSentThisVisit || retriesExhausted);
 
   /**
    * 빈 상태로 떨어뜨릴지. **기다리는 job 이 있으면 빈 상태가 아니다**
    * (FINCH-290) — 복원 직후 질문 말풍선이 붙기 전 한 프레임 동안 빈 상태가
    * 번쩍이는 것을 막는다.
+   *
+   * **이력 조회가 도는 동안도 같은 이유로 빈 상태가 아니다** (FINCH-323).
+   * `historySettled` 는 이미 이 판정을 갖고 있다 — 저장된 대화가 없으면 처음부터
+   * 참이라 그 사용자는 그대로 즉시 빈 상태로 떨어지고, 저장된 대화가 있으면 조회가
+   * 끝나기 전까지 거짓이라 이력이 `messages` 에 반영되기 전에 빈 상태가 한 프레임
+   * 그려졌다 이력으로 바뀌는 번쩍임이 없어진다.
+   *
+   * 그 대신 조회가 도는 동안 아무것도 안 그리면 화면이 잠깐 비어 멈춘 것처럼
+   * 보인다 — 그 자리를 `showHistorySkeleton` 이 메운다.
    */
-  const showEmptyState = messages.length === 0 && !isAwaitingAnswer;
+  const showEmptyState =
+    historySettled && messages.length === 0 && !isAwaitingAnswer;
+
+  /**
+   * 이력 조회가 도는 동안의 스켈레톤 (FINCH-323). `historySettled` 의 반대다
+   * — 저장된 대화가 없으면 처음부터 참이라 이 값은 계속 거짓이고, 저장된 대화가
+   * 있으면 조회가 끝날 때까지만 참이다. 하단 고정 바(입력창·칩)는 이 값과 무관하게
+   * 그대로 그린다 — 잠그는 것은 위 본문 자리뿐이다.
+   */
+  const showHistorySkeleton = !historySettled;
 
   function resetConversation() {
     setMessages([]);
@@ -550,7 +573,9 @@ export function ChatPage() {
         }
       />
       <PageMain className="flex flex-col">
-        {showEmptyState ? (
+        {showHistorySkeleton ? (
+          <ChatHistorySkeleton />
+        ) : showEmptyState ? (
           <ChatEmptyState
             subCopy={emptyCopy.subCopy}
             suggestions={emptyCopy.suggestions}
