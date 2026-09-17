@@ -2,6 +2,7 @@ import {
   formatSignedPercent,
   getPriceDirection,
 } from '@/shared/lib/formatNumber';
+import { Card } from '@/shared/ui/Card';
 
 import { formatSignedPercentPoint } from '../lib/attributionInsight';
 
@@ -31,7 +32,16 @@ import { formatSignedPercentPoint } from '../lib/attributionInsight';
  * 기간 수익률·시장은 `%`, 시장 대비는 `%p` 다. 두 퍼센트의 차라서 그렇다 —
  * 근거는 `attributionInsight.ts` 의 `formatSignedPercentPoint` 주석에 있다.
  *
- * 카드로 감싸지 않는다. 페이지 배경 위에 그대로 선다.
+ * ## 흰 카드로 올렸다 (FINCH-327)
+ *
+ * 전에는 페이지 배경 위에 그대로 섰다. 카드를 남발하지 않는다는 판단 자체는
+ * 그대로지만, **이 화면에서 면을 가질 자격이 있는 것은 여기와 FINCH 해석 둘뿐**
+ * 이고 둘 다 지금 면이 없었다. 아래 세 섹션(수익률 기여·종목별 기여·각주)은
+ * 여백과 제목만으로 갈리므로 카드가 겹겹이 쌓이지 않는다.
+ *
+ * 페이지 배경이 `--color-bg`(#F7F8FA)라 흰 면(`--color-surface`)과 테두리 1px 이면
+ * 그림자 없이도 경계가 선다. AI 진단 탭의 `PortfolioRiskSummary` 와 같은 셸이라
+ * 두 탭이 같은 모양으로 열린다.
  */
 
 const RATIO_TEXT_CLASS = {
@@ -58,7 +68,7 @@ export function PerformanceHero({
   tradingDays,
 }: PerformanceHeroProps) {
   return (
-    <section className="pt-6">
+    <Card className="mt-4">
       <p
         className={`text-display tabular-nums ${RATIO_TEXT_CLASS[getPriceDirection(portfolioReturn)]}`}
       >
@@ -71,7 +81,7 @@ export function PerformanceHero({
       </p>
 
       {/* gap-8 로만 갈린다 — 두 값을 나누는 선을 두지 않는다. */}
-      <dl className="mt-7 flex gap-8">
+      <dl className="mt-5 flex gap-8">
         <HeroMetric label="시장" text={formatSignedPercent(benchmarkReturn)} />
         <HeroMetric
           label="시장 대비"
@@ -79,7 +89,7 @@ export function PerformanceHero({
           ratio={excessReturn}
         />
       </dl>
-    </section>
+    </Card>
   );
 }
 

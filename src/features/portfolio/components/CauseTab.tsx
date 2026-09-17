@@ -18,9 +18,9 @@ import {
   sortByImpact,
 } from '../lib/attributionInsight';
 
-import { AiInsightPanel } from './AiInsightPanel';
-import { AnalysisMethodNote } from './AnalysisMethodNote';
+import { AnalysisInfoSheet } from './AnalysisInfoSheet';
 import { AttributionPeriodTabs } from './AttributionPeriodTabs';
+import { FinchReturnInsight } from './FinchReturnInsight';
 import { PerformanceHero } from './PerformanceHero';
 import { ReturnAttributionSection } from './ReturnAttributionSection';
 import { StockContributionSection } from './StockContributionSection';
@@ -30,18 +30,18 @@ import { StockContributionSection } from './StockContributionSection';
  * 프로토타입 실제 UI에서 피드백이 붙는 확정된 세 자리 중 하나다
  * (ia.md §4 "피드백 슬롯 배치 규칙" 각주 — 종목 상세 AI 탭 · AI 채팅 · 여기).
  *
- * ## 읽기 순서가 이 파일의 내용이다 (FINCH-308)
+ * ## 읽기 순서가 이 파일의 내용이다 (FINCH-308 · 327)
  *
  * 이 파일은 그리지 않는다. **무엇을 어떤 차례로 놓을지**만 정한다.
  *
  * ```
  * 기간 선택         1일 · 1주 · 1개월 · 3개월 · 올해
- * 성과              +2.13%          ← 화면에서 가장 큰 글자
- * 시장 대비         시장 +0.89% · 시장 대비 +1.24%p
- * 수익률 원인       시장 / 업종 / 종목 선택 발산 막대
- * 종목별 기여       SK하이닉스 / 카카오
- * FINCH 해석        ← AI 는 맨 뒤다
- * 각주              계산 기준 · 기준 시각 · 고지
+ * [카드] 성과       +2.13% · 최근 21거래일 · 시장 +0.89% · 시장 대비 +1.24%p
+ * 수익률 기여       시장 영향 / 업종 영향 / 종목 선택 발산 막대
+ * 종목별 기여       상위 3종목 + `전체 N종목 ›`
+ * [카드] FINCH 해석 ← AI 는 맨 뒤다. 3줄에서 끊고 시트로 잇는다
+ * 안내 한 줄        09:12 기준 · 분석 기준 및 안내 ›
+ * 피드백
  * ```
  *
  * **AI 가 숫자와 차트보다 먼저 나오면 안 된다.** 전에는 검정 `AiCard` 가 맨 위에
@@ -55,16 +55,26 @@ import { StockContributionSection } from './StockContributionSection';
  * | `PerformanceHero` | 엔진 — `portfolioReturn` · `benchmarkReturn` · `excessReturn` |
  * | `ReturnAttributionSection` | 엔진 — `breakdown` |
  * | `StockContributionSection` | 엔진 — `contributors` · `detractors` |
- * | `AiInsightPanel` | **AI** — `summary.text` |
- * | `AnalysisMethodNote` | 엔진 — `notes` |
+ * | `FinchReturnInsight` | **AI** — `summary` |
+ * | `AnalysisInfoSheet` | 엔진 — `notes` / 봉투 — `citations` · `disclaimer` · `dataAsOf` |
  *
  * 수치는 하나도 프론트가 만들지 않는다. 프론트가 계산하는 것은 **순서와 강조**뿐이다
  * (`sortByImpact` · `resolveMainFactor` · 막대 폭).
  *
+ * ## 카드는 둘뿐이다 (FINCH-327)
+ *
+ * 면을 갖는 것은 **성과와 FINCH 해석** 둘이다. 가운데 두 섹션은 제목과 여백만으로
+ * 갈린다 — 넷을 다 카드로 감싸면 카드가 겹겹이 쌓인 대시보드가 되고, 넷 다 배경
+ * 위에 두면 이 화면의 시작과 끝이 어디인지 표시가 없다.
+ *
  * ## 여백으로 섹션을 가른다
  *
- * 섹션 간격은 `mt-12`(48px) 하나로 통일하고 각 섹션이 자기 위 여백을 갖는다.
- * divider 는 화면 전체에서 `AnalysisMethodNote` 위 하나뿐이다.
+ * 섹션 간격은 `mt-8`(32px) 하나로 통일하고 각 섹션이 자기 위 여백을 갖는다.
+ * **48px 에서 내렸다** — AI 진단 탭이 32px 이라 같은 4탭 안에서 두 탭의 리듬이
+ * 달랐다(FINCH-325 MR 이 범위 밖으로 남겨 둔 항목이다).
+ *
+ * 본문에 divider 가 없다. 전에는 각주 덩어리 위 하나가 있었는데 그 덩어리 자체가
+ * 시트로 들어가면서 선을 그을 자리도 같이 사라졌다.
  *
  * **아래 여백을 여기서 주지 않는다.** `PageMain` 이
  * `calc(var(--page-bottom-space) + env(safe-area-inset-bottom))` 으로 이미 더하고
@@ -167,19 +177,16 @@ export function CauseTab() {
 
       <StockContributionSection rows={rows} />
 
-      <AiInsightPanel
-        text={summary?.text ?? null}
-        rows={rows}
-        citations={aiMeta.citations}
-      />
+      <FinchReturnInsight summary={summary} rows={rows} />
 
-      <AnalysisMethodNote
+      <AnalysisInfoSheet
         notes={notes}
         asOf={aiMeta.dataAsOf.portfolio ?? aiMeta.dataAsOf.price}
+        citations={aiMeta.citations}
         disclaimer={aiMeta.disclaimer}
       />
 
-      <AiFeedbackRow requestId={aiMeta.requestId} className="mt-5" />
+      <AiFeedbackRow requestId={aiMeta.requestId} className="mt-4" />
     </div>
   );
 }

@@ -151,8 +151,8 @@ export function ChatBubble({
               // 상위 1건만 펼치고 나머지는 `더 보기` 뒤로 접는다 — 채팅 말풍선의
               // 근거 목록이 본문보다 길어지는 문제 (2026-09-17 사용자 결정,
               // FINCH-315). `ia.md` §4 "접어두거나 생략하지 않는다" 와
-              // 부딪히는 것을 알고 채팅에 한해서만 켠다 — 포트폴리오 쪽 두 자리
-              // (`DiagnosisTab`·`AiInsightPanel`)는 그대로 전부 펼친다.
+              // 부딪히는 것을 알고 채팅에 한해서만 켠다 — 포트폴리오 쪽 두 시트
+              // (`AnalysisEvidenceSheet`·`AnalysisInfoSheet`)는 그대로 전부 펼친다.
               collapsible
               // 종류 칩(`bg-surface-soft`, 예: "공시"·"자체 계산")은 밝은 회색
               // 배경이라 `text-ai-text-muted`(반투명 흰색)를 받으면 대비가 거의

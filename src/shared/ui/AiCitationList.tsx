@@ -14,8 +14,9 @@ import { type AiCitation } from '@/shared/types/ai/envelope';
  * §4 의 "접어두거나 생략하지 않는다" 를 사용자가 알고도 채팅에 한해 접기로 정했다.
  * `ia.md` 는 이 결정과 별개로 팀 문서 쪽 반영 여부가 정해지지 않아 고치지 않았다 —
  * 그래서 그 문서와 이 주석이 채팅에 한해 서로 다른 말을 하는 것처럼 보일 수 있다.
- * `collapsible` 이 꺼져 있는 나머지 두 호출부(포트폴리오 `DiagnosisTab`·
- * `AiInsightPanel`)는 이 예외와 무관하게 원칙 그대로 전부 펼쳐 그린다.
+ * `collapsible` 이 꺼져 있는 나머지 두 호출부(포트폴리오의 두 시트
+ * `AnalysisEvidenceSheet`·`AnalysisInfoSheet`)는 이 예외와 무관하게 원칙 그대로
+ * 전부 펼쳐 그린다.
  *
  * **`features/stocks` 와 `features/portfolio` 에 따로 있던 두 벌을 여기로 올렸다**
  * (frontConvention §2 "두 feature 가 같은 것을 필요로 하면 shared 로 올린다").
@@ -138,8 +139,9 @@ type AiCitationListProps = {
   showPublisher?: boolean;
   /**
    * 상위 `COLLAPSED_VISIBLE_COUNT`건만 펼쳐 두고 나머지를 `더 보기` 뒤로 접는다
-   * (2026-09-17 사용자 결정, FINCH-315). **채팅만 켠다** — 포트폴리오
-   * `DiagnosisTab`·`AiInsightPanel` 은 기본값 `false` 그대로 전부 펼친다. 정렬
+   * (2026-09-17 사용자 결정, FINCH-315). **채팅만 켠다** — 포트폴리오의
+   * `AnalysisEvidenceSheet`·`AnalysisInfoSheet` 은 기본값 `false` 그대로 전부
+   * 펼친다. 정렬
    * (`relevance` 최댓값 내림차순)은 접힘과 무관하게 그대로다 — 위쪽 항목만
    * 보여주는 것이라 별도 기준이 필요 없다.
    */
