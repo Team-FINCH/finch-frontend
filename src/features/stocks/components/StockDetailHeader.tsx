@@ -71,7 +71,17 @@ export function StockDetailHeader({
 
   const values = quoteMissing ? null : (live ?? fallback);
 
-  const showStaleNotice = quote?.stale === true && values !== null;
+  // 헤더 아래 캡션 한 줄 (contracts C42 · C102, 사용자 결정 2026-09-17).
+  // 두 조건이 겹치지 않는다 — `notice`가 값 없음 문구면 `values`가 `null`이라
+  // stale 지연 문구 조건(`values !== null`)을 만족하지 못한다. 같은 자리를
+  // 공유해도 되는 이유다.
+  const notice =
+    values === null
+      ? '실시간 시세가 없어요'
+      : quote?.stale === true
+        ? '시세가 지연되고 있어요'
+        : null;
+  const showNotice = notice !== null;
 
   return (
     <header>
@@ -144,9 +154,7 @@ export function StockDetailHeader({
 
       <div className="pt-3.5">
         {values === null ? (
-          <p className="text-title-2 text-text-secondary">
-            시세를 불러오지 못했어요
-          </p>
+          <p className="text-display text-text-secondary tabular-nums">—</p>
         ) : (
           <>
             <p className="text-display text-text-primary tabular-nums">
@@ -180,7 +188,12 @@ export function StockDetailHeader({
         )}
 
         {/*
-          시세 지연 표시 (contracts C42). `stale` 이면 마지막 수신 값이 그려지고 있다.
+          헤더 캡션 한 줄 — 시세 지연(contracts C42) 과 시세 없음(C42 캐시 미스 ·
+          C102) 이 이 한 자리를 공유한다(사용자 결정 2026-09-17). 전에는 시세
+          없음을 `text-title-2` 문장으로 현재가 자리에 크게 띄웠는데, 실제로
+          `/stocks/058610` 을 열어 보니 숫자가 있어야 할 자리가 장애 안내처럼
+          보였다 — 일봉·오늘 격자는 멀쩡히 나오는데 헤더만 전부 실패한 것처럼
+          읽혔다. 지금은 현재가 자리를 비우고(위 `—`) 이유를 여기 캡션으로 내린다.
 
           TODO(계약): `stale` 허용 시간과 그에 따른 주문 차단 기준이 미확정이다.
           지금은 서버가 준 `stale` 불리언만 그대로 노출하고 임계 시간으로 판정하지
@@ -194,12 +207,12 @@ export function StockDetailHeader({
           `aria-hidden` 을 겹쳐 명시적으로 맞춘다.
         */}
         <p
-          aria-hidden={!showStaleNotice}
+          aria-hidden={!showNotice}
           className={`mt-2 text-caption text-text-muted ${
-            showStaleNotice ? 'visible' : 'invisible'
+            showNotice ? 'visible' : 'invisible'
           }`}
         >
-          시세가 지연되고 있어요
+          {notice ?? '시세가 지연되고 있어요'}
         </p>
 
         {/*
