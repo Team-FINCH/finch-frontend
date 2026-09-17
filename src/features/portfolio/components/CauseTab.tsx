@@ -73,8 +73,8 @@ import { StockContributionSection } from './StockContributionSection';
  * **48px 에서 내렸다** — AI 진단 탭이 32px 이라 같은 4탭 안에서 두 탭의 리듬이
  * 달랐다(FINCH-325 MR 이 범위 밖으로 남겨 둔 항목이다).
  *
- * 본문에 divider 가 없다. 전에는 `AnalysisMethodNote` 위 하나가 있었는데 그 각주
- * 덩어리 자체가 시트로 들어가면서 선을 그을 자리도 같이 사라졌다.
+ * 본문에 divider 가 없다. 전에는 각주 덩어리 위 하나가 있었는데 그 덩어리 자체가
+ * 시트로 들어가면서 선을 그을 자리도 같이 사라졌다.
  *
  * **아래 여백을 여기서 주지 않는다.** `PageMain` 이
  * `calc(var(--page-bottom-space) + env(safe-area-inset-bottom))` 으로 이미 더하고
