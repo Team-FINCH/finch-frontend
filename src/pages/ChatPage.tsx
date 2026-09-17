@@ -8,6 +8,7 @@ import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatComposer } from '@/features/chat/components/ChatComposer';
 import { ChatContextSuggestionChips } from '@/features/chat/components/ChatContextSuggestionChips';
 import { ChatEmptyState } from '@/features/chat/components/ChatEmptyState';
+import { ChatHistorySkeleton } from '@/features/chat/components/ChatHistorySkeleton';
 import { ChatTypingIndicator } from '@/features/chat/components/ChatTypingIndicator';
 import { chatEmptyCopy } from '@/features/chat/lib/chatEmptyCopy';
 import {
@@ -434,9 +435,20 @@ export function ChatPage() {
    * 참이라 그 사용자는 그대로 즉시 빈 상태로 떨어지고, 저장된 대화가 있으면 조회가
    * 끝나기 전까지 거짓이라 이력이 `messages` 에 반영되기 전에 빈 상태가 한 프레임
    * 그려졌다 이력으로 바뀌는 번쩍임이 없어진다.
+   *
+   * 그 대신 조회가 도는 동안 아무것도 안 그리면 화면이 잠깐 비어 멈춘 것처럼
+   * 보인다 — 그 자리를 `showHistorySkeleton` 이 메운다.
    */
   const showEmptyState =
     historySettled && messages.length === 0 && !isAwaitingAnswer;
+
+  /**
+   * 이력 조회가 도는 동안의 스켈레톤 (FINCH-323). `historySettled` 의 반대다
+   * — 저장된 대화가 없으면 처음부터 참이라 이 값은 계속 거짓이고, 저장된 대화가
+   * 있으면 조회가 끝날 때까지만 참이다. 하단 고정 바(입력창·칩)는 이 값과 무관하게
+   * 그대로 그린다 — 잠그는 것은 위 본문 자리뿐이다.
+   */
+  const showHistorySkeleton = !historySettled;
 
   function resetConversation() {
     setMessages([]);
@@ -561,7 +573,9 @@ export function ChatPage() {
         }
       />
       <PageMain className="flex flex-col">
-        {showEmptyState ? (
+        {showHistorySkeleton ? (
+          <ChatHistorySkeleton />
+        ) : showEmptyState ? (
           <ChatEmptyState
             subCopy={emptyCopy.subCopy}
             suggestions={emptyCopy.suggestions}
