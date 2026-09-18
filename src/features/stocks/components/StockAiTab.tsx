@@ -24,6 +24,8 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useStockAnalysis } from '../api/useStockAnalysis';
 
+import { AnalysisSourceSheet } from './AnalysisSourceSheet';
+
 /**
  * AI 분석 탭 (프로토타입 `isDtAi` 블록, ia.md §4 슬롯 3번).
  *
@@ -73,13 +75,20 @@ import { useStockAnalysis } from '../api/useStockAnalysis';
  * (GitLab 이슈 #92). 개인화 섹션 제거로 `thesisCheck` 가 항상 `null` 이 되면서
  * 보유 종목마다 그 카드가 뜨게 됐었다 — 논지 기록 유도는 위키 화면과 채팅이 맡는다.
  *
- * ## 근거는 목록이 아니라 캡션 한 줄이다
+ * ## 근거는 목록이 아니라 캡션 한 줄이고, 이제 한 탭 뒤에 있다
  *
  * design.md §9 "근거 표기" 가 "뱃지를 쓰지 않는다 … 종류를 나열만 하고 개별 출처로
  * 링크하지 않는다 … `AIDetail` 에서도 같다" 로 못박았고 프로토타입도 캡션 한 줄이다.
  * 그래서 이 화면은 `shared/ui/AiCitationList` 를 쓰지 않는다. `ia.md` §4 표의
  * "`type` 을 **뱃지로 구분한다**" 는 이 판정으로 뒤집혀 같은 MR 에서 캡션으로 고쳤다.
  * 포트폴리오 두 탭은 아직 뱃지 목록이라 `AiCitationList` 자체는 남겨 두었다.
+ *
+ * **모양은 그대로 두고 자리만 옮겼다** (FINCH-329, 2026-09-18 사용자 결정).
+ * 근거·기준 시각·면책이 본문 맨 아래 캡션 두 줄로 상시 노출되던 것을
+ * `AnalysisSourceSheet` 로 접었다 — 기준 시각만 진입 줄이 지고 나머지는 시트 안이다.
+ * §9 가 "표기를 한 모양으로 통일할지는 미확정" 이라고 남겨 둔 쪽은 **이 티켓이
+ * 건드리지 않는다.** 여기서 정한 것은 위치뿐이고, 두 문서(§9 · `ia.md` §4)의 위치
+ * 서술을 같은 MR 에서 함께 고쳤다.
  *
  * ## 실패 자리
  *
@@ -367,18 +376,18 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   const flat = present.filter((entry) => entry.key !== 'current');
 
   const sourceLabels = citationTypeLabels(citations);
-  const sourceLine = [
-    ...(asOf === null
-      ? []
-      : [
-          `${
-            asOf.precision === 'day'
-              ? formatKstMonthDay(asOf.at)
-              : formatKstMonthDayTime(asOf.at)
-          } 기준`,
-        ]),
-    ...sourceLabels,
-  ].join(' · ');
+
+  /*
+    기준 시각 문구는 **여기서 완성해 넘긴다** (FINCH-329). 원천이 `filings` 면
+    날짜까지, `price` 면 시:분까지라(위 `asOf` 주석) 포맷 판정이 이 파일에만 있어야
+    진입 줄과 시트 안이 같은 형식으로 보인다.
+  */
+  const asOfText =
+    asOf === null
+      ? null
+      : asOf.precision === 'day'
+        ? formatKstMonthDay(asOf.at)
+        : formatKstMonthDayTime(asOf.at);
 
   return (
     // 위 여백은 차트 탭과 같은 18px 이다 — `pages/StockDetailPage.tsx` 주석의
@@ -397,7 +406,7 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
         {present.length === 0 ? (
           <span className="mt-3 block text-body-2 text-ai-text-secondary">
             이 종목의 분석 내용은 아직 연결되지 않았어요. 근거와 기준 시각은
-            아래에서 확인할 수 있어요.
+            아래 안내에서 확인할 수 있어요.
           </span>
         ) : current === null ? null : (
           <CurrentSummary section={current} />
@@ -413,23 +422,18 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
       ))}
 
       {/*
-        근거 표기는 **뱃지 목록이 아니라 캡션 한 줄**이다 (design.md §9 ·
-        프로토타입 `{{ asOf }} 기준 · 공시 · 뉴스 · 자체계산`, 새 디코드 L1994).
-        기준 시각이 그 줄의 첫 항목이고 형식은 프로토타입과 같은 `월.일 시:분` 이다.
-        아랫줄이 면책 문구다 — 프로토타입도 같은 `.cp` 안의 `<br>` 한 번이다.
+        근거·기준 시각·면책은 **한 줄 뒤로 접힌다** (FINCH-329). 표기 모양은
+        그대로 캡션 판이다 — 뱃지도 출처 줄 목록도 되살리지 않는다. 바뀐 것은
+        자리뿐이고 근거는 `AnalysisSourceSheet` 주석에 있다.
 
         disclaimer 는 하드코딩하지 않고 응답 값을 그대로 쓴다 — 규제 문구가 바뀌면
         서버만 고치게 하기 위해서다 (envelope.ts 주석).
       */}
-      <p className="mt-5 text-caption leading-5 text-text-muted">
-        {sourceLine === '' ? null : (
-          <>
-            {sourceLine}
-            <br />
-          </>
-        )}
-        {disclaimer}
-      </p>
+      <AnalysisSourceSheet
+        asOfText={asOfText}
+        sourceLabels={sourceLabels}
+        disclaimer={disclaimer}
+      />
 
       <AiFeedbackRow requestId={requestId} className="mt-5" />
     </div>
