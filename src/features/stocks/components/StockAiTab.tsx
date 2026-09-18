@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { showToast } from '@/shared/hooks/useToastStore';
 import {
   isInsufficientDataErrorCode,
@@ -109,6 +111,82 @@ type StockAiTabProps = {
    */
   owned: boolean;
 };
+
+/**
+ * 검정 카드 안의 `current` 본문 (FINCH-329).
+ *
+ * ## 세 줄에서 끊는다
+ *
+ * `current.text` 전문이 그대로 들어가 모바일에서 네 줄을 차지했다. 위 헤드라인까지
+ * 더하면 검정 덩어리가 첫 화면의 절반을 먹는데, §8.1 이 이 셸을 **Compact
+ * Summary** 로 정하고 §12 가 "긴 문단 금지" 로 적어 둔 자리다.
+ *
+ * **마침표로 자르지 않는다.** 섹션 문장 수를 프론트가 고를 수 없어서 문장이 하나로
+ * 오는 날 자리가 빈다. `line-clamp-3` 은 짧은 응답에는 아무 일도 하지 않는다.
+ *
+ * ## 넘칠 때만 `더 보기` 를 그린다
+ *
+ * 접힌 높이(`clientHeight`)와 전체 높이(`scrollHeight`)를 재서 실제로 잘렸을 때만
+ * 버튼을 낸다. **늘 그리면 짧은 응답에서 눌러도 아무 일이 없는 버튼이 된다.**
+ *
+ * `ResizeObserver` 로 다시 재는 이유가 둘이다 — 본문 서체(Pretendard)가 늦게 붙어
+ * 줄 수가 바뀌고, 가로 회전·창 크기 변화로도 바뀐다. 한 번만 재면 그 뒤로 어긋난
+ * 채로 남는다.
+ *
+ * ## 시트로 보내지 않는다
+ *
+ * 펼침이 **그 자리에서** 일어난다. 이 문단은 이 탭의 첫 문장이라, 읽으려고 바닥
+ * 시트를 열게 하면 가장 먼저 읽을 것을 가장 멀리 두는 것이 된다. 아래
+ * `분석 기준 및 안내` 가 시트인 것과 반대의 판단이다 — 그쪽은 매번 읽는 글이 아니다.
+ *
+ * **`AiCard` 에 `onClick` 을 주면 안 된다.** 그 경우 셸이 `<button>` 으로 나가는데
+ * 여기 버튼이 그 안에 들어가 중첩된다.
+ */
+function CurrentSummary({ section }: { section: AiAnalysisSection }) {
+  const [expanded, setExpanded] = useState(false);
+  const [clipped, setClipped] = useState(false);
+  const bodyRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const element = bodyRef.current;
+    if (expanded || element === null) {
+      return;
+    }
+
+    // 1px 여유 — 서브픽셀 반올림으로 두 값이 1 미만 차이로 갈릴 때가 있다.
+    const measure = () => {
+      setClipped(element.scrollHeight > element.clientHeight + 1);
+    };
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [expanded, section.text]);
+
+  return (
+    <>
+      <span
+        ref={bodyRef}
+        className={`mt-3 block text-body-2 leading-6 text-pretty text-ai-text-secondary ${
+          expanded ? '' : 'line-clamp-3'
+        }`}
+      >
+        <AiSegmentText segments={section.segments} text={section.text} onDark />
+      </span>
+
+      {(clipped || expanded) && (
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="mt-3 text-caption font-medium text-ai-text-secondary"
+        >
+          {expanded ? '접기' : '더 보기'}
+        </button>
+      )}
+    </>
+  );
+}
 
 /**
  * 검정 카드 아래의 평면 섹션 하나 (design.md §8.3 — "기본 Background 위 Flat Section",
@@ -322,13 +400,7 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
             아래에서 확인할 수 있어요.
           </span>
         ) : current === null ? null : (
-          <span className="mt-3 block text-body-2 leading-6 text-pretty text-ai-text-secondary">
-            <AiSegmentText
-              segments={current.segments}
-              text={current.text}
-              onDark
-            />
-          </span>
+          <CurrentSummary section={current} />
         )}
       </AiCard>
 
