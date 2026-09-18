@@ -115,9 +115,14 @@ type StockAiTabProps = {
  * "모든 Section을 Card로 만들지 않는다", "Section 간 충분한 여백").
  *
  * 위계는 프로토타입 실측이다 — 제목 `.sht`(**18px/700 `--t1`**, 아래 14px) ·
- * 본문 `.b1`(**16px/24 `--t1`**) · 섹션 사이 40px (새 디코드 L1934·L1052·L1088).
+ * 본문 `.b1`(**16px/24 `--t1`**) (새 디코드 L1934·L1052·L1088).
  * 전에는 제목을 14px/600 회색, 본문을 15px 회색으로 뒀는데 그것은 섹션 제목이
  * 아니라 필드 라벨의 위계라 두 단계 낮았다.
+ *
+ * **섹션 간격은 36px 다** (FINCH-329). 프로토타입 실측은 40px 인데
+ * `design.md` §7.6 "간격 체계" 표가 이 탭의 값을 36px 로 적어 두었다 — 그 표가
+ * "이 탭은 섹션이 여섯 개라 값이 섞이면 바로 지저분해진다. 아래 값만 쓴다" 로
+ * 시작하는 확정값이라 실측보다 문서가 뒤에 왔다. 코드만 40px 로 남아 있었다.
  */
 function AnalysisSectionBlock({
   section,
@@ -129,7 +134,7 @@ function AnalysisSectionBlock({
   const title = section.title ?? null;
 
   return (
-    <section className="mt-10">
+    <section className="mt-9">
       {title === null ? null : (
         <h3 className="mb-3.5 text-section-title text-text-primary">{title}</h3>
       )}
