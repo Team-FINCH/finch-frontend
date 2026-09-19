@@ -78,8 +78,17 @@ type CandleChartProps = {
  */
 const FALLBACK_NEUTRAL = 'gray';
 
-/** 차트 높이. 프로토타입 SVG 가 150px 이다 (새 디코드 L1782). */
-const CHART_HEIGHT_CLASS = 'h-[150px]';
+/**
+ * 차트 높이. **프로토타입 SVG 는 150px 이지만(새 디코드 L1782) 우리는 240px 이다**
+ * (FINCH-331, 2026-09-18). 차트 탭인데 차트가 주인공이 아니라 보조 그래프처럼
+ * 보이던 것을 고친 값이다 -- `오늘` 격자 압축(약 52px)과 세그먼트 여백 축소(14px)로
+ * 확보한 66px 에 24px 을 더 얹었다. `design.md` §7.4 와 대조표를 같은 MR 에서 고쳤다.
+ *
+ * **`StockChartTab` 이 이 상수를 가져다 쓴다.** 스켈레톤·빈 상태·실패 자리가 차트와
+ * 같은 높이를 차지해야 봉 종류를 바꿀 때 아래가 튀지 않는데, 전에는 같은 값을 그쪽에
+ * 한 번 더 적어 둬서 한쪽만 고치면 조용히 어긋났다.
+ */
+export const CHART_HEIGHT_CLASS = 'h-[240px]';
 
 /**
  * 첫 진입 Wipe 실측 (프로토타입 `@keyframes wipeA` + `.pfirst>svg`, 새 디코드
@@ -225,6 +234,19 @@ export function CandleChart({
       borderDownColor: downColor,
       wickUpColor: upColor,
       wickDownColor: downColor,
+      /*
+       * 가격축 라벨을 `44000.00` 이 아니라 `44,000` 으로 찍는다 (FINCH-331).
+       * 라이브러리 기본 포맷이 소수점 둘을 달고 나오는데 국내 주가에 소수점 자리가
+       * 없어 읽는 데 방해만 된다. 다른 자리와 같은 `formatAmount` 를 물려 표기를
+       * 한 곳에서만 정하게 한다 -- 이 파일이 툴팁에서도 쓰는 함수다.
+       *
+       * **`minMove: 1` 이 있어야 한다.** `type: 'custom'` 의 기본 최소 단위가 0.01 이라
+       * 그대로 두면 축이 1원보다 잘게 눈금을 잡고, 반올림하는 `formatAmount` 를 거치며
+       * 같은 라벨이 두 번 뜬다.
+       *
+       * 데이터는 건드리지 않는다 -- 표기만 바꾸는 옵션이다.
+       */
+      priceFormat: { type: 'custom', minMove: 1, formatter: formatAmount },
       priceLineVisible: false,
       lastValueVisible: false,
     });
@@ -243,6 +265,15 @@ export function CandleChart({
     chart
       .priceScale('volume')
       .applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+    /*
+     * 캔들은 plot 의 약 62% 를 쓴다 (design.md §7.4 "캔들이 Plot 영역의 약 55~65%").
+     * 기본값(위 0.2 · 아래 0.1)이면 캔들 영역이 아래 90% 까지 내려와 거래량 막대(아래
+     * 15%)와 겹친다. 150px 일 때는 눈에 덜 띄었지만 240px 로 키우니 캔들 꼬리가 막대
+     * 위에 얹혔다 (FINCH-331).
+     */
+    chart
+      .priceScale('right')
+      .applyOptions({ scaleMargins: { top: 0.1, bottom: 0.28 } });
 
     candleSeries.setData(
       candles.map((candle) => ({

@@ -10,7 +10,7 @@ import { NoValue } from '@/shared/ui/StockRow';
 import { useCandles } from '../api/useCandles';
 import { selectTodayQuote } from '../lib/todayQuote';
 
-import { CandleChart } from './CandleChart';
+import { CandleChart, CHART_HEIGHT_CLASS } from './CandleChart';
 import { ChartPeriodSegment } from './ChartPeriodSegment';
 import { StockTodayGrid, StockTodayGridSkeleton } from './StockTodayGrid';
 
@@ -46,14 +46,21 @@ import { StockTodayGrid, StockTodayGridSkeleton } from './StockTodayGrid';
  * 보는 블록이 차트 바로 밑에 붙어 있으면 차트에서 뽑아낸 요약처럼 읽혀서 세그먼트를
  * 눌러도 숫자가 그대로인 것이 고장 난 것처럼 보였다. 자세한 근거는 `StockTodayGrid`
  * 에 적었다. 순서가 바뀌면서 **탭 공통 위 여백 18px 을 격자가 가져가고** 차트
- * 묶음은 둘 사이 간격(32px)을 갖는다.
+ * 묶음은 둘 사이 간격을 갖는다.
+ *
+ * **차트 탭의 밀도를 한 번 더 조였다(FINCH-331, 2026-09-18).** 격자를 압축하고
+ * (약 160px -> 108px) 세그먼트 위아래 여백을 줄여(32 -> 24 · 22 -> 16) 확보한 66px 에
+ * 24px 을 더해 차트를 150px -> 240px 로 키웠다. 차트 탭인데 차트가 보조 그래프처럼
+ * 보이던 것이 이유다. **세그먼트 높이 38px 은 건드리지 않았다** -- 커 보이던 것은
+ * 높이가 아니라 위아래 여백이었고, 38px 은 프로토타입 실측이라 대조표가 닫아 둔 값이다.
+ *
+ * 차트 자리의 높이는 `CandleChart` 가 내보내는 `CHART_HEIGHT_CLASS` 하나를 쓴다 --
+ * 스켈레톤·빈 상태·실패 자리가 차트와 같은 높이여야 봉 종류를 바꿀 때 아래가 튀지 않는데,
+ * 전에는 같은 값을 여기 한 번 더 적어 둬서 한쪽만 고치면 조용히 어긋났다.
  *
  * 봉 종류는 URL 이 갖는다 (`?interval=` — `@/shared/types/candleInterval.ts` 참고).
  * 부모가 넘기고 여기서는 바꾸기만 한다.
  */
-
-/** 차트 자리 높이. 프로토타입 SVG 가 150px 이다 (새 디코드 L1782). */
-const CHART_BOX_CLASS = 'h-[150px]';
 
 type StockChartTabProps = {
   stockCode: string;
@@ -179,7 +186,7 @@ export function StockChartTab({
             todayQuote !== null && <StockTodayGrid quote={todayQuote} />
           )}
 
-          <section className={hasTodayGrid ? 'mt-8' : 'mt-4.5'}>
+          <section className={hasTodayGrid ? 'mt-6' : 'mt-4.5'}>
             <ChartPeriodSegment
               interval={interval}
               onChange={(next) => {
@@ -188,14 +195,14 @@ export function StockChartTab({
               }}
             />
 
-            <div className="mt-5.5">
+            <div className="mt-4">
               {candles.isPending && (
-                <Skeleton className={`${CHART_BOX_CLASS} w-full`} />
+                <Skeleton className={`${CHART_HEIGHT_CLASS} w-full`} />
               )}
 
               {candles.isError && (
                 <div
-                  className={`flex ${CHART_BOX_CLASS} flex-col items-center justify-center text-center`}
+                  className={`flex ${CHART_HEIGHT_CLASS} flex-col items-center justify-center text-center`}
                 >
                   <p className="text-body-2 text-text-secondary">
                     차트를 불러오지 못했어요
@@ -213,7 +220,7 @@ export function StockChartTab({
               {candles.isSuccess &&
                 (candles.data.candles.length === 0 ? (
                   <div
-                    className={`flex ${CHART_BOX_CLASS} items-center justify-center`}
+                    className={`flex ${CHART_HEIGHT_CLASS} items-center justify-center`}
                   >
                     <p className="text-body-2 text-text-secondary">
                       표시할 시세 기록이 없어요
