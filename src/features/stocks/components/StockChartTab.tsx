@@ -12,12 +12,12 @@ import { selectTodayQuote } from '../lib/todayQuote';
 
 import { CandleChart } from './CandleChart';
 import { ChartPeriodSegment } from './ChartPeriodSegment';
-import { StockTodayGrid } from './StockTodayGrid';
+import { StockTodayGrid, StockTodayGridSkeleton } from './StockTodayGrid';
 
 /**
  * 차트 탭 (프로토타입 `isDtChart` 블록, 새 디코드 L1748–L1830).
  *
- * 두 묶음이다 — 봉 종류 세그먼트 + 캔들 차트 · `오늘` 격자.
+ * 위에서부터 세 묶음이다 — `오늘` 격자 · 봉 종류 세그먼트 · 캔들 차트.
  * 그리고 거래정지 종목은 **차트와 기간 탭을 아예 그리지 않는다**
  * (`d.tradableChart`, 새 디코드 L1749–L1761).
  *
@@ -40,6 +40,13 @@ import { StockTodayGrid } from './StockTodayGrid';
  * 값을 고르는 규칙의 근거는 `../lib/todayQuote.ts` 에 적었다. **전에 여기 적혀
  * 있던 "필드 추가를 GitLab #46 으로 요청해 뒀다" 는 더는 유효하지 않다** —
  * 캔들로 되는 것이라 새 필드가 필요 없다.
+ *
+ * **그 격자가 세그먼트 위에 있는 이유도 같은 데서 나온다(FINCH-330,
+ * 2026-09-18).** 프로토타입은 차트 아래(새 디코드 L1820–L1828)에 두지만, 늘 일봉만
+ * 보는 블록이 차트 바로 밑에 붙어 있으면 차트에서 뽑아낸 요약처럼 읽혀서 세그먼트를
+ * 눌러도 숫자가 그대로인 것이 고장 난 것처럼 보였다. 자세한 근거는 `StockTodayGrid`
+ * 에 적었다. 순서가 바뀌면서 **탭 공통 위 여백 18px 을 격자가 가져가고** 차트
+ * 묶음은 둘 사이 간격(32px)을 갖는다.
  *
  * 봉 종류는 URL 이 갖는다 (`?interval=` — `@/shared/types/candleInterval.ts` 참고).
  * 부모가 넘기고 여기서는 바꾸기만 한다.
@@ -110,6 +117,14 @@ export function StockChartTab({
     ? selectTodayQuote(dailyCandles.data.candles)
     : null;
 
+  /*
+   * 격자가 설 자리가 잡혀 있는가. 일봉이 오는 중이면 자리표시자가, 왔으면 격자가
+   * 서고, 둘 다 아니면(응답이 실패했거나 봉이 하나도 없으면) 그 자리가 통째로 빈다.
+   * 빌 때는 차트 묶음이 탭 공통 위 여백(18px)을 도로 가져간다 — 그 여백은 자리가
+   * 아니라 **탭의 첫 블록** 에 붙는 값이다.
+   */
+  const hasTodayGrid = dailyCandles.isPending || todayQuote !== null;
+
   return (
     <>
       {suspended ? (
@@ -149,7 +164,22 @@ export function StockChartTab({
         </section>
       ) : (
         <>
-          <section className="mt-4.5">
+          {/*
+            `오늘` 격자. 거래정지 종목에는 그리지 않는다 — 프로토타입도
+            `d.tradableChart` 안에 있고, 애초에 캔들을 부르지 않는다.
+
+            **일봉이 오는 동안에는 같은 높이의 자리표시자를 둔다.** 이 블록이 탭의
+            맨 위라, 비워 두면 값이 도착하는 순간 세그먼트와 차트를 통째로 밀어
+            내린다. 차트 쪽 캔들과 따로 도착하므로 차트 자리표시자가 떠 있는 동안
+            한 번 더 밀린다.
+          */}
+          {dailyCandles.isPending ? (
+            <StockTodayGridSkeleton />
+          ) : (
+            todayQuote !== null && <StockTodayGrid quote={todayQuote} />
+          )}
+
+          <section className={hasTodayGrid ? 'mt-8' : 'mt-4.5'}>
             <ChartPeriodSegment
               interval={interval}
               onChange={(next) => {
@@ -199,12 +229,6 @@ export function StockChartTab({
                 ))}
             </div>
           </section>
-
-          {/*
-            `오늘` 격자 (새 디코드 L1820–L1828). 거래정지 종목에는 그리지 않는다 —
-            프로토타입도 `d.tradableChart` 안에 있고, 애초에 캔들을 부르지 않는다.
-          */}
-          {todayQuote !== null && <StockTodayGrid quote={todayQuote} />}
         </>
       )}
     </>
