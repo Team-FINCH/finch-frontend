@@ -41,6 +41,16 @@ import { useEffect, useState } from 'react';
  * 뒤 같은 노드의 텍스트를 보이는 문구로 바꿔치기하면, 그 변경 자체가 한 번만
  * 읽힌다. 두 문구를 각자 다른 노드에 두면(하나는 항상 `sr-only`, 하나는 10초
  * 뒤에만 보임) 스크린 리더가 둘을 겹쳐 읽어 중복된다.
+ *
+ * ## 등장 연출 (FINCH-332)
+ *
+ * 마운트되는 순간 완성된 크기로 바로 뜨는 것이 "번쩍" 으로 보인다는 지적을 받았다
+ * (배포 화면, 2026-09-19). `chat-typing-in` 키프레임(`styles/index.css`)으로
+ * 페이드 + 6px 떠오르기를 붙였다 — 값은 `wiki-guess-in` 모양·`--motion-sheet`
+ * (260ms)·`--ease-standard` 를 그대로 가져온 것이라 새 관용이 아니다.
+ * 점 세 개(`chat-typing-bounce`)와 마찬가지로 `motion-reduce:animate-none` 으로
+ * 끈다 — 꺼지면 등장 없이 바로 자리에 나타날 뿐, "대기 중" 이라는 사실은
+ * 그대로 보인다.
  */
 const SLOW_RESPONSE_HINT_DELAY_MS = 10_000;
 const READY_MESSAGE = 'AI가 답변을 준비하고 있어요';
@@ -59,7 +69,7 @@ export function ChatTypingIndicator() {
   return (
     <div className="flex flex-col items-start">
       <div
-        className="flex flex-col gap-1.5 rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3.5"
+        className="flex animate-[chat-typing-in_var(--motion-sheet)_var(--ease-standard)] flex-col gap-1.5 rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3.5 motion-reduce:animate-none"
         role="status"
       >
         <span aria-hidden="true" className="flex items-center gap-1.5">
