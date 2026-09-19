@@ -1,5 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
+import { useNavigationType, useSearchParams } from 'react-router-dom';
 
 import { useChatHistoryQuery } from '@/features/chat/api/useChatHistoryQuery';
 import { useChatJobMutation } from '@/features/chat/api/useChatJobMutation';
@@ -31,7 +37,10 @@ import {
   type ChatMessage,
 } from '@/features/chat/model/chatMessages';
 import { isHttpError } from '@/shared/api';
-import { useRegisterBottomFixedSpace } from '@/shared/hooks/useBottomFixedSpace';
+import {
+  useBottomFixedSpace,
+  useRegisterBottomFixedSpace,
+} from '@/shared/hooks/useBottomFixedSpace';
 import { useInnerScrollRestoration } from '@/shared/hooks/useInnerScrollRestoration';
 import { showToast } from '@/shared/hooks/useToastStore';
 import { readAiErrorCode } from '@/shared/lib/aiErrorRetry';
@@ -59,6 +68,13 @@ const RETRY_EXHAUSTED_MESSAGE =
   '답을 받지 못했어요. 입력창에 다시 물어봐 주세요.';
 
 const DEFAULT_CHAT_ERROR_MESSAGE = '메시지를 보내지 못했어요.';
+
+/**
+ * 새 진입(PUSH·REPLACE)에서 최신 자리에 설 때까지 기다리는 한도 (FINCH-335).
+ * `useInnerScrollRestoration` 의 `RESTORE_TIMEOUT_MS` 와 같은 이유·같은 값이다 —
+ * 이력이 그 시간 안에 그려지지 않으면 포기하고 지금 상태 그대로 둔다.
+ */
+const LANDING_TIMEOUT_MS = 1500;
 
 /**
  * job 상태 조회가 내리 몇 번 실패하면 기다림을 끝내는가 (FINCH-290).
@@ -195,9 +211,22 @@ export function ChatPage() {
   const [searchParams] = useSearchParams();
   const chatContext = parseChatContext(searchParams);
 
+  /**
+   * 새 진입인지(PUSH·REPLACE) 뒤로가기인지(POP) (FINCH-335). `useLocation`·
+   * `useNavigationType` 을 `useInnerScrollRestoration` 안에서도 부르지만 그 훅은
+   * 이 값을 밖으로 주지 않는다 — 라우터 컨텍스트를 한 번 더 읽는 것은 그 훅을
+   * 고치는 것과 다르다. POP 는 그 훅이 이미 이전 자리로 되돌리므로 이 화면은
+   * 손대지 않는다. 아래 "새 진입 착지" 는 PUSH·REPLACE 에서만 돈다.
+   */
+  const navigationType = useNavigationType();
+  const isPopNavigation = navigationType === 'POP';
+
   // 입력창 바가 토스트 자리를 정한다 — 이 화면은 `ActionBar` 를 쓰지 않고 같은
   // 모양의 바를 직접 그려서, 등록도 여기서 한다 (FINCH-232).
   const bottomFixedRef = useRegisterBottomFixedSpace();
+  // 칩이 뜨면 바가 커지는 만큼 본문 아래 여백도 늘어나야 마지막 말풍선이 칩
+  // 밑에 깔리지 않는다 (FINCH-335). 새로 재지 않고 위 등록값을 그대로 쓴다.
+  const bottomFixedSpace = useBottomFixedSpace();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -218,6 +247,28 @@ export function ChatPage() {
   const jobQuery = useChatJobQuery(pendingJob?.jobId ?? null);
 
   const chatJobMutation = useChatJobMutation();
+
+  /**
+   * 진입 시점에 이미 기다리고 있던 job 의 id (FINCH-335). 마운트 때 한 번만
+   * 얼린다 — "자리를 비운 사이" 를 가르는 기준이 이것이다. 이후 이 화면에 머무는
+   * 동안 새로 보낸 job 이 완료돼도 이 값과 다르므로 아래 착지 절차를 다시 건드리지
+   * 않는다(착지는 진입 때 한 번뿐이다).
+   */
+  const [initialPendingJobId] = useState(() => pendingJob?.jobId ?? null);
+  /**
+   * 착지 지점이 "자리를 비운 사이 도착한 답변" 이면 그 답변의 `requestId`.
+   * `null` 이면 바닥이 착지 지점이다(기본값, 또는 아직 기다리는 중). 이력·job
+   * 반영과 같은 이유로 렌더 중에 정한다 — 이펙트로 옮기면 refs/effects 규칙과
+   * 별개로 한 렌더 늦게 반영돼 착지 이펙트가 그 사이 낡은 값으로 한 번 돈다.
+   */
+  const [landingAnswerRequestId, setLandingAnswerRequestId] = useState<
+    string | null
+  >(null);
+  /**
+   * 착지가 이미 끝났나. POP 는 `useInnerScrollRestoration` 이 전담하므로 처음부터
+   * 끝난 것으로 둔다. 렌더 중에는 읽거나 쓰지 않는다 — 착지 이펙트 안에서만 쓴다.
+   */
+  const landedRef = useRef(isPopNavigation);
 
   /**
    * 이력을 **렌더 중에** 반영한다. `useEffect` 로 하면 `historyQuery.data` 가
@@ -281,6 +332,15 @@ export function ChatPage() {
 
     if (jobState.kind === 'completed') {
       const { answer } = jobState;
+      // 진입 시점에 이미 기다리던 그 job 이 이 렌더에서 완료로 정리되면, 그 답이
+      // "자리를 비운 사이 도착한 답변" 이다. 착지 절차가 바닥 대신 이 답변의
+      // 머리를 겨눈다 (FINCH-335). `initialPendingJobId` 는 마운트 때
+      // 얼렸고 이 job 이 정리되면 `pendingJob` 이 새 job(다른 id) 이나 `null`
+      // 로 바뀌므로 이 비교는 다시 참이 되지 않는다 — 매번 지키는 값이 아니라
+      // 진입 때 한 번만 잡히는 값이다.
+      if (pendingJob.jobId === initialPendingJobId) {
+        setLandingAnswerRequestId(answer.requestId);
+      }
       setConversationId(answer.content.conversationId);
       setMessages((prev) =>
         appendJobAnswer(prev, pendingJob.question, {
@@ -380,6 +440,110 @@ export function ChatPage() {
       clearStoredConversationId();
     }
   }, [historyQuery.data]);
+
+  /**
+   * 새 진입(PUSH·REPLACE) 착지 (FINCH-335). `useInnerScrollRestoration` 은
+   * POP 만 되돌리도록 설계됐고(그 훅 머리 주석), 새 진입은 늘 맨 위였다 —
+   * 채팅은 목록이 아니라 대화라서 맨 위가 아니라 최신 자리가 맞다.
+   *
+   * 착지 지점을 정하려면 **이력 조회와, 진입 시점에 기다리던 job 이 있었다면 그
+   * 상태까지 알아야 한다.** 그래서 `historySettled` 와(진입 시점에 job 이
+   * 있었을 때만) `appliedJobState` 가 갖춰질 때까지는 아무것도 하지 않고
+   * 기다린다.
+   *
+   * 자리가 결정된 뒤에도 **목록 높이가 아직 0 일 수 있다** — 이력이 비동기라
+   * `ChatHistorySkeleton` 이 실제 목록으로 갈리는 순간이 이 렌더 뒤에 온다.
+   * `useInnerScrollRestoration` 이 같은 문제를 `MutationObserver` + 타임아웃으로
+   * 푸는 방식을 그대로 따른다 — 그 훅을 고치지 않고 이 화면에서 같은 모양을
+   * 새로 짠다.
+   *
+   * 착지는 **한 진입에 한 번뿐이다**(`landedRef`). 진입 뒤 이 화면에 머무는 동안
+   * 새로 보낸 질문의 답이 도착해도 다시 스크롤을 굴리지 않는다 — 그것은 "자리를
+   * 비운 사이" 가 아니라 보고 있는 중이라 사용자가 있던 자리를 존중해야 한다.
+   */
+  useLayoutEffect(() => {
+    if (landedRef.current) {
+      return;
+    }
+    // 진입 시점에 기다리던 job 이 있었는데 아직 그 상태를 모르면, 바닥으로 설지
+    // 답변 머리로 설지 아직 못 정한다 — 그대로 기다린다.
+    if (initialPendingJobId !== null && appliedJobState === undefined) {
+      return;
+    }
+    if (!historySettled) {
+      return;
+    }
+
+    const shell = shellRef.current;
+    const main = shell?.querySelector('main');
+    if (!main) {
+      return;
+    }
+
+    landedRef.current = true;
+    const targetRequestId = landingAnswerRequestId;
+
+    let isSettled = false;
+    const deadline = Date.now() + LANDING_TIMEOUT_MS;
+    let observer: MutationObserver | null = null;
+
+    const settle = () => {
+      isSettled = true;
+      observer?.disconnect();
+      main.removeEventListener('wheel', settle);
+      main.removeEventListener('touchstart', settle);
+    };
+
+    // 답변 머리를 기다리는 동안 사용자가 먼저 스크롤하면 넣지 않는다 — 하던
+    // 스크롤을 빼앗지 않는다(`useInnerScrollRestoration` 과 같은 판단).
+    main.addEventListener('wheel', settle, { passive: true });
+    main.addEventListener('touchstart', settle, { passive: true });
+
+    const tryLand = () => {
+      if (isSettled) {
+        return;
+      }
+      if (Date.now() >= deadline) {
+        settle();
+        return;
+      }
+
+      if (targetRequestId !== null) {
+        // 답변의 머리가 보이는 지점 — 그 말풍선 상자의 위쪽 끝을 본문 스크롤의
+        // 위쪽 끝에 맞춘다. 아직 안 붙었으면(이력이 늦게 반영되는 경로) 계속
+        // 기다린다.
+        const target = main.querySelector(
+          `[data-request-id="${CSS.escape(targetRequestId)}"]`,
+        );
+        if (target instanceof HTMLElement) {
+          const mainTop = main.getBoundingClientRect().top;
+          const targetTop = target.getBoundingClientRect().top;
+          main.scrollTop += targetTop - mainTop;
+          settle();
+        }
+        return;
+      }
+
+      // 바닥이 착지 지점이다 — 최신 대화가 이것이거나(항목 1), 아직 기다리는
+      // 중이라 대기 표시가 마지막이거나(항목 2)다. `historySettled` 를 이미
+      // 확인했으므로 이 시점에는 목록이 커밋돼 있다 — 스크롤할 것이 없으면
+      // (내용이 화면보다 짧으면) 대입이 그냥 0 이 될 뿐이라 조건 없이 넣는다.
+      main.scrollTop = main.scrollHeight;
+      settle();
+    };
+
+    observer = new MutationObserver(tryLand);
+    observer.observe(main, { childList: true, subtree: true });
+    tryLand();
+
+    return settle;
+  }, [
+    initialPendingJobId,
+    appliedJobState,
+    historySettled,
+    landingAnswerRequestId,
+    shellRef,
+  ]);
 
   // 종목 맥락으로 들어왔으면 빈 상태 문구에 종목명이 들어간다. 쿼리에 이름이 없으면
   // (주소로 바로 열었을 때) `이 종목` 으로 떨어진다.
@@ -549,15 +713,22 @@ export function ChatPage() {
   return (
     <div
       ref={shellRef}
-      className="flex h-dvh flex-col overflow-hidden [--page-bottom-space:6rem]"
+      className="flex h-dvh flex-col overflow-hidden"
+      style={
+        {
+          // 입력 바가 `fixed` 라 마지막 말풍선이 그 밑에 깔린다. 칩이 뜨면 바가
+          // 커지므로 고정값(전에는 6rem)이 아니라 그 바가 스스로 잰 높이
+          // (`useRegisterBottomFixedSpace`)를 그대로 물린다 (FINCH-335).
+          // 그 값은 이미 safe-area 를 한 번 포함하고 있고(그 훅 주석), `PageMain`
+          // 이 `env(safe-area-inset-bottom)` 을 여기서 또 더하므로 여기서는 뺀
+          // 채로 내려 두 번 더해지는 것을 막는다.
+          '--page-bottom-space': `calc(${String(bottomFixedSpace)}px - env(safe-area-inset-bottom))`,
+        } as CSSProperties
+      }
     >
       {/* 답변 본문의 링크·인용 칩이 종목 상세로 나간다. 대화가 길면 돌아왔을 때
           맨 위로 튀므로 안쪽 스크롤 위치를 되돌린다 (FINCH-297). */}
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
-      {/* 6rem 은 이 화면이 `pb-24` 로 들고 있던 값 그대로다 — 입력 바가 `fixed` 라
-        마지막 말풍선이 그 밑에 깔린다. `min-h-[calc(100dvh-3rem)]` 은 함께 걷었다:
-        껍데기가 높이를 주기 전에 본문이 화면을 채우게 하려던 임시값이라, 이제는
-        그 값 때문에 내용이 짧아도 스크롤이 생긴다. */}
       <SubPageHeader
         title="FINCH AI"
         action={
@@ -595,25 +766,35 @@ export function ChatPage() {
                   ? message.retryIdempotencyKey
                   : null;
               return (
-                <ChatBubble
+                // 새 진입 착지가 "자리를 비운 사이 도착한 답변" 의 머리를 찾을
+                // 자리다(FINCH-335). `ChatBubble` 은 다른 워커가 고치고
+                // 있어 그 안이 아니라 이 바깥 껍데기에 표식을 둔다 — 모양에
+                // 영향 없는 빈 div 다.
+                <div
                   key={message.id}
-                  message={message}
-                  // `다시 시도` 는 대화 끝의 실패 하나만 갖는다 (FINCH-249).
-                  // 판정과 그 이유는 `findRetryTargetId` 주석에 있다. 핸들러를 주지
-                  // 않는 것이 곧 버튼을 내지 않는 것이라, "보이는데 누르면 딴 것을
-                  // 보내는" 상태가 만들어지지 않는다.
-                  onRetry={
-                    message.id === retryTargetId
-                      ? (retryText) =>
-                          handleSend(
-                            retryText,
-                            nextRetryCount,
-                            retryIdempotencyKey,
-                          )
-                      : undefined
+                  data-request-id={
+                    message.role === 'assistant' ? message.requestId : undefined
                   }
-                  retryDisabled={isAwaitingAnswer}
-                />
+                >
+                  <ChatBubble
+                    message={message}
+                    // `다시 시도` 는 대화 끝의 실패 하나만 갖는다 (FINCH-249).
+                    // 판정과 그 이유는 `findRetryTargetId` 주석에 있다. 핸들러를
+                    // 주지 않는 것이 곧 버튼을 내지 않는 것이라, "보이는데 누르면
+                    // 딴 것을 보내는" 상태가 만들어지지 않는다.
+                    onRetry={
+                      message.id === retryTargetId
+                        ? (retryText) =>
+                            handleSend(
+                              retryText,
+                              nextRetryCount,
+                              retryIdempotencyKey,
+                            )
+                        : undefined
+                    }
+                    retryDisabled={isAwaitingAnswer}
+                  />
+                </div>
               );
             })}
             {/*
