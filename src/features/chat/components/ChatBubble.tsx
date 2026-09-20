@@ -126,8 +126,8 @@ export function ChatBubble({
   }
 
   return (
-    <div className="flex flex-col items-start">
-      <div className="max-w-[80%] min-w-0 rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3">
+    <div className="flex flex-col">
+      <div className="min-w-0 rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3">
         {isDone ? (
           // 다 찍힌 뒤에만 Markdown 으로 그린다 (GitLab #85 A 안). 타자 중에
           // 부분 문자열을 파싱하면 `**굵`처럼 반쯤 닫힌 문법이 그대로 튀어나와
