@@ -736,6 +736,24 @@
   }
 }
 
+/*
+ * 채팅 대기 표시 등장 (FINCH-332, `features/chat/components/ChatTypingIndicator`).
+ * 배포 화면을 본 사용자가 "완성된 크기로 번쩍 등장한다" 고 지적했다(2026-09-19).
+ * 새 관용을 만들지 않고 `wiki-guess-in` 모양(페이드 + 6px 떠오르기)을 그대로 가져왔다
+ * — 이동 폭·형태는 그 카드와 같고, 지속 시간·이징은 시트와 같은 토큰
+ * (`--motion-sheet` 260ms · `--ease-standard`, 진입용 감속 곡선)을 쓴다.
+ */
+@keyframes chat-typing-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes sheet-slide-up {
   from {
     transform: translateY(100%);

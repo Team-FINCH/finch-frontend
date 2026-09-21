@@ -3,19 +3,30 @@ import { useEffect, useRef, useState } from 'react';
 import { usePrefersReducedMotion } from '@/shared/hooks/usePrefersReducedMotion';
 
 /**
- * 글자당 재생 시간(ms) 기준값. 실측이 아니라 채팅 타자 연출의 관행값이다 —
- * 초당 80자 안팎이면 "타자"로 읽히면서도 느리다는 인상을 주지 않는다.
+ * 글자당 재생 시간(ms) 기준값 (FINCH-332). 이전 값 12ms 는 500자 답변을
+ * 캡(1400ms)에 눌러 초당 357자로 쏟아냈다 — 배포 화면을 본 사용자가 "위협적으로
+ * 빠르다" 고 지적했다(2026-09-19). 짧은 답은 캡에 안 걸려 그 속도가 그대로
+ * 드러났으므로 글자당 값 자체를 20ms 로 올렸다: 80자 답은 1.6초(80×20ms), 캡
+ * 아래라 실제로 이 속도로 재생된다.
  */
-const MS_PER_CHAR = 12;
+const MS_PER_CHAR = 20;
 /** 아주 짧은 답이 순간이동처럼 뚝 끊기지 않게 두는 하한. */
 const MIN_DURATION_MS = 300;
 /**
- * 전체 재생 시간의 상한 (FINCH-274, task-F 지시). AI 응답은 수백 자에
- * 이를 수 있어(`ai/docs/api-spec.md`) 글자당 고정 간격만 쓰면 캡 없이 몇 초씩
- * 걸린다. 진행률(경과/전체시간) 기준으로 드러낼 글자 수를 계산해 길이와 무관하게
- * 이 상한 안에서 끝나게 한다.
+ * 전체 재생 시간의 상한 (FINCH-332, 이전 1400ms 를 올림). 130자
+ * (130×20ms) 부터 이 상한에 걸린다 — 300자 답은 2.6초(초당 115자), 800자
+ * 답도 똑같이 2.6초(초당 38자)로 끝난다. 다 읽기도 전에 끝나는 것과 하염없이
+ * 기다리는 것 사이에서 2.5~3초 구간을 골랐다.
  */
-const MAX_DURATION_MS = 1400;
+const MAX_DURATION_MS = 2600;
+/**
+ * 끝에서 잦아드는 이징 (FINCH-332). 선형 진행은 "주루룩" 이 아니어도
+ * 딱딱하게 읽힌다는 지적을 받아, ease-out(세제곱) 곡선으로 초반은 빠르게
+ * 치고 나가 응답이 늦어 보이지 않게 하고 후반부만 느려지게 했다.
+ */
+function easeOutCubic(progress: number): number {
+  return 1 - (1 - progress) ** 3;
+}
 
 type TypewriterResult = {
   /** 지금까지 드러난 부분 문자열. `enabled=false` 나 재생이 끝나면 `text` 전체다. */
@@ -63,7 +74,7 @@ export function useTypewriter(
 
     function tick(now: number) {
       const progress = Math.min((now - start) / duration, 1);
-      setVisibleLength(Math.floor(text.length * progress));
+      setVisibleLength(Math.floor(text.length * easeOutCubic(progress)));
       if (progress < 1) {
         frameRef.current = requestAnimationFrame(tick);
       }
