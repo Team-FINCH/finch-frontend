@@ -52,6 +52,11 @@ import { readCssToken } from '../lib/readCssToken';
  * 툴팁이 담는 것은 날짜 · 시/고/저/종 2×2 격자 · 거래량 세 줄이다.
  * **등락을 넣지 않는다** — 프로토타입 격자가 두 줄이고 거기에 등락 칸이 없다.
  *
+ * **보이는 구간의 최고·최저가는 짚지 않아도 보인다** (design.md §7.4 「가격축 라벨」).
+ * 우측 상·하단에 하나씩만 두고 Y축 눈금을 늘리지 않는다 — 전문 HTS 처럼 숫자를
+ * 채우지 않는다는 것이 명세의 뜻이다. 팬·줌으로 보이는 범위가 바뀌면 값과 자리가
+ * 함께 따라온다.
+ *
  * **첫 진입에만 Wipe 로 그린다** (`animateIn`, 프로토타입 `.pfirst`). 봉 종류를
  * 바꿔 다시 그릴 때는 즉시 나타난다 — design.md §7.4 가 그렇게 갈랐다.
  */
@@ -130,6 +135,21 @@ const INITIAL_VISIBLE_BAR_COUNT: Record<CandleInterval, number> = {
   MONTH: 36,
 };
 
+/**
+ * 가격축 라벨 실측 (design.md §7.4 「가격축 라벨」).
+ *
+ * 글자는 10.5px 이고 줄 높이를 13px 로 못 박는다. 상수로 두는 이유는 클램프가
+ * 라벨 상자의 높이를 알아야 하기 때문이다 — 브라우저가 계산한 줄 높이를 읽어 오려면
+ * 레이아웃을 한 번 더 재야 하고, 팬·줌마다 그것을 재면 프레임이 깎인다.
+ *
+ * 간격은 명세 그대로 최고가가 봉 위 4px, 최저가가 봉 아래 11px 이다. 위아래가 다른
+ * 것은 오타가 아니다 — 아래쪽은 거래량 막대가 올라와 있어 더 띄워야 숫자가 막대에
+ * 붙지 않는다.
+ */
+const PRICE_LABEL_LINE_HEIGHT = 13;
+const PRICE_LABEL_GAP_ABOVE_HIGH = 4;
+const PRICE_LABEL_GAP_BELOW_LOW = 11;
+
 /** `YYYY-MM-DD` 를 차트가 쓰는 UTC 초로 바꾼다. 일봉이라 자정 기준이면 충분하다. */
 function toTimestamp(date: string): UTCTimestamp {
   return (Date.parse(`${date}T00:00:00Z`) / 1000) as UTCTimestamp;
@@ -151,6 +171,19 @@ type ChartPoint = {
  */
 type TooltipState = { point: ChartPoint; side: 'left' | 'right' };
 
+/**
+ * 보이는 구간의 최고·최저가 라벨 (design.md §7.4 「가격축 라벨」).
+ *
+ * `top` 은 차트 상자 기준 픽셀이고 이미 클램프를 거친 값이다. `right` 는 가격축
+ * 눈금이 차지하는 폭이라 라벨이 축 숫자 위로 올라타지 않게 한다 — 축 폭은 자릿수에
+ * 따라 바뀌므로 상수로 두지 않고 매번 읽는다.
+ */
+type PriceAxisLabels = {
+  high: { price: number; top: number };
+  low: { price: number; top: number };
+  right: number;
+};
+
 export function CandleChart({
   candles,
   interval,
@@ -166,6 +199,11 @@ export function CandleChart({
    * 겹치는 일반 DOM 이고, 자리는 위 `TooltipState` 주석 참고.
    */
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  /**
+   * 보이는 구간의 최고·최저가 라벨. 값을 구하지 못했으면(봉이 없거나 아직 그리기
+   * 전) `null` 이고 아무것도 그리지 않는다.
+   */
+  const [priceLabels, setPriceLabels] = useState<PriceAxisLabels | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -323,6 +361,103 @@ export function CandleChart({
     });
 
     /**
+     * 가격축 라벨을 다시 계산한다 (design.md §7.4 「가격축 라벨」).
+     *
+     * **「보이는 구간」이 전부다.** 전체 봉의 최고·최저가가 아니라 지금 화면에 든
+     * 봉들의 것이라, 팬·줌으로 범위가 바뀌면 값도 자리도 함께 바뀐다. 그래서 값을
+     * 미리 계산해 두지 않고 범위가 움직일 때마다 다시 잰다 — 아래
+     * `subscribeVisibleLogicalRangeChange` 가 그 신호다.
+     *
+     * 논리 범위는 실수라 좌우 끝의 반쯤 걸친 봉이 소수로 온다. **바깥으로 반올림해**
+     * (`floor`·`ceil`) 반만 보이는 봉도 포함한다 — 화면에 보이는 꼭짓점을 라벨이
+     * 빠뜨리면 그게 더 틀려 보인다.
+     *
+     * 자리는 `priceToCoordinate` 가 준다. 가격축이 Auto Scale 이라 범위가 바뀌면
+     * 같은 가격도 다른 픽셀에 앉으므로, 좌표 역시 이 함수 안에서만 구한다.
+     */
+    const updatePriceLabels = () => {
+      const range = chart.timeScale().getVisibleLogicalRange();
+      if (range === null || candles.length === 0) {
+        setPriceLabels(null);
+        return;
+      }
+      const from = Math.max(0, Math.floor(range.from));
+      const to = Math.min(candles.length - 1, Math.ceil(range.to));
+      if (from > to) {
+        setPriceLabels(null);
+        return;
+      }
+
+      let highest: number | null = null;
+      let lowest: number | null = null;
+      for (let index = from; index <= to; index += 1) {
+        const candle = candles[index];
+        if (candle === undefined) {
+          continue;
+        }
+        highest =
+          highest === null ? candle.high : Math.max(highest, candle.high);
+        lowest = lowest === null ? candle.low : Math.min(lowest, candle.low);
+      }
+      if (highest === null || lowest === null) {
+        setPriceLabels(null);
+        return;
+      }
+
+      const highY = candleSeries.priceToCoordinate(highest);
+      const lowY = candleSeries.priceToCoordinate(lowest);
+      if (highY === null || lowY === null) {
+        setPriceLabels(null);
+        return;
+      }
+
+      /*
+       * Plot 상하 경계로 클램프한다. **경계를 상수로 박지 않는다** — 명세에 있던
+       * `11 ~ 112` 가 차트 150px 시절의 SVG 좌표라서 FINCH-331 이 240px 로
+       * 키우자마자 틀린 값이 됐다. 같은 일이 다시 나지 않게 pane 높이를 런타임에
+       * 읽는다. `paneSize()` 는 시간축을 뺀 그림 영역의 높이다.
+       */
+      const paneHeight = chart.paneSize().height;
+      const maxTop = paneHeight - PRICE_LABEL_LINE_HEIGHT;
+      const clampTop = (top: number) =>
+        Math.min(Math.max(top, 0), Math.max(maxTop, 0));
+
+      const next: PriceAxisLabels = {
+        high: {
+          price: highest,
+          top: clampTop(
+            highY - PRICE_LABEL_GAP_ABOVE_HIGH - PRICE_LABEL_LINE_HEIGHT,
+          ),
+        },
+        low: { price: lowest, top: clampTop(lowY + PRICE_LABEL_GAP_BELOW_LOW) },
+        right: chart.priceScale('right').width(),
+      };
+
+      /*
+       * 같은 값이면 이전 객체를 그대로 돌려준다. 팬 한 번에 이 함수가 프레임마다
+       * 불리는데, 매번 새 객체를 넣으면 값이 그대로여도 React 가 다시 그린다.
+       */
+      setPriceLabels((prev) =>
+        prev !== null &&
+        prev.high.price === next.high.price &&
+        prev.high.top === next.high.top &&
+        prev.low.price === next.low.price &&
+        prev.low.top === next.low.top &&
+        prev.right === next.right
+          ? prev
+          : next,
+      );
+    };
+
+    updatePriceLabels();
+    /*
+     * 팬·줌·스크럽으로 보이는 범위가 바뀔 때마다 다시 잰다. 폭이 바뀌는 경우도
+     * 함께 듣는다 — 가격축 폭이 자릿수에 따라 달라져 라벨의 오른쪽 자리가 밀린다.
+     */
+    chart.timeScale().subscribeVisibleLogicalRangeChange(updatePriceLabels);
+    chart.timeScale().subscribeSizeChange(updatePriceLabels);
+
+    /**
      * 툴팁에 쓸 값을 시각(초) 키로 미리 다 만들어 둔다. 십자선 이동마다 다시
      * 계산하지 않는다 — 이동은 마우스무브·터치무브만큼 잦다.
      */
@@ -356,6 +491,8 @@ export function CandleChart({
     });
 
     return () => {
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(updatePriceLabels);
+      chart.timeScale().unsubscribeSizeChange(updatePriceLabels);
       chart.remove();
       chartRef.current = null;
     };
@@ -443,6 +580,40 @@ export function CandleChart({
           <div className="mt-1.25 text-[11px] whitespace-nowrap text-white/50 tabular-nums">
             거래량 {formatAmount(tooltip.point.volume)}
           </div>
+        </div>
+      )}
+
+      {priceLabels !== null && (
+        /*
+          가격축 라벨 (design.md §7.4). 캔버스에는 글자를 그리지 못하니 툴팁과 같이
+          차트 위에 겹치는 일반 DOM 이다.
+
+          색은 명세의 `#8B95A1` 이 아니라 `--color-text-muted`(#78828E)다. 그 값은
+          낡은 프로토타입의 중립 셋째 단계이고, 흰 배경 대비 3.04 로 AA 에 못 미쳐
+          이 레포가 이미 #78828E 로 올려 뒀다 (`styles/index.css` 의
+          `--color-text-muted` 주석). 새 토큰을 만들지 않고 그것을 쓴다.
+
+          **툴팁보다 아래층이다**(`z-1` 對 `z-3`). 봉을 짚으면 툴팁이 오른쪽 위를
+          덮을 수 있는데, 툴팁 면이 거의 불투명해서 그대로 가려진다. 짚은 동안에는
+          그 봉의 고가·저가를 툴팁이 더 정확히 보여주므로 가려도 잃는 것이 없고,
+          겹칠 때만 라벨을 숨기면 스크럽 중에 깜빡인다.
+
+          읽어 주는 대상이 아니다(`aria-hidden`). 차트 자체가 `role="img"` 로 한 번
+          이름을 받고, 이 숫자는 캔들 그림을 눈으로 읽는 사람을 위한 보조 표시다.
+        */
+        <div aria-hidden="true">
+          <span
+            className="pointer-events-none absolute z-1 text-[10.5px] leading-[13px] text-text-muted tabular-nums"
+            style={{ top: priceLabels.high.top, right: priceLabels.right }}
+          >
+            {formatAmount(priceLabels.high.price)}
+          </span>
+          <span
+            className="pointer-events-none absolute z-1 text-[10.5px] leading-[13px] text-text-muted tabular-nums"
+            style={{ top: priceLabels.low.top, right: priceLabels.right }}
+          >
+            {formatAmount(priceLabels.low.price)}
+          </span>
         </div>
       )}
 
