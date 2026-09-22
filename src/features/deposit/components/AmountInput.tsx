@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 
+import { useRepeatPress } from '@/shared/hooks/useRepeatPress';
 import { formatAmount } from '@/shared/lib/formatNumber';
 
 /**
@@ -67,6 +68,39 @@ function formatPresetLabel(preset: number): string {
     : formatAmount(preset);
 }
 
+/**
+ * 프리셋 버튼 하나. **꾹 누르고 있으면 연속으로 올라간다** (QA 피드백 2026-09-22).
+ * 반복 규칙과 키보드·취소 처리는 `useRepeatPress` 머리 주석에 적었다.
+ *
+ * **버튼을 컴포넌트로 뽑은 것은 훅 때문이다.** 반복 상태는 버튼마다 따로 있어야
+ * 하는데 `presets.map()` 안에서는 훅을 부를 수 없다.
+ *
+ * `select-none` 과 `-webkit-touch-callout` 은 꾹 누름 자체에 딸려 오는 것이다 —
+ * 모바일에서 길게 누르면 글자가 선택되거나 iOS 콜아웃이 뜬다.
+ */
+function PresetButton({
+  preset,
+  onAdd,
+}: {
+  preset: number;
+  onAdd: (preset: number) => void;
+}) {
+  const repeatPress = useRepeatPress(() => {
+    onAdd(preset);
+  });
+
+  return (
+    <button
+      type="button"
+      aria-label={`${formatAmount(preset)}원 더하기`}
+      {...repeatPress}
+      className="flex-1 touch-manipulation rounded-[9px] text-body-2 font-medium text-text-muted transition-all duration-(--motion-normal) ease-standard select-none [-webkit-touch-callout:none] active:bg-surface"
+    >
+      +{formatPresetLabel(preset)}
+    </button>
+  );
+}
+
 export function AmountInput({
   value,
   onChange,
@@ -127,14 +161,7 @@ export function AmountInput({
       {presets !== undefined && (
         <div className="mt-3.5 flex h-11 gap-1 rounded-12 bg-surface-soft p-1">
           {presets.map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => addPreset(preset)}
-              className="flex-1 rounded-[9px] text-body-2 font-medium text-text-muted transition-all duration-(--motion-normal) ease-standard active:bg-surface"
-            >
-              +{formatPresetLabel(preset)}
-            </button>
+            <PresetButton key={preset} preset={preset} onAdd={addPreset} />
           ))}
         </div>
       )}
