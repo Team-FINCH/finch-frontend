@@ -26,6 +26,23 @@ import { divergingWidth } from '../lib/attributionInsight';
  * 0 축은 `--color-border` 1px 이다. `--color-border-strong` 은 6px 막대 옆에서
  * 축이 막대만큼 진해 보여 데이터로 오인된다.
  *
+ * ## 면은 값보다 한 톤 옅다 (FINCH-333)
+ *
+ * 채움이 `--color-stock-up` / `--color-stock-down` 의 **80%** 다. 색을 바꾼 것이
+ * 아니라 같은 색을 흰 면에 80% 로 얹는다 — 토큰 값은 그대로다(이슈 #32 회신으로
+ * 확정됐고 앱 전체가 공유한다).
+ *
+ * 한 화면에 등락색이 들어간 요소가 너무 많다는 지적에 대한 답인데, **개수를
+ * 줄이는 일은 탭 분할이 하고 여기서는 넓이를 줄인다.** 막대는 이 화면에서 면적이
+ * 가장 넓은 색 덩어리라 같은 개수여도 적색의 총량을 가장 많이 차지한다.
+ *
+ * 값 글자는 100% 로 둔다. 그래서 같은 행 안에서 **숫자가 막대보다 진해지고**,
+ * 이 막대가 주인공이 아니라 보조라는 위 문단의 판단이 굵기·높이에 더해 채도로도
+ * 나타난다.
+ *
+ * 대비는 따지지 않는다 — 아래 문단대로 이 막대는 낭독기에 나가지 않고 같은 값이
+ * 언제나 곁에 글자로 서 있다. 색만으로 뜻을 나르는 자리가 아니다.
+ *
  * ## 낭독기에 내보내지 않는다
  *
  * 같은 값이 언제나 바로 곁에 글자로 서 있다 (`AttributionRow` 는 같은 줄 오른쪽,
@@ -56,7 +73,7 @@ export function DivergingBar({
       <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border" />
       {value !== 0 && (
         <span
-          className={`absolute inset-y-0 rounded-full ${positive ? 'bg-stock-up' : 'bg-stock-down'}`}
+          className={`absolute inset-y-0 rounded-full ${positive ? 'bg-stock-up/80' : 'bg-stock-down/80'}`}
           style={
             positive
               ? { left: '50%', width: `${width}%` }
