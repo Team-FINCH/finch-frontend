@@ -38,9 +38,10 @@ type AiSegmentTextProps = {
  * 둘이다 — 조각이 없을 때의 `text` 폴백과 검정 면용 `onDark`. 둘 다 선택 props 로
  * 두어 브리핑(home)은 이전과 같이 조각만 그린다.
  *
- * **검정 면에서는 등락색을 쓰지 않는다.** `--color-stock-up`(#c93b3b) ·
- * `-down`(#2258c9)은 `--color-ai-surface`(#24272c) 위에서 대비가 3.0 · 2.4 로 AA 에
- * 못 미친다. 그 자리는 design.md §8.1 "AI Accent는 핵심 결과에만" 에 따라
+ * **차콜 면에서는 등락색을 쓰지 않는다.** `--color-stock-up`(#c93b3b) ·
+ * `-down`(#2258c9)은 `--color-ai-surface` 위에서 대비가 2.3 · 1.8 로 AA 에
+ * 못 미친다 (면이 #24272c 이던 때는 3.0 · 2.4 였고, #343a42 로 밝아지며 더 낮아졌다 —
+ * 막던 이유가 더 세졌다). 그 자리는 design.md §8.1 "AI Accent는 핵심 결과에만" 에 따라
  * `--color-ai-accent` 로 강조만 한다. 색만으로 등락을 말하지 않는다는 규약
  * (frontConvention §11)은 `value` 문자열에 부호가 이미 들어 있어 유지된다.
  *
