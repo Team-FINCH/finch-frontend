@@ -178,16 +178,18 @@ export function DepositTransferPage() {
   }
 
   if (phase === 'success' && result !== undefined) {
+    /*
+     * 성공의 출구는 `홈으로` 하나다 (QA 피드백 2026-09-22). 사유는
+     * `DepositCompletePage` 의 같은 자리에 적었다 — 두 화면이 같아야 한다.
+     */
     return (
       <PaymentResultShell>
         <DepositResultScreen
           variant="success"
           amount={result.amount}
           cashBalanceAfter={result.cashBalanceAfter}
-          primaryLabel="매매 시작하기"
-          onPrimaryAction={() => navigate(ROUTES.search, { replace: true })}
-          secondaryLabel="홈으로"
-          onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
+          primaryLabel="홈으로"
+          onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
         />
       </PaymentResultShell>
     );

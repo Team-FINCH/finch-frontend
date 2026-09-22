@@ -205,13 +205,22 @@ export function DepositCompletePage() {
   }
 
   /*
-   * 주 동작 `매매 시작하기`, 보조 `홈으로` 둘이다(`design.md:964`). 주 동작이
-   * 가는 곳은 프로토타입이 홈의 **탐색 탭**(`app-logic.js` `payPrimary` —
-   * `tab:"explore"`)이라고 적었고, 우리 IA 에서 그 탭은 `/search` 다
-   * (`ia.md` §3 하단 탭바 · `BOTTOM_TAB_ROUTES`).
+   * **성공의 출구는 `홈으로` 하나다** (QA 피드백 2026-09-22).
    *
-   * 프로토타입도 성공일 때 주 `매매 시작하기` · 보조 `홈으로` 둘을 둔다
-   * (`payPrimaryLabel`·`paySecondaryLabel` 의 `payResult==="ok"` 갈래).
+   * 전에는 주 `매매 시작하기`(→ `/search`) · 보조 `홈으로` 둘이었다. 근거는 있었다 —
+   * 프로토타입이 성공 갈래에 두 버튼을 두고(`payPrimaryLabel`·`paySecondaryLabel` 의
+   * `payResult==="ok"`) 주 동작이 홈의 **탐색 탭**(`payPrimary` — `tab:"explore"`,
+   * 우리 IA 로는 `/search`)으로 가며, `design.md` §7.18 도 그렇게 적었다.
+   * **입금의 목적이 매매라는 것까지는 맞다.** 그런데 이 화면이 방금 끝낸 일은
+   * 예수금 충전이고, 어느 종목을 살지는 아직 정하지 않았다 — 탐색 탭으로 바로
+   * 미는 것은 사용자가 내리지 않은 결정을 대신 내려 주는 것이다. 홈에도 탭바가
+   * 있어 탐색은 한 번 더 누르면 간다.
+   *
+   * **버튼을 아예 없애지는 않는다.** 이 화면은 `showBack={false}` 이고 탭바도 없어
+   * (`design.md` §7.18 "이 화면에는 탭바도 뒤로가기도 없어 주 동작 하나만 두면
+   * 갇힌다") 버튼이 하나도 없으면 빠져나갈 길이 사라진다. 하나는 남겨야 한다.
+   *
+   * 모의 이체(`DepositTransferPage`)의 성공 갈래도 같이 맞췄다.
    */
   if (phase !== 'success' || result === undefined) {
     return null;
@@ -222,10 +231,8 @@ export function DepositCompletePage() {
         variant="success"
         amount={result.amount}
         cashBalanceAfter={result.cashBalanceAfter}
-        primaryLabel="매매 시작하기"
-        onPrimaryAction={() => navigate(ROUTES.search, { replace: true })}
-        secondaryLabel="홈으로"
-        onSecondaryAction={() => navigate(ROUTES.home, { replace: true })}
+        primaryLabel="홈으로"
+        onPrimaryAction={() => navigate(ROUTES.home, { replace: true })}
       />
     </PaymentResultShell>
   );
