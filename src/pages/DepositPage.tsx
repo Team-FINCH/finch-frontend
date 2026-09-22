@@ -9,7 +9,10 @@ import { DepositLimitBox } from '@/features/deposit/components/DepositLimitBox';
 import { DepositSummaryRow } from '@/features/deposit/components/DepositSummaryRow';
 import { PaymentMethodPicker } from '@/features/deposit/components/PaymentMethodPicker';
 import { depositLimitExceededMessage } from '@/features/deposit/lib/depositErrorMessages';
-import { toSameOriginPath } from '@/features/deposit/lib/queryParams';
+import {
+  toSameOriginPath,
+  withAmountParam,
+} from '@/features/deposit/lib/queryParams';
 import { isHttpError, isSchemaError } from '@/shared/api';
 import { ROUTES } from '@/shared/config/routes';
 import { formatKrw } from '@/shared/lib/formatNumber';
@@ -189,7 +192,13 @@ export function DepositPage() {
             window.location.assign(data.checkoutUrl);
             return;
           }
-          void navigate(path);
+          /*
+           * 우리 화면(계좌이체 승인)으로 갈 때만 금액을 실어 준다. 서버 `checkoutUrl`
+           * 에는 `?paymentId` 뿐이라(C90) 그 화면이 금액을 알 길이 이것뿐이다.
+           * **라우터 `state` 가 아니라 쿼리로 싣는다** — 새로고침하면 `state` 는
+           * 날아가고 금액 카드만 다시 `—` 가 된다. 사유는 `withAmountParam` 에 적었다.
+           */
+          void navigate(withAmountParam(path, data.amount));
         },
       },
     );

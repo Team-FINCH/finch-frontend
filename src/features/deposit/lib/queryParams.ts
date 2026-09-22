@@ -39,3 +39,36 @@ export function toSameOriginPath(checkoutUrl: string): string | null {
     return null;
   }
 }
+
+/**
+ * 우리 화면으로 가는 경로에 입금 금액을 싣는다.
+ *
+ * **계좌이체 승인 화면의 금액 카드가 `—` 로 뜨던 것을 고친다.** 서버
+ * `MockTransferGateway.ready` 는 `checkoutUrl` 에 `?paymentId` 하나만 붙이고
+ * (C90) 그 화면에는 금액을 가져올 다른 계약이 없다 — `GET /deposits/{paymentId}`
+ * 가 없고 `mock-approve` 의 `amount` 는 **승인 뒤에야** 오는데, 금액은 승인 전에
+ * 보여줘야 하는 값이다. `contracts.md` C90 은 "금액을 되찾으려면 서버 변경이
+ * 필요하다"고 닫아 뒀지만 **서버를 고치지 않아도 된다** — `ready` 응답이 이미
+ * `amount` 를 주고, 그 도착지는 우리 라우트라 우리가 라우터로 넘긴다.
+ *
+ * **카카오페이 쪽에는 이 함수를 태우지 않는다.** 그쪽 `checkoutUrl` 은 외부
+ * 주소라 애초에 `toSameOriginPath` 가 `null` 을 돌려주고, 복귀 URL 에는 서버가
+ * `amount` 를 직접 싣는다(C84·C89).
+ *
+ * 이미 `amount` 가 실려 있으면 건드리지 않는다 — 나중에 서버가 싣기 시작하면
+ * **서버 값이 맞다.** 우리 것으로 덮으면 둘이 갈렸을 때 그 사실이 가려진다.
+ */
+export function withAmountParam(path: string, amount: number): string {
+  try {
+    const url = new URL(path, window.location.origin);
+    if (url.searchParams.has('amount')) {
+      return path;
+    }
+    url.searchParams.set('amount', String(amount));
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    // 여기까지 온 값은 `toSameOriginPath` 가 이미 파싱에 성공한 경로다. 그래도
+    // 실패하면 금액 한 줄을 잃는 것이 이동 자체를 잃는 것보다 낫다.
+    return path;
+  }
+}

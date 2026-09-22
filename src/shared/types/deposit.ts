@@ -47,10 +47,21 @@ export type DepositReadyRequest = z.infer<typeof DepositReadyRequestSchema>;
  *
  * **`checkoutUrl` 하나로 이동한다** — 수단을 화면이 구분하지 않는다(ia.md §1).
  * 카카오페이면 카카오 결제창, 계좌이체면 `/deposit/transfer` 모의 이체 화면 주소가 온다.
+ *
+ * **`amount` 를 읽는다.** 서버는 처음부터 이 값을 돌려주고 있었는데(apiSpec §4.2 ·
+ * `DepositReadyRes`) 이 스키마가 두 필드만 집어서 버리고 있었다. 계좌이체의
+ * `checkoutUrl` 에는 금액이 실리지 않아(C90) **모의 이체 화면이 금액을 알 길이 여기
+ * 말고 없다** — 그 화면으로 넘어갈 때 이 값을 실어 보낸다(`withAmountParam`).
+ * 사용자가 입력한 금액을 그대로 쓰지 않는 이유는 **서버가 받아들인 금액이 진실**이기
+ * 때문이다. 둘이 갈릴 일이 없더라도 화면에 적는 숫자는 서버 쪽에서 가져온다.
+ *
+ * `paymentMethod`·`expiresAt` 은 응답에 있지만 읽지 않는다 — 쓰는 자리가 없고,
+ * Zod 는 모르는 키를 그냥 버리므로 계약과 어긋나지 않는다.
  */
 export const DepositReadyResponseSchema = z.object({
   /** 서버 채번이라 숫자다 (apiSpec §4.2 `"paymentId": 77`). 주문의 `orderId` 와 같은 모양이다. */
   paymentId: z.number().int(),
+  amount: KrwAmountSchema,
   checkoutUrl: z.string(),
 });
 export type DepositReadyResponse = z.infer<typeof DepositReadyResponseSchema>;

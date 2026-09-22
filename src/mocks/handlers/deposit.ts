@@ -43,7 +43,7 @@ import { nowKstIso } from '../lib/time';
  * | `ready` `amount > 1,000만` | `409 DEPOSIT_PER_REQUEST_LIMIT_EXCEEDED` |
  * | `ready` 계정 누적 1억 초과 | `409 DEPOSIT_LIMIT_EXCEEDED` |
  * | `ready` `paymentMethod: 'KAKAOPAY'` | `checkoutUrl` 이 **결제 복귀 성공 화면**으로 바로 간다. 이 목은 실제 카카오 결제창을 흉내 내지 않는다 — 승인 성공을 즉시 흉내 낸다 |
- * | `ready` `paymentMethod: 'TRANSFER'` | `checkoutUrl` 이 모의 이체 화면(`/deposit/transfer?paymentId`)으로 간다. **서버와 같이 `amount` 를 싣지 않는다** (계약 C90) |
+ * | `ready` `paymentMethod: 'TRANSFER'` | `checkoutUrl` 이 모의 이체 화면(`/deposit/transfer?paymentId`)으로 간다. **서버와 같이 `amount` 를 싣지 않는다** (계약 C90) — 금액은 응답 본문의 `amount` 로 오고 화면이 이동할 때 쿼리에 붙인다 |
  * | `mock-approve` 모르는 `paymentId` | `404 DEPOSIT_NOT_FOUND` |
  * | `mock-approve` 이미 확정된 결제 | `409 DEPOSIT_INVALID_STATE` |
  * | `mock-approve` `scenario` 로 실패를 예약 | 이 응답 자체는 `200` 이다. 실패는 다음 `confirm` 에서 난다(아래) |
@@ -185,9 +185,11 @@ export const depositHandlers = [
      * 실제 중계에 붙이기 전까지 금액 자리가 빈 모습을 개발 중에 한 번도 볼 수 없다.**
      * 화면이 깨지는 문제가 아니라 볼 수 없는 것이 문제라 목을 서버에 맞춘다.
      *
-     * `DepositTransferPage` 는 `amount` 가 없어도 견디게 이미 쓰여 있다 — 승인에
-     * 쓰는 값이 아니고(확정에 넣는 금액은 `mock-approve` 응답이 준다) 금액 카드
-     * 한 줄만 접힌다.
+     * **금액은 화면이 실어 나른다.** `DepositPage` 가 이 응답의 `amount` 를 받아
+     * 라우터로 넘길 때 `?amount` 를 붙인다(`withAmountParam`). 그래서 목이 서버와
+     * 같이 `?paymentId` 만 줘도 승인 화면의 금액 카드는 채워진다 — **목을 다시
+     * 관대하게 만들어 가리지 않는다.** 이 자리가 서버와 같아야 실제 중계에 붙였을
+     * 때와 같은 흐름을 개발 중에 본다.
      *
      * **`KAKAOPAY` 쪽은 그대로 둔다.** 그쪽 복귀 URL 은 서버가 `?paymentId&
      * paymentKey&amount` 를 싣는 것이 계약이다(C84·C89). 두 수단의 쿼리가 다른
@@ -198,7 +200,12 @@ export const depositHandlers = [
         ? `${ROUTES.depositComplete}?paymentId=${paymentId}&paymentKey=${paymentKey}&amount=${amount}`
         : `${ROUTES.depositTransfer}?paymentId=${paymentId}`;
 
-    return HttpResponse.json({ paymentId, checkoutUrl }, { status: 201 });
+    // `amount` 는 서버도 돌려주는 값이다 (apiSpec §4.2 · `DepositReadyRes`).
+    // 목이 빠뜨리고 있어서 프론트 스키마가 그 필드를 읽지 못했다.
+    return HttpResponse.json(
+      { paymentId, paymentMethod: method, amount, checkoutUrl },
+      { status: 201 },
+    );
   }),
 
   http.post(

@@ -81,11 +81,15 @@ export function DepositTransferPage() {
   const navigate = useNavigate();
   const paymentId = searchParams.get('paymentId');
   /*
-   * 입금 금액은 `checkoutUrl` 의 쿼리로만 온다. **없을 수 있다** — 계약이 정한
-   * 것은 경로뿐이라(C90) 실제 백엔드가 이 값을 실어 주는지 확인을 받지 못했다
-   * (미확정 P38). 없으면 금액 자리를 비우고 나머지는 그대로 그린다. 승인에 쓰는
-   * 값이 아니라서(확정에 넣는 금액은 `mock-approve` 응답이 준다) 없다고 해서 이
-   * 화면이 막히지는 않는다.
+   * 입금 금액은 쿼리로 온다. **서버가 실어 주는 값이 아니다** — `MockTransferGateway`
+   * 는 `checkoutUrl` 에 `?paymentId` 만 붙인다(C90). 이 쿼리는 `DepositPage` 가
+   * `ready` 응답의 `amount` 를 받아 라우터로 넘길 때 직접 붙인 것이다
+   * (`withAmountParam`). 금액 카드가 계속 `—` 로 떴던 것이 이 때문이다.
+   *
+   * **그래도 없을 수 있어서 `null` 을 견딘다** — 이 주소를 붙여넣기로 직접 열거나,
+   * 나중에 서버가 `checkoutUrl` 모양을 바꾸는 경우다. 없으면 금액 자리만 비우고
+   * 나머지는 그대로 그린다. 승인에 쓰는 값이 아니라서(확정에 넣는 금액은
+   * `mock-approve` 응답이 준다) 없다고 해서 이 화면이 막히지는 않는다.
    */
   const amount = parsePositiveIntParam(searchParams.get('amount'));
 
