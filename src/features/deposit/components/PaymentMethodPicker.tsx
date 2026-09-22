@@ -16,6 +16,15 @@ const OPTIONS: { value: PaymentMethod; label: string }[] = [
  * 선택 시 `6px solid var(--t1)`, 아닐 때 `2px solid var(--border2)` 다. 카드는 테두리
  * 색만 바뀐다 — 선택 `var(--t1)`, 아닐 때 `var(--border)` (proto L4112–L4113).
  * 면색은 바꾸지 않는다. 프로토타입의 `.card` 는 늘 `var(--surface)` 다.
+ *
+ * **둘을 한 줄에 나란히 놓는다** (QA 피드백 2026-09-22). 프로토타입은 세로로 쌓지만
+ * (proto L2651–L2658) 항목이 라벨 한 줄뿐이라 카드 두 장이 세로로 100px 넘게 먹고,
+ * 그만큼 아래 `확인` 섹션이 접힌 화면 밖으로 밀린다. **항목이 셋 이상이거나 설명
+ * 줄이 붙으면 이 배치를 되돌려야 한다** — 한 줄에 담기는 것은 수단이 둘이고 라벨이
+ * 넉 자·다섯 자라서다. 375px 기준 카드 하나가 162px 이고, 최소 지원 폭 320px 에서도
+ * `카카오페이` 가 줄바꿈 없이 들어간다.
+ *
+ * 카드 자체의 모양(테두리·점·면색)은 건드리지 않았다. 바뀐 것은 배치뿐이다.
  */
 export function PaymentMethodPicker({
   value,
@@ -26,7 +35,7 @@ export function PaymentMethodPicker({
 }) {
   return (
     <div
-      className="flex flex-col gap-2.5"
+      className="grid grid-cols-2 gap-2.5"
       role="radiogroup"
       aria-label="결제 수단"
     >
@@ -39,7 +48,7 @@ export function PaymentMethodPicker({
             role="radio"
             aria-checked={selected}
             onClick={() => onChange(option.value)}
-            className={`flex items-center gap-3 rounded-sm border bg-surface px-4 py-3.5 text-left transition-colors duration-(--motion-fast) ${
+            className={`flex items-center gap-2.5 rounded-sm border bg-surface px-3.5 py-3.5 text-left transition-colors duration-(--motion-fast) ${
               selected ? 'border-text-primary' : 'border-border'
             }`}
           >
@@ -51,7 +60,7 @@ export function PaymentMethodPicker({
                   : 'border-2 border-border-strong'
               }`}
             />
-            <span className="flex-1 text-body-1 font-medium text-text-primary">
+            <span className="min-w-0 flex-1 text-body-1 font-medium whitespace-nowrap text-text-primary">
               {option.label}
             </span>
           </button>
