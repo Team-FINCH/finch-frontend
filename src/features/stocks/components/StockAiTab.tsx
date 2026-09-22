@@ -103,6 +103,10 @@ import { AnalysisSourceSheet } from './AnalysisSourceSheet';
  * **모양은 그대로 두고 자리만 옮겼다** (FINCH-329, 2026-09-18 사용자 결정).
  * 근거·기준 시각·면책이 본문 맨 아래 캡션 두 줄로 상시 노출되던 것을
  * `AnalysisSourceSheet` 로 접었다 — 기준 시각만 진입 줄이 지고 나머지는 시트 안이다.
+ *
+ * **그 진입 줄이 다시 한 번 올라갔다** (FINCH-332, 2026-09-22 사용자 피드백).
+ * 본문 맨 끝에서 결론 카드 바로 아래로 옮겼다 — 329 가 정한 것은 "한 탭 뒤로
+ * 접는다" 였고 그 판단은 그대로다. 바뀐 것은 진입 줄의 높이뿐이다.
  * §9 가 "표기를 한 모양으로 통일할지는 미확정" 이라고 남겨 둔 쪽은 **이 티켓이
  * 건드리지 않는다.** 여기서 정한 것은 위치뿐이고, 두 문서(§9 · `ia.md` §4)의 위치
  * 서술을 같은 MR 에서 함께 고쳤다.
@@ -402,25 +406,40 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
         )}
       </AiCard>
 
-      {detailEntries.length > 0 && (
-        <AnalysisDetailList entries={detailEntries} />
-      )}
-
       {/*
         근거·기준 시각·면책은 **한 줄 뒤로 접힌다** (FINCH-329). 표기 모양은
-        그대로 캡션 판이다 — 뱃지도 출처 줄 목록도 되살리지 않는다. 바뀐 것은
-        자리뿐이고 근거는 `AnalysisSourceSheet` 주석에 있다.
+        그대로 캡션 판이다 — 뱃지도 출처 줄 목록도 되살리지 않는다.
+
+        **그 줄이 이제 본문 끝이 아니라 결론 카드 바로 아래다**
+        (FINCH-332). 12px 만 띄워 카드에 붙인다 — 이 줄은 독립한 섹션이
+        아니라 위 카드가 말한 결론이 언제 것인지를 밝히는 메타라, 섹션 간격
+        36px 을 주면 남남으로 읽힌다. 사유는 `AnalysisSourceSheet` 주석에 있다.
 
         disclaimer 는 하드코딩하지 않고 응답 값을 그대로 쓴다 — 규제 문구가 바뀌면
         서버만 고치게 하기 위해서다 (envelope.ts 주석).
       */}
       <AnalysisSourceSheet
+        className="mt-3"
         asOfText={asOfText}
         sourceLabels={sourceLabels}
         disclaimer={disclaimer}
       />
 
-      <AiFeedbackRow requestId={requestId} className="mt-5" />
+      {detailEntries.length > 0 && (
+        <AnalysisDetailList entries={detailEntries} />
+      )}
+
+      {/*
+        피드백은 **탭 하단 하나**다 (ia.md:474). 위로 올리지 않는다 — 읽기 전에
+        평가를 묻는 꼴이 되고, `requestId` 하나 = 슬롯 하나 규칙이 걸린 자리다.
+
+        위 여백만 20px → 32px 로 벌렸다 (FINCH-332). 목록의 마지막 줄은
+        아래 구분선이 없고(`last:border-b-0`) 이 줄은 위 구분선이 있어서, 간격이
+        좁으면 그 선이 목록의 다섯째 칸막이처럼 읽힌다. 벌리면 별개 블록이 된다.
+        **`AiFeedbackRow` 자체는 고치지 않는다** — 채팅·수익률 분석과 공유하는
+        `shared/ui` 라 여기서 크기를 키우면 세 곳이 같이 바뀐다.
+      */}
+      <AiFeedbackRow requestId={requestId} className="mt-8" />
     </div>
   );
 }
