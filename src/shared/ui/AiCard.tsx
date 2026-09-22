@@ -102,7 +102,29 @@ export function AiCard({
   // `.aimain`·`.aimeta` 를 span 에 display 를 얹어 쓴다.
   const body = (
     <>
-      <LabelTag className="mb-3.5 flex items-center gap-1.75 text-ai-text-muted">
+      {/*
+       * 라벨 줄은 **흰색**이다 (2026-09-22 QA 피드백 — "소제목이 눈에 안 띈다").
+       * 프로토타입 `.ailb` 는 rgba(255,255,255,.62) 였고 우리도 그 값
+       * (`--color-ai-text-muted`)을 썼는데, 이 줄은 캡션이 아니라 **이 덩어리를
+       * 누가 썼는지 말하는 표식**이라 흐릴 이유가 없었다. 13px 짜리 글자라 62%
+       * 에서는 대비가 5.52 로 기준만 겨우 넘는다.
+       *
+       * **글리프의 이중 감쇠도 이 한 줄이 함께 고친다.** `AiGlyph` 는
+       * `bg-current opacity-72` 라 이 래퍼의 글자색을 물려받는데, 62% 위에 72% 가
+       * 또 곱해져 실효 45% 였다. 프로토타입이 적은 것은 **흰색의 72%** 이고
+       * (`.aihd` 글리프 `opacity:.72`) `design.md` §3 도 "검정 Surface 위에서는
+       * White Symbol 사용" 이라고 못박았다. 래퍼가 흰색이 되면 그 값이 된다.
+       *
+       * **`--color-ai-accent` 를 쓰지 않는다.** 검정 면에서 무언가를 띄우라고
+       * 만든 색이 맞지만 `design.md` §4·§8.1 이 "핵심 결과에만" · "한 카드에 최대
+       * 2~3곳" 으로 범위를 묶어 뒀다. 모든 AI 카드의 라벨에 미리 써 버리면 정작
+       * 강조해야 할 숫자가 나왔을 때 쓸 것이 남지 않는다.
+       *
+       * 헤드라인과 색이 같아져도 위계는 남는다 — 이쪽은 `text-caption` 이고
+       * 헤드라인은 `text-body-1`. 크기와 굵기가 순서를 말한다. 아래 `caption`
+       * (기준 시각·메타)은 muted 그대로다. 그쪽은 정말로 캡션이다.
+       */}
+      <LabelTag className="mb-3.5 flex items-center gap-1.75 text-ai-text-primary">
         <AiGlyph />
         <span className="text-caption font-semibold tracking-[.02em]">
           {label}
