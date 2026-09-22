@@ -30,6 +30,17 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * 넣으면 한 번 눌러야 보이므로 노출이라 하기 어려워서, 진입 줄 자체가 그 값을
  * 진다 — `08.28 09:00 기준 · 분석 기준 및 안내 ›`.
  *
+ * **그 줄을 결론 카드 바로 아래로 올렸다** (FINCH-332, 2026-09-22 사용자
+ * 피드백 — "버튼이 너무 아래에 있어서 안 보인다"). 본문 맨 끝에 있으면 섹션을
+ * 전부 지나야 닿는데, `§2.2` 가 요구하는 것은 **반드시 보이는 것**이지 끝까지
+ * 내려간 사람에게만 보이는 것이 아니다. 기준 시각은 위 카드가 말한 결론이 언제
+ * 것인지를 밝히는 값이라 그 카드에 붙어 있는 편이 뜻도 맞는다 — design.md §8.1
+ * 이 `AiCard` 의 캡션 자리를 "기준 시각·핵심 메타" 로 정해 둔 것과 같은 판단이다.
+ *
+ * **카드 캡션 슬롯에 넣지는 않았다.** 그 자리는 차콜 면 **안**이라 진입 줄이
+ * 검정 위에 갇히고, `AiCard` 주석이 "근거 목록과 피드백은 이 셸의 밖에 온다" 로
+ * 막아 둔 것과 같은 이유가 걸린다. 면 밖 흰 배경에 붙인다.
+ *
  * 형식을 **호출부가 완성해 넘긴다.** 원천이 `filings` 면 날짜까지, `price` 면
  * 시:분까지라 포맷이 갈리는데(`StockAiTab` 의 `asOf` 주석) 그 판정을 두 곳에 두면
  * 진입 줄과 시트 안이 서로 다른 형식으로 보일 수 있다.
@@ -57,12 +68,19 @@ type AnalysisSourceSheetProps = {
   sourceLabels: readonly string[];
   /** 봉투가 늘 실어 주는 면책 문구. 화면이 지어내지 않는다 */
   disclaimer: string;
+  /**
+   * 진입 줄의 바깥 여백. **위 여백을 이 컴포넌트가 갖지 않는다** — 앞에 무엇이
+   * 오는지에 따라 값이 달라지고(결론 카드 아래 12px · 섹션 뒤 36px) 그것을 아는
+   * 쪽은 호출부다. `AiFeedbackRow` 가 같은 규약이다.
+   */
+  className?: string;
 };
 
 export function AnalysisSourceSheet({
   asOfText,
   sourceLabels,
   disclaimer,
+  className = '',
 }: AnalysisSourceSheetProps) {
   const [open, setOpen] = useState(false);
 
@@ -71,7 +89,7 @@ export function AnalysisSourceSheet({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-9 flex w-full items-center justify-between gap-3 py-2 text-left"
+        className={`flex w-full items-center justify-between gap-3 py-2 text-left ${className}`}
       >
         <span className="min-w-0 truncate text-body-2 text-text-secondary">
           {asOfText === null

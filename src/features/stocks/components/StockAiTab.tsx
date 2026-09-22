@@ -24,6 +24,10 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useStockAnalysis } from '../api/useStockAnalysis';
 
+import {
+  AnalysisDetailList,
+  type AnalysisDetailEntry,
+} from './AnalysisDetailList';
 import { AnalysisSourceSheet } from './AnalysisSourceSheet';
 
 /**
@@ -64,6 +68,19 @@ import { AnalysisSourceSheet } from './AnalysisSourceSheet';
  * **지표 표를 만들지 않는다**(ia.md §4 ★). PER·PBR 을 숫자로 나열하는 순간
  * 기획서가 피하려던 화면이 그대로 나온다. 숫자 강조는 `segments` 로만 한다.
  *
+ * ## 그 아래는 이제 평면 섹션이 아니라 접히는 목록이다
+ *
+ * **검정 카드 아래를 `제목 + 문단` 평면 섹션으로 쌓던 것을 `자세히 보기` 목록으로
+ * 접었다** (FINCH-332). §8.3 이 막은 것은 "상세 분석 전체를 하나의 Dark Card
+ * 에 넣는 것" 이고 그 금지는 그대로다 — 상세는 여전히 기본 배경 위에 있고 검정
+ * 면으로 들어가지 않았다. 바뀐 것은 **넷이 동시에 펼쳐져 있던 것**뿐이다.
+ *
+ * 평면 섹션 판의 문제는 위계가 아니라 밀도였다. 넷이 36px 간격으로 전부 펼쳐져
+ * 있어서 375px 첫 화면에 결론과 다음 섹션의 첫 문단이 함께 들어왔고, 그래서 이 탭이
+ * 무엇을 먼저 말하는 화면인지가 화면 자체로 읽히지 않았다. 접으면 순서가
+ * `결론 → 훑기 → 고른 것만 읽기` 가 된다. 접는 규칙과 그 근거는
+ * `AnalysisDetailList` 주석에 있다.
+ *
  * ## 만들지 않은 것
  *
  * `cached`·`cachedAt` 은 항상 `false`/`null` 이라 **캐시 배지를 만들지 않는다.**
@@ -86,6 +103,10 @@ import { AnalysisSourceSheet } from './AnalysisSourceSheet';
  * **모양은 그대로 두고 자리만 옮겼다** (FINCH-329, 2026-09-18 사용자 결정).
  * 근거·기준 시각·면책이 본문 맨 아래 캡션 두 줄로 상시 노출되던 것을
  * `AnalysisSourceSheet` 로 접었다 — 기준 시각만 진입 줄이 지고 나머지는 시트 안이다.
+ *
+ * **그 진입 줄이 다시 한 번 올라갔다** (FINCH-332, 2026-09-22 사용자 피드백).
+ * 본문 맨 끝에서 결론 카드 바로 아래로 옮겼다 — 329 가 정한 것은 "한 탭 뒤로
+ * 접는다" 였고 그 판단은 그대로다. 바뀐 것은 진입 줄의 높이뿐이다.
  * §9 가 "표기를 한 모양으로 통일할지는 미확정" 이라고 남겨 둔 쪽은 **이 티켓이
  * 건드리지 않는다.** 여기서 정한 것은 위치뿐이고, 두 문서(§9 · `ia.md` §4)의 위치
  * 서술을 같은 MR 에서 함께 고쳤다.
@@ -194,44 +215,6 @@ function CurrentSummary({ section }: { section: AiAnalysisSection }) {
         </button>
       )}
     </>
-  );
-}
-
-/**
- * 검정 카드 아래의 평면 섹션 하나 (design.md §8.3 — "기본 Background 위 Flat Section",
- * "모든 Section을 Card로 만들지 않는다", "Section 간 충분한 여백").
- *
- * 위계는 프로토타입 실측이다 — 제목 `.sht`(**18px/700 `--t1`**, 아래 14px) ·
- * 본문 `.b1`(**16px/24 `--t1`**) (새 디코드 L1934·L1052·L1088).
- * 전에는 제목을 14px/600 회색, 본문을 15px 회색으로 뒀는데 그것은 섹션 제목이
- * 아니라 필드 라벨의 위계라 두 단계 낮았다.
- *
- * **섹션 간격은 36px 다** (FINCH-329). 프로토타입 실측은 40px 인데
- * `design.md` §7.6 "간격 체계" 표가 이 탭의 값을 36px 로 적어 두었다 — 그 표가
- * "이 탭은 섹션이 여섯 개라 값이 섞이면 바로 지저분해진다. 아래 값만 쓴다" 로
- * 시작하는 확정값이라 실측보다 문서가 뒤에 왔다. 코드만 40px 로 남아 있었다.
- */
-function AnalysisSectionBlock({
-  section,
-  caption,
-}: {
-  section: AiAnalysisSection;
-  caption?: string;
-}) {
-  const title = section.title ?? null;
-
-  return (
-    <section className="mt-9">
-      {title === null ? null : (
-        <h3 className="mb-3.5 text-section-title text-text-primary">{title}</h3>
-      )}
-      <p className="text-body-1 leading-6 text-pretty text-text-primary">
-        <AiSegmentText segments={section.segments} text={section.text} />
-      </p>
-      {caption === undefined ? null : (
-        <p className="mt-4 text-caption text-text-muted">{caption}</p>
-      )}
-    </section>
   );
 }
 
@@ -373,7 +356,17 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   });
 
   const current = content.sections.current ?? null;
-  const flat = present.filter((entry) => entry.key !== 'current');
+  /*
+    결론(`current`)은 검정 카드가 지고 나머지는 `자세히 보기` 목록으로 간다.
+    캡션은 응답에 없는 시안 문구라 여기서 붙여 넘긴다.
+  */
+  const detailEntries: AnalysisDetailEntry[] = present
+    .filter((entry) => entry.key !== 'current')
+    .map((entry) => ({
+      sectionKey: entry.key,
+      section: entry.section,
+      caption: SECTION_CAPTION[entry.key],
+    }));
 
   const sourceLabels = citationTypeLabels(citations);
 
@@ -413,29 +406,40 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
         )}
       </AiCard>
 
-      {flat.map((entry) => (
-        <AnalysisSectionBlock
-          key={entry.key}
-          section={entry.section}
-          caption={SECTION_CAPTION[entry.key]}
-        />
-      ))}
-
       {/*
         근거·기준 시각·면책은 **한 줄 뒤로 접힌다** (FINCH-329). 표기 모양은
-        그대로 캡션 판이다 — 뱃지도 출처 줄 목록도 되살리지 않는다. 바뀐 것은
-        자리뿐이고 근거는 `AnalysisSourceSheet` 주석에 있다.
+        그대로 캡션 판이다 — 뱃지도 출처 줄 목록도 되살리지 않는다.
+
+        **그 줄이 이제 본문 끝이 아니라 결론 카드 바로 아래다**
+        (FINCH-332). 12px 만 띄워 카드에 붙인다 — 이 줄은 독립한 섹션이
+        아니라 위 카드가 말한 결론이 언제 것인지를 밝히는 메타라, 섹션 간격
+        36px 을 주면 남남으로 읽힌다. 사유는 `AnalysisSourceSheet` 주석에 있다.
 
         disclaimer 는 하드코딩하지 않고 응답 값을 그대로 쓴다 — 규제 문구가 바뀌면
         서버만 고치게 하기 위해서다 (envelope.ts 주석).
       */}
       <AnalysisSourceSheet
+        className="mt-3"
         asOfText={asOfText}
         sourceLabels={sourceLabels}
         disclaimer={disclaimer}
       />
 
-      <AiFeedbackRow requestId={requestId} className="mt-5" />
+      {detailEntries.length > 0 && (
+        <AnalysisDetailList entries={detailEntries} />
+      )}
+
+      {/*
+        피드백은 **탭 하단 하나**다 (ia.md:474). 위로 올리지 않는다 — 읽기 전에
+        평가를 묻는 꼴이 되고, `requestId` 하나 = 슬롯 하나 규칙이 걸린 자리다.
+
+        위 여백만 20px → 32px 로 벌렸다 (FINCH-332). 목록의 마지막 줄은
+        아래 구분선이 없고(`last:border-b-0`) 이 줄은 위 구분선이 있어서, 간격이
+        좁으면 그 선이 목록의 다섯째 칸막이처럼 읽힌다. 벌리면 별개 블록이 된다.
+        **`AiFeedbackRow` 자체는 고치지 않는다** — 채팅·수익률 분석과 공유하는
+        `shared/ui` 라 여기서 크기를 키우면 세 곳이 같이 바뀐다.
+      */}
+      <AiFeedbackRow requestId={requestId} className="mt-8" />
     </div>
   );
 }
