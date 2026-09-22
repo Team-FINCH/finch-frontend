@@ -181,3 +181,72 @@ export function sortByImpact(
  * 때문이다. 둘로 내리면 한쪽 방향만 남는 기간이 생긴다.
  */
 export const CONTRIBUTION_COLLAPSED_COUNT = 3;
+
+// ── 2차 탭 ────────────────────────────────────────────────────────────────────
+/**
+ * 수익률 분석 탭 **안**의 2차 탭 (FINCH-333).
+ *
+ * ## 왜 갈랐는가
+ *
+ * 전에는 `성과 카드 → 수익률 기여 → 종목별 기여 → FINCH 해석` 이 한 줄로 이어져
+ * 있었다. 셋이 답하는 질문이 서로 다른데 세로로 붙어 있어서, **요인 막대와 종목
+ * 막대가 한 화면에 같이 잡혔다.** 둘은 `divergingScale` 을 각자 잡으므로 길이를
+ * 서로 비교하면 안 되는 차트인데(그 함수 주석), 나란히 서 있으면 비교하게 된다.
+ * 탭으로 가르면 그 오독이 구조적으로 막힌다.
+ *
+ * ## 순서가 곧 읽기 깊이다
+ *
+ * `요약`(결론) → `기여 분석`(무엇이) → `종목별`(어느 종목이). 왼쪽일수록 덜
+ * 파고든다. 기본값이 `summary` 인 이유도 이것이다 — 처음 여는 사람은 결론부터
+ * 본다.
+ *
+ * **URL 에 싣지 않는다.** 기간(`period`)과 같은 취급이다. `?tab=` 넷은 화면이
+ * 갈리는 단위라 공유·복귀 대상이지만, 이 셋은 같은 화면을 읽는 깊이라
+ * 주소를 늘릴 값이 아니다 (`usePortfolioTabState` 는 `tab`·`sort` 만 든다).
+ */
+export type CauseView = 'summary' | 'factor' | 'stock';
+
+export const CAUSE_VIEWS: readonly { value: CauseView; label: string }[] = [
+  { value: 'summary', label: '요약' },
+  { value: 'factor', label: '기여 분석' },
+  { value: 'stock', label: '종목별' },
+] as const;
+
+export const DEFAULT_CAUSE_VIEW: CauseView = 'summary';
+
+/**
+ * 탭 버튼과 패널을 `aria-controls` / `aria-labelledby` 로 잇는 id.
+ *
+ * **컴포넌트 파일이 아니라 여기 있다.** `CauseViewTabs.tsx` 에 두면 ESLint
+ * `react-refresh/only-export-components` 가 잡는다 — 컴포넌트 파일이 컴포넌트가
+ * 아닌 것을 함께 내보내면 Fast Refresh 가 모듈 전체를 갈아 끼우면서 상태를
+ * 잃는다. 값 목록(`CAUSE_VIEWS`)이 이미 여기 있으니 짝이 맞는다.
+ *
+ * 한 화면에 이 탭 줄은 하나뿐이라 id 를 고정 문자열로 만든다.
+ */
+export const CAUSE_VIEW_PANEL_ID = 'cause-view-panel';
+
+export function causeViewTabId(view: CauseView): string {
+  return `cause-view-tab-${view}`;
+}
+
+// ── 요약 문구 ─────────────────────────────────────────────────────────────────
+/**
+ * 시장과 견준 한 줄. **`excessReturn` 의 부호를 말로 옮긴 것뿐이다.**
+ *
+ * `ATTRIBUTION_FACTOR_NOTE` 와 같은 선 위에 있다 — 값을 비교하면 누구나 같은 답을
+ * 내므로 AI 에게 묻지 않고, 인과도 말하지 않는다. "시장보다 앞섰다" 까지가
+ * 사실이고 "그래서 잘했다" 부터가 해석이라 그쪽은 아래 FINCH 카드 몫이다.
+ *
+ * 크기를 말하지 않는 이유 — `+0.01%p` 와 `+3.20%p` 에 같은 문장이 붙는다.
+ * 얼마나 앞섰는지는 바로 위 성과 카드의 `시장 대비` 숫자가 이미 말한다.
+ */
+export function resolveExcessNote(excessReturn: number): string {
+  if (excessReturn > 0) {
+    return '시장보다 앞선 기간이에요.';
+  }
+  if (excessReturn < 0) {
+    return '시장에 못 미친 기간이에요.';
+  }
+  return '시장과 같은 수준이었어요.';
+}

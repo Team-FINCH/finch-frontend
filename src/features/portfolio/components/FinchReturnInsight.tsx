@@ -78,16 +78,27 @@ type FinchReturnInsightProps = {
   summary: AiSection | null;
   /** 공시가 붙은 종목들. 바닥 시트에서만 쓴다 */
   rows: readonly AiAttributionRow[];
+  /**
+   * 위 여백은 이 컴포넌트가 갖지 않는다 — 호출부가 정한다 (FINCH-333).
+   * `AiFeedbackRow`·`AnalysisSourceSheet` 와 같은 규약이다. 전에는 `mt-8` 이
+   * 박혀 있었는데, 2차 탭이 생기며 이 카드가 `요약` 패널의 둘째 블록이 되어
+   * 섹션 간격(32px)이 아니라 블록 간격(16px)을 받아야 했다.
+   */
+  className?: string;
 };
 
-export function FinchReturnInsight({ summary, rows }: FinchReturnInsightProps) {
+export function FinchReturnInsight({
+  summary,
+  rows,
+  className = '',
+}: FinchReturnInsightProps) {
   const [detailOpen, setDetailOpen] = useState(false);
 
   const evidenced = rows.filter((row) => row.events.length > 0);
   const hasDetail = summary !== null || evidenced.length > 0;
 
   return (
-    <AiCard label="FINCH가 분석했어요" labelAs="h2" className="mt-8">
+    <AiCard label="FINCH가 분석했어요" labelAs="h2" className={className}>
       <p className="mt-3 line-clamp-3 text-body-2 text-pretty text-ai-text-secondary">
         {summary === null ? (
           '수익률 원인 분석을 준비하지 못했어요.'
