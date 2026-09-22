@@ -2,9 +2,8 @@ import { useState } from 'react';
 
 import { type AiFinding } from '@/shared/types/ai/diagnosis';
 import { type AiSection, type AiSegment } from '@/shared/types/ai/envelope';
-import { AiGlyph } from '@/shared/ui/AiCard';
+import { AiCard } from '@/shared/ui/AiCard';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
-import { Card } from '@/shared/ui/Card';
 
 /**
  * FINCH 진단 카드 (FINCH-325).
@@ -64,16 +63,26 @@ import { Card } from '@/shared/ui/Card';
  * `id` 6종 중 `correlation`·`liquidity`·`macro_exposure` 는 대응하는 시각화가 없어서,
  * `확인된 사항` 섹션을 없앨 때 이 시트가 없으면 화면에서 사라진다.
  *
- * ## 제목 앞에 AI 글리프를 둔다
+ * ## 다시 `AiCard` 다 (2026-09-22)
  *
- * 이 카드가 화면에서 **유일하게 AI 가 쓴 내용**이라 표시가 필요하다. 검정 `AiCard`
- * 를 걷어내면서 그 셸이 달고 있던 글리프도 함께 사라졌고, 흰 카드 셋 중 어느 것이
- * AI 인지 제목 글자만으로는 드러나지 않았다.
+ * 이 카드가 화면에서 **유일하게 AI 가 쓴 내용**이라 표시가 필요하다. 한동안은 흰
+ * `Card` 에 `AiGlyph` 만 얹어 그 표시를 했는데, 같은 앱 안에서 AI 박스가 두 모양
+ * (홈·주문·종목 상세는 차콜 면, 여기만 흰 면)으로 갈려서 **면색이 AI 표식 노릇을
+ * 하지 못했다.** QA 피드백으로 AI 면을 하나로 모으며 이 카드도 셸로 돌아왔다.
  *
- * `AiCard` 가 export 하는 `AiGlyph` 를 그대로 쓴다. `design.md` §3 이 "화면마다 다른
- * AI 아이콘을 임의로 혼용하지 않는다", §8.4 가 "AI Glyph 위치/크기 통일" 이라고
- * 못박아서 이 카드용 아이콘을 새로 만들지 않는다. 브랜드 심볼을 마스크로 깔고
- * `currentColor` 로 칠하는 방식이라 흰 면에서도 그대로 보인다.
+ * **검정을 걷어냈던 이유는 사라지지 않았다.** 아래가 그때 적힌 것이다 — "흰 배경 위
+ * 검정 덩어리는 어떤 위계를 주더라도 가장 먼저 눈에 들어와서, 사용자가 자기 수익률보다
+ * AI 문장을 먼저 읽었다". 그래서 두 가지를 지킨다.
+ *
+ * 1. **자리를 되돌리지 않는다.** 이 카드는 탭 맨 아래 그대로다. 실제로 그 문제를
+ *    푼 것은 면색이 아니라 순서였다
+ * 2. **면이 한 단계 밝아졌다** — `--color-ai-surface` 가 `#24272C` 에서 `#343A42` 로
+ *    올라가 순검정만큼 덩어리지지 않는다 (`styles/index.css` 주석)
+ *
+ * 제목은 `labelAs="h2"` 로 살린다. 같은 탭의 형제 섹션들이 `h2` 라 이 카드만 제목이
+ * 없으면 훑어 읽는 순서에서 빠진다. 아이콘을 새로 만들지 않는 것은 그대로다 —
+ * `design.md` §3 "화면마다 다른 AI 아이콘을 임의로 혼용하지 않는다" · §8.4 "AI Glyph
+ * 위치/크기 통일" 이고, 셸이 그 글리프를 직접 단다.
  *
  * **피드백을 붙이지 않는다.** 프로토타입 실제 UI 에서 피드백이 붙는 자리는 셋뿐이고
  * 이 탭은 그중 하나가 아니다(`ia.md` §4 각주).
@@ -104,12 +113,7 @@ export function FinchInsightCard({ summary, findings }: FinchInsightCardProps) {
   const hasDetail = summary !== null || findings.length > 0;
 
   return (
-    <Card className="mt-8">
-      <h2 className="flex items-center gap-1.75 text-section-title text-text-primary">
-        <AiGlyph />
-        FINCH 진단
-      </h2>
-
+    <AiCard label="FINCH 진단" labelAs="h2" className="mt-8">
       {anchors.length > 0 && (
         <dl className="mt-4 flex gap-8">
           {anchors.map((anchor) => (
@@ -117,10 +121,10 @@ export function FinchInsightCard({ summary, findings }: FinchInsightCardProps) {
               key={anchor.value}
               className="flex min-w-0 flex-col-reverse gap-0.5"
             >
-              <dt className="truncate text-caption text-text-muted">
+              <dt className="truncate text-caption text-ai-text-muted">
                 {anchor.label}
               </dt>
-              <dd className="text-title-3 font-bold text-text-primary tabular-nums">
+              <dd className="text-title-3 font-bold text-ai-text-primary tabular-nums">
                 {anchor.value}
               </dd>
             </div>
@@ -128,7 +132,7 @@ export function FinchInsightCard({ summary, findings }: FinchInsightCardProps) {
         </dl>
       )}
 
-      <p className="mt-4 text-body-2 text-pretty text-text-secondary">
+      <p className="mt-4 text-body-2 text-pretty text-ai-text-secondary">
         {summary?.text ?? '진단 결과를 준비하지 못했어요.'}
       </p>
 
@@ -136,7 +140,7 @@ export function FinchInsightCard({ summary, findings }: FinchInsightCardProps) {
         <button
           type="button"
           onClick={() => setDetailOpen(true)}
-          className="mt-4 text-body-2 font-medium text-text-secondary"
+          className="mt-4 text-body-2 font-medium text-ai-text-secondary"
         >
           진단 자세히 보기 ›
         </button>
@@ -182,7 +186,7 @@ export function FinchInsightCard({ summary, findings }: FinchInsightCardProps) {
           </p>
         </BottomSheet>
       )}
-    </Card>
+    </AiCard>
   );
 }
 
