@@ -1,4 +1,5 @@
 import { type AiAttributionContent } from '@/shared/types/ai/attribution';
+import { Card } from '@/shared/ui/Card';
 
 import {
   ATTRIBUTION_FACTOR_LABEL,
@@ -11,19 +12,31 @@ import {
 } from '../lib/attributionInsight';
 
 import { DivergingBar } from './DivergingBar';
+import { InsightBox } from './InsightBox';
 
 /**
- * "수익률 기여" — 시장·업종·종목 선택 세 축 (FINCH-308).
+ * `기여 분석` 탭의 본문 — 시장·업종·종목 선택 세 축 (FINCH-308 · 333).
  *
- * ## 제목을 줄였다 (FINCH-327)
+ * ## 제목을 지웠다 (FINCH-333)
  *
- * 전에는 `무엇이 수익률을 만들었나요?` 였다. 프로토타입에 없는 우리 copy 라 바꿔도
- * 디자인 원본과 어긋나지 않고, 바로 아래 `종목별 기여` 와 나란히 서서 **요인별 →
- * 종목별** 이라는 두 단이 제목만으로 읽힌다. 질문형은 한 줄을 다 쓰면서 아래
- * 섹션과의 관계를 말해 주지 않았다.
+ * `수익률 기여` 라는 `h2` 가 있었다. 이제 이 블록은 `기여 분석` 탭을 눌러야만
+ * 나오므로 **탭 라벨이 곧 제목이다.** 패널이 `aria-labelledby` 로 탭 버튼을
+ * 가리키고 있어 문서 구조에서도 이름이 빠지지 않는다. 남겨 두면 `기여 분석`
+ * 바로 아래 `수익률 기여` 가 서서 같은 말이 두 줄을 먹는다.
  *
- * 세 요인의 라벨(`시장 영향`·`업종 영향`·`종목 선택`)은 그대로다 —
- * **프로토타입 원문이다.** 코드에서만 줄이면 디자인 원본과 갈린다.
+ * (그 전 이름은 `무엇이 수익률을 만들었나요?` 였다 — 프로토타입에 없는 우리
+ * copy 라 줄여도 디자인 원본과 어긋나지 않았다. 세 요인의 라벨
+ * `시장 영향`·`업종 영향`·`종목 선택` 은 **프로토타입 원문이라 그대로다.**)
+ *
+ * ## 흰 카드 안으로 들어왔다 (FINCH-333)
+ *
+ * 전에는 페이지 배경 위 평면이었다. 그때는 "면을 갖는 것은 성과와 FINCH 해석
+ * 둘뿐" 이라는 판단(FINCH-327)이 맞았다 — 한 화면에 섹션 넷이 세로로
+ * 이어져서 넷 다 카드로 감싸면 카드가 겹겹이 쌓였다.
+ *
+ * **탭이 그 전제를 바꿨다.** 이 탭이 켜지면 화면에 서는 면은 성과 카드와 이
+ * 카드 둘이다. 여전히 둘이고, 대신 이 블록이 어디서 시작해 어디서 끝나는지
+ * 표시가 생겼다.
  *
  * ## 라벨과 값을 붙여 놓는다
  *
@@ -36,10 +49,20 @@ import { DivergingBar } from './DivergingBar';
  * ```
  * 시장 영향                    +0.89%p
  *              │━━━━━━
+ * ───────────────────────────────────  ← --color-divider
+ * 업종 영향                    -0.18%p
  * ```
  *
  * 라벨과 값이 같은 줄 양끝에 서고(`justify-between`) 막대는 그 아래 폭을 다 쓴다.
- * 라벨→값이 한 눈에 이어지고, 막대는 폭이 넓어져 짧은 값도 길이가 드러난다.
+ *
+ * ## 줄 사이에 선을 그었다 (FINCH-333)
+ *
+ * 전에는 `gap-4` 여백뿐이었다. 한 행이 **`라벨/값` 줄 + 막대 줄** 두 층이라
+ * 여백만으로는 "1행의 막대" 와 "2행의 라벨" 사이가 행 안쪽 간격과 비슷해 보여서,
+ * 막대가 위 줄 것인지 아래 줄 것인지 매번 눈으로 다시 묶어야 했다.
+ *
+ * `--color-divider` 다. 카드 테두리(`--color-border`)보다 반톤 진한 값이고
+ * **카드 안에서 내용 덩어리를 가르라고 만든 토큰**이라 이 자리가 그 쓰임이다.
  *
  * ## 단위는 `%p` 다
  *
@@ -64,6 +87,8 @@ import { DivergingBar } from './DivergingBar';
  * 맡기면 차트와 문장이 어긋날 자리가 생긴다. **인과를 말하지 않는다는 것이
  * 이 문장이 지켜야 할 선이다** — "가장 컸다" 까지가 데이터고, "그래서 올랐다" 부터가
  * 해석이라 그쪽은 아래 AI 영역 몫이다.
+ *
+ * FINCH-333 에서 맨 `<p>` 를 `InsightBox` 로 옮겼다. 이유는 그쪽 주석에 있다.
  */
 
 type ReturnAttributionSectionProps = {
@@ -79,10 +104,8 @@ export function ReturnAttributionSection({
   const allZero = values.every((value) => value === 0);
 
   return (
-    <section className="mt-8">
-      <h2 className="text-section-title text-text-primary">수익률 기여</h2>
-
-      <div className="mt-4 flex flex-col gap-4">
+    <Card className="mt-4">
+      <div>
         {ATTRIBUTION_FACTOR_ORDER.map((factor) => (
           <AttributionRow
             key={factor}
@@ -96,14 +119,19 @@ export function ReturnAttributionSection({
 
       {/* 셋이 모두 0 인 기간에는 "가장 컸다" 고 말할 것이 없다. */}
       {!allZero && (
-        <p className="mt-4 text-body-2 text-text-secondary">
+        <InsightBox className="mt-5">
           {ATTRIBUTION_FACTOR_NOTE[mainFactor]}
-        </p>
+        </InsightBox>
       )}
-    </section>
+    </Card>
   );
 }
 
+/**
+ * 요인 한 줄. 위 여백과 구분선을 **자기 자신이** 갖는다 (`first:` 로 첫 줄만 뺀다).
+ * 부모가 `gap` 으로 주면 선과 여백이 따로 놀아 선이 두 행 중 어디에 속하는지
+ * 흐려진다 — `SoftBoxRow` 와 같은 처리다.
+ */
 function AttributionRow({
   factor,
   value,
@@ -116,7 +144,7 @@ function AttributionRow({
   emphasized: boolean;
 }) {
   return (
-    <div>
+    <div className="mt-4 border-t border-divider pt-4 first:mt-0 first:border-t-0 first:pt-0">
       <div className="flex items-baseline justify-between gap-3">
         <span
           className={`min-w-0 truncate text-body-1 ${
