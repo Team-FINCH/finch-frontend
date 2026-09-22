@@ -48,13 +48,25 @@ import { AiSegmentText } from '@/shared/ui/AiSegmentText';
  * 내리지 않은 투자 판단을 화면이 지어내는 것이 된다. 구분은 제목 굵기 · 미리보기
  * 회색 · 줄 사이 구분선으로만 한다.
  *
- * ## 제목이 없는 섹션은 접지 않는다
+ * ## 제목이 없는 섹션도 접는다 — 본문 첫 줄이 그 줄의 이름이다
  *
  * `title` 은 `.nullish()` 이고 실제로 `null` 로 오는 갈래가 있다(목 `035720` 의
- * `attention`). 접는 줄에는 누를 이름이 있어야 하는데 **ia.md:447 이 "섹션 제목을
- * 화면이 짓지 않는다" 로 막아 둔 자리**라 키 이름을 한국어로 옮겨 넣을 수 없다.
- * 그래서 그 섹션만 펼친 채로 같은 목록 안에 둔다 — 순서
- * (`AI_ANALYSIS_SECTION_KEYS`)를 깨지 않으면서 없는 제목을 짓지도 않는다.
+ * `attention`). **ia.md:447 이 "섹션 제목을 화면이 짓지 않는다" 로 막아 둔 자리**라
+ * 키 이름을 한국어로 옮겨 넣을 수 없다.
+ *
+ * 처음에는 그 섹션만 펼친 채 목록 안에 뒀는데 **안 됐다**(2026-09-22 사용자 피드백
+ * — "저거는 그냥 안내멘트인가? 안내멘트같지가 않아"). 제목 달린 줄 셋 사이에
+ * 16px 본문이 셰브런도 구분 표식도 없이 전폭으로 서니, 목록의 한 칸이 아니라
+ * **화면이 끼워 넣은 공지**로 읽혔다. 평면 섹션 판에서는 문단들 사이의 문단이라
+ * 문제가 없던 규칙이 목록 안에서 깨진 것이다.
+ *
+ * 그래서 **제목과 본문의 역할을 한 줄로 합친다.** 접히면 본문 한 줄, 펼치면 본문
+ * 전문이고 셰브런이 함께 선다. 형제 줄과 같은 리듬을 갖고, 없는 제목을 짓지도
+ * 않고, 같은 문장이 두 번 나오지도 않는다 — 제목 있는 줄이 `제목 + 미리보기` 를
+ * 갈라 놓는 자리에서 이 줄은 그 둘이 같은 문장이므로 하나로 선다.
+ *
+ * **굵게 하지 않는다.** 16px/600 은 형제 줄의 제목이 쓰는 무게고, 제목이 아닌
+ * 문장이 그 무게를 입으면 응답에 없는 제목이 생긴 것처럼 보인다. 400 으로 둔다.
  *
  * ## Radix 를 쓰지 않는다
  *
@@ -120,11 +132,34 @@ function DetailRow({ section, caption }: Omit<AnalysisDetailEntry, 'key'>) {
   const panelId = useId();
   const title = section.title ?? null;
 
-  // 제목이 없으면 누를 이름이 없다. 접지 않고 펼친 채 둔다 (위 주석).
+  /*
+    제목이 없으면 본문 첫 줄이 그 줄의 이름을 겸한다 (위 주석). 형제 줄과 달리
+    제목과 본문이 같은 문장이라 패널을 따로 두지 않고 **버튼 안의 문장이 직접
+    풀린다** — 패널로 가르면 접힘에서 보이던 첫 줄이 펼침에서 한 번 더 나온다.
+  */
   if (title === null) {
     return (
-      <li className="border-b border-divider py-3.75 last:border-b-0">
-        <DetailBody section={section} caption={caption} />
+      <li className="border-b border-divider last:border-b-0">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((prev) => !prev)}
+          className="flex w-full items-start gap-2.5 py-3.75 text-left"
+        >
+          <span
+            className={`min-w-0 flex-1 text-body-1 leading-6 text-pretty text-text-primary ${
+              open ? '' : 'line-clamp-1'
+            }`}
+          >
+            <AiSegmentText segments={section.segments} text={section.text} />
+          </span>
+          <span className="flex h-6 w-4 flex-none items-center justify-center">
+            <SectionChevron open={open} />
+          </span>
+        </button>
+        {open && caption !== undefined && (
+          <p className="pb-4 text-caption text-text-muted">{caption}</p>
+        )}
       </li>
     );
   }
