@@ -48,25 +48,30 @@ import { AiSegmentText } from '@/shared/ui/AiSegmentText';
  * 내리지 않은 투자 판단을 화면이 지어내는 것이 된다. 구분은 제목 굵기 · 미리보기
  * 회색 · 줄 사이 구분선으로만 한다.
  *
- * ## 제목이 없는 섹션도 접는다 — 본문 첫 줄이 그 줄의 이름이다
+ * ## 제목이 비면 문서가 적어 둔 서버 값으로 메운다
  *
- * `title` 은 `.nullish()` 이고 실제로 `null` 로 오는 갈래가 있다(목 `035720` 의
- * `attention`). **ia.md:447 이 "섹션 제목을 화면이 짓지 않는다" 로 막아 둔 자리**라
- * 키 이름을 한국어로 옮겨 넣을 수 없다.
+ * `title` 은 스키마상 `.nullish()` 다 — 이 경로가 `response_model_exclude_unset`
+ * 이라 설정되지 않은 필드가 키째로 빠질 수 있다(analysis.ts 주석). 그래서 목이
+ * `035720` 하나에 `attention.title = null` 픽스처를 심어 두었다.
  *
- * 처음에는 그 섹션만 펼친 채 목록 안에 뒀는데 **안 됐다**(2026-09-22 사용자 피드백
- * — "저거는 그냥 안내멘트인가? 안내멘트같지가 않아"). 제목 달린 줄 셋 사이에
- * 16px 본문이 셰브런도 구분 표식도 없이 전폭으로 서니, 목록의 한 칸이 아니라
- * **화면이 끼워 넣은 공지**로 읽혔다. 평면 섹션 판에서는 문단들 사이의 문단이라
- * 문제가 없던 규칙이 목록 안에서 깨진 것이다.
+ * **현실에는 없는 상태다.** ia.md §4 의 섹션 표가 다섯 제목을 열거하고 "위 제목은
+ * **서버가 실제로 보내는 값**이다" 로 못박았고(AI 커밋 `58f9bba` 로 `SECTION_TITLES`
+ * 가 화면 문구에 맞춰졌다), 같은 표의 "`null` 이 되는 조건" 칸은 `attention` 에
+ * **"요청에서 뺐을 때만"** 이라고 적는다. 제목만 비는 갈래가 아니다.
  *
- * 그래서 **제목과 본문의 역할을 한 줄로 합친다.** 접히면 본문 한 줄, 펼치면 본문
- * 전문이고 셰브런이 함께 선다. 형제 줄과 같은 리듬을 갖고, 없는 제목을 짓지도
- * 않고, 같은 문장이 두 번 나오지도 않는다 — 제목 있는 줄이 `제목 + 미리보기` 를
- * 갈라 놓는 자리에서 이 줄은 그 둘이 같은 문장이므로 하나로 선다.
+ * 그 없는 상태를 화면에 정직하게 그렸더니 **제목 달린 줄 셋 사이에 이름 없는 줄
+ * 하나**가 섰다(2026-09-22 사용자 피드백 — "저거는 카테고리 없어? 왜 나왔는지
+ * 모르겠어"). 이름 없는 칸은 사용자에게 "왜 여기 있는지" 를 설명할 길이 없다.
  *
- * **굵게 하지 않는다.** 16px/600 은 형제 줄의 제목이 쓰는 무게고, 제목이 아닌
- * 문장이 그 무게를 입으면 응답에 없는 제목이 생긴 것처럼 보인다. 400 으로 둔다.
+ * 그래서 **ia.md 표의 값을 폴백으로 둔다.** 이것은 ia.md:447 이 막은 "화면이 제목을
+ * 짓는 것" 이 아니다 — 그 금지의 이유는 "키 이름을 한국어로 옮겨 제목으로 쓰면 AI 가
+ * 제목을 바꿀 때 화면이 못 따라간다" 이고, 여기서는 **응답의 `title` 이 언제나
+ * 먼저 이긴다.** 폴백은 서버가 보내지 않기로 한 적 없는 값이 사고로 빠졌을 때만
+ * 쓰이고, 값도 내가 지은 것이 아니라 문서가 서버 값으로 적어 둔 문자열이다.
+ *
+ * **`AI_ANALYSIS_SECTION_KEYS` 전부를 덮는 `Record` 라 제목이 없는 줄이 생기지
+ * 않는다.** 섹션이 늘면 타입이 라벨을 요구한다. 그래서 이름 없는 줄을 위한 갈래를
+ * 따로 두지 않는다.
  *
  * ## Radix 를 쓰지 않는다
  *
@@ -74,6 +79,27 @@ import { AiSegmentText } from '@/shared/ui/AiSegmentText';
  * 여는 줄이 하나뿐인 단순 disclosure 라 `aria-expanded` + `aria-controls` 로
  * 충분하고, 이것 하나 때문에 의존성을 늘리지 않는다.
  */
+
+/**
+ * 제목이 빠졌을 때 쓰는 섹션 이름 (ia.md §4 "3번 슬롯 — 종목 분석은 섹션 7개다"
+ * 표의 `화면 제목 (AI가 보낸 title 그대로)` 열).
+ *
+ * **평상시에는 한 글자도 쓰이지 않는다.** 응답의 `title` 이 늘 먼저다. 문자열을
+ * 여기 적는 이유는 그 값을 화면이 고르기 위해서가 아니라, 서버가 보내기로 한 값이
+ * 사고로 빠졌을 때 이름 없는 줄이 서지 않게 하기 위해서다. **서버가 문구를 바꾸면
+ * 이 표가 아니라 응답이 이긴다.**
+ *
+ * `thesisCheck` 는 표에서 서버(`투자 논지 점검`)와 프로토타입(`나의 투자 기준`)이
+ * 아직 갈리는 값인데(FINCH-219) 이 목록에 없다 — `myImpact` 와 함께 GitLab
+ * 이슈 #92 로 응답에서 빠졌고 `AI_ANALYSIS_SECTION_KEYS` 도 다섯뿐이다.
+ */
+const SECTION_FALLBACK_TITLE: Record<AiAnalysisSectionKey, string> = {
+  current: '현재 상황',
+  changes: '최근 변화',
+  attention: '시장이 주목하는 요인',
+  risks: '확인해볼 위험',
+  nextEvents: '앞으로 확인할 일정',
+};
 
 /**
  * 프로토타입 `.chev` — 문자 글리프가 아니라 두 변만 남긴 정사각을 돌린 것이다.
@@ -98,7 +124,8 @@ function SectionChevron({ open }: { open: boolean }) {
 }
 
 export type AnalysisDetailEntry = {
-  key: AiAnalysisSectionKey;
+  /** 섹션 키. 제목이 빠졌을 때 폴백을 고르는 데 쓴다 */
+  sectionKey: AiAnalysisSectionKey;
   section: AiAnalysisSection;
   /** 섹션 아래 고정 캡션. 응답에 없는 시안 문구라 호출부가 갖는다 */
   caption?: string;
@@ -127,42 +154,11 @@ function DetailBody({
   );
 }
 
-function DetailRow({ section, caption }: Omit<AnalysisDetailEntry, 'key'>) {
+function DetailRow({ sectionKey, section, caption }: AnalysisDetailEntry) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
-  const title = section.title ?? null;
-
-  /*
-    제목이 없으면 본문 첫 줄이 그 줄의 이름을 겸한다 (위 주석). 형제 줄과 달리
-    제목과 본문이 같은 문장이라 패널을 따로 두지 않고 **버튼 안의 문장이 직접
-    풀린다** — 패널로 가르면 접힘에서 보이던 첫 줄이 펼침에서 한 번 더 나온다.
-  */
-  if (title === null) {
-    return (
-      <li className="border-b border-divider last:border-b-0">
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((prev) => !prev)}
-          className="flex w-full items-start gap-2.5 py-3.75 text-left"
-        >
-          <span
-            className={`min-w-0 flex-1 text-body-1 leading-6 text-pretty text-text-primary ${
-              open ? '' : 'line-clamp-1'
-            }`}
-          >
-            <AiSegmentText segments={section.segments} text={section.text} />
-          </span>
-          <span className="flex h-6 w-4 flex-none items-center justify-center">
-            <SectionChevron open={open} />
-          </span>
-        </button>
-        {open && caption !== undefined && (
-          <p className="pb-4 text-caption text-text-muted">{caption}</p>
-        )}
-      </li>
-    );
-  }
+  // 응답의 `title` 이 늘 먼저다. 폴백은 그것이 빠졌을 때만 선다 (위 주석).
+  const title = section.title ?? SECTION_FALLBACK_TITLE[sectionKey];
 
   return (
     <li className="border-b border-divider last:border-b-0">
@@ -220,7 +216,8 @@ export function AnalysisDetailList({
       <ul className="mt-1.5">
         {entries.map((entry) => (
           <DetailRow
-            key={entry.key}
+            key={entry.sectionKey}
+            sectionKey={entry.sectionKey}
             section={entry.section}
             caption={entry.caption}
           />

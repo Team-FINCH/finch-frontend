@@ -363,7 +363,7 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   const detailEntries: AnalysisDetailEntry[] = present
     .filter((entry) => entry.key !== 'current')
     .map((entry) => ({
-      key: entry.key,
+      sectionKey: entry.key,
       section: entry.section,
       caption: SECTION_CAPTION[entry.key],
     }));
