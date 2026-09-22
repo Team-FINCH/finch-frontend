@@ -528,8 +528,13 @@ export function CandleChart({
         /*
           검정 툴팁 (프로토타입 `.xtip`, 새 디코드 L1123·L1771–L1781).
           실측 — `top:0` · `max-width:63%` · 반경 9 · 안쪽 8/10 ·
-          면 `rgba(36,39,44,.95)`(`--color-ai-surface` 가 `#24272C` 로 같은 색이다) ·
-          그림자 `0 4px 14px rgba(31,35,40,.18)` · `pointer-events:none`.
+          면 `rgba(36,39,44,.95)` · 그림자 `0 4px 14px rgba(31,35,40,.18)` ·
+          `pointer-events:none`.
+
+          **`--color-ai-surface` 와 값이 갈렸다.** 한때 둘 다 `#24272C` 였지만
+          2026-09-22 에 AI 면만 `#343A42` 로 올라갔다(QA 피드백). 이 툴팁은 따라가지
+          않는다 — AI 가 말하는 자리가 아니라 차트를 읽는 동안만 떴다 사라지는
+          커서 표시라, 같이 밝히면 캔들 위에서 덜 읽힌다. 값이 같았던 것은 우연이다.
 
           종가는 `--color-tip-up`(`#F08A8A`) · `--color-tip-down`(`#8FB6F5`) 으로
           칠한다 — 프로토타입 `tipTone` 이 종가와 시가를 견줘 가르는 값이다

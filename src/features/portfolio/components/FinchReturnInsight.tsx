@@ -2,25 +2,33 @@ import { useState } from 'react';
 
 import { type AiAttributionRow } from '@/shared/types/ai/attribution';
 import { type AiSection } from '@/shared/types/ai/envelope';
-import { AiGlyph } from '@/shared/ui/AiCard';
+import { AiCard } from '@/shared/ui/AiCard';
 import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
-import { Card } from '@/shared/ui/Card';
 
 /**
  * "FINCH가 분석했어요" — 숫자와 차트를 다 본 뒤에 오는 해석
  * (FINCH-308 에서 자리를 잡고 FINCH-327 에서 문단을 걷었다).
  *
- * ## 검정 카드를 걷어낸 자리다
+ * ## 면이 세 번 바뀐 자리다
  *
- * 전에는 이 자리가 `AiCard`(검정 면 #24272C)였고 화면 **맨 위**에 있었다. 흰 배경
- * 위 검정 덩어리는 어떤 위계를 주더라도 가장 먼저 눈에 들어와서, 사용자가 자기
- * 수익률보다 AI 문장을 먼저 읽었다. 읽기 순서가 뒤집혀 있었다.
+ * 이 카드의 면은 `AiCard`(검정) → `--color-surface-soft` 상자 → 흰 `Card` →
+ * 다시 `AiCard` 로 왔다. 같은 자리를 또 뒤집지 않도록 네 번의 이유를 남긴다.
  *
- * 그래서 **자리를 맨 아래로 내렸고**, 이번에 면을 `--color-surface-soft` 상자에서
- * 흰 `Card` 로 올렸다. 회색 상자는 페이지 배경(#F7F8FA)과 차이가 6 단계밖에 안 나
- * "덜 중요한 안내문" 으로 읽혔는데, 이 카드는 화면에서 **유일하게 AI 가 쓴 내용**
- * 이라 경계는 있어야 한다. AI 진단 탭의 `FinchInsightCard` 와 같은 셸이다.
+ * 1. **검정 `AiCard`, 화면 맨 위** — 흰 배경 위 검정 덩어리는 어떤 위계를 주더라도
+ *    가장 먼저 눈에 들어와서, 사용자가 자기 수익률보다 AI 문장을 먼저 읽었다.
+ *    읽기 순서가 뒤집혀 있었다
+ * 2. **회색 상자, 맨 아래** — 자리를 내려 1번을 풀었다. 그런데 회색 상자는 페이지
+ *    배경(#F7F8FA)과 차이가 6 단계밖에 안 나 "덜 중요한 안내문" 으로 읽혔다
+ * 3. **흰 `Card`** — 경계는 생겼지만 옆의 일반 카드들과 같은 면이라 **이것이 AI 가
+ *    쓴 글이라는 표시가 없어졌다.** 글리프 하나로는 모자랐다
+ * 4. **다시 `AiCard`** (2026-09-22, QA 피드백) — AI 면을 앱 전체에서 하나로 모았다
+ *
+ * **1번의 이유는 아직 유효하고, 그것을 푼 것은 면색이 아니라 순서다.** 이 카드는
+ * 2번에서 내려온 맨 아래 자리 그대로다. 되돌리지 마라. 면도 순검정이 아니라
+ * `#343A42` 로 한 단계 밝아졌다 (`styles/index.css` 의 `--color-ai-surface` 주석).
+ *
+ * AI 진단 탭의 `FinchInsightCard` 와 같은 셸이다 — 둘은 항상 같이 움직인다.
  *
  * ## 큰 숫자를 새로 세우지 않는다
  *
@@ -39,9 +47,14 @@ import { Card } from '@/shared/ui/Card';
  * ## 대신 문장 안에서 숫자를 올린다
  *
  * `summary.segments` 를 `AiSegmentText` 로 순회한다. `direction` 이 찬 조각에만
- * 등락색·`font-semibold`·`tabular-nums` 가 붙어서, **수치를 새로 만들지 않고도**
- * `+2.13%`·`+1.42%`·`-0.31%` 가 문장에서 먼저 잡힌다. 조각을 이어 붙이면 `text` 와
- * 정확히 일치한다는 보장이 있어(contracts C55) 정규식으로 숫자를 찾지 않는다.
+ * 강조·`tabular-nums` 가 붙어서, **수치를 새로 만들지 않고도** `+2.13%`·`+1.42%`·
+ * `-0.31%` 가 문장에서 먼저 잡힌다. 조각을 이어 붙이면 `text` 와 정확히 일치한다는
+ * 보장이 있어(contracts C55) 정규식으로 숫자를 찾지 않는다.
+ *
+ * **카드 안에서는 `onDark` 다.** 차콜 면 위에서 등락색(`#C93B3B`·`#2258C9`)은 대비가
+ * 2.3·1.8 로 읽히지 않아 `--color-ai-accent` 로 강조만 한다(`AiSegmentText` 머리
+ * 주석). 부호가 `value` 문자열에 들어 있어 색 없이도 방향은 남는다. **아래 시트는
+ * 흰 면이라 `onDark` 를 켜지 않는다** — 같은 문장이 두 면에서 다르게 칠해진다.
  *
  * ## 본문은 세 줄에서 끊는다
  *
@@ -74,17 +87,17 @@ export function FinchReturnInsight({ summary, rows }: FinchReturnInsightProps) {
   const hasDetail = summary !== null || evidenced.length > 0;
 
   return (
-    <Card className="mt-8">
-      <h2 className="flex items-center gap-1.75 text-section-title text-text-primary">
-        <AiGlyph />
-        FINCH가 분석했어요
-      </h2>
-
-      <p className="mt-3 line-clamp-3 text-body-2 text-pretty text-text-secondary">
+    <AiCard label="FINCH가 분석했어요" labelAs="h2" className="mt-8">
+      <p className="mt-3 line-clamp-3 text-body-2 text-pretty text-ai-text-secondary">
         {summary === null ? (
           '수익률 원인 분석을 준비하지 못했어요.'
         ) : (
-          <AiSegmentText segments={summary.segments} text={summary.text} />
+          /* 차콜 면 위라 등락색 대신 AI 강조색을 쓴다 — `AiSegmentText` 머리 주석. */
+          <AiSegmentText
+            segments={summary.segments}
+            text={summary.text}
+            onDark
+          />
         )}
       </p>
 
@@ -92,7 +105,7 @@ export function FinchReturnInsight({ summary, rows }: FinchReturnInsightProps) {
         <button
           type="button"
           onClick={() => setDetailOpen(true)}
-          className="mt-4 text-body-2 font-medium text-text-secondary"
+          className="mt-4 text-body-2 font-medium text-ai-text-secondary"
         >
           분석 자세히 보기 ›
         </button>
@@ -150,6 +163,6 @@ export function FinchReturnInsight({ summary, rows }: FinchReturnInsightProps) {
           </div>
         </BottomSheet>
       )}
-    </Card>
+    </AiCard>
   );
 }

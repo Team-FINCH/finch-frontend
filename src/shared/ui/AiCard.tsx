@@ -3,8 +3,14 @@ import { type ReactNode } from 'react';
 /**
  * AI 슬롯의 공용 셸 (design.md §8.1 `AISummary` · §8.4 Common AI Header).
  *
- * 검정 면 위 흰 글자다. 프로토타입 `.ai` 실측 —
+ * 차콜 면 위 흰 글자다. 프로토타입 `.ai` 실측 —
  * `background:#24272C; border:1px solid #24272C; border-radius:16px; padding:18px`.
+ * **면색만 `#343A42` 로 한 단계 올렸다** (2026-09-22 QA 피드백). 사유는
+ * `styles/index.css` 의 `--color-ai-surface` 주석에 적었다.
+ *
+ * **AI 박스는 이 셸 하나다.** 포트폴리오의 `FinchInsightCard`·`FinchReturnInsight`
+ * 가 한동안 흰 `Card` 로 따로 서 있었는데 같은 날 이쪽으로 모았다. AI 가 말하는
+ * 자리를 화면마다 다른 면으로 그리면 사용자가 그것을 표식으로 읽지 못한다.
  *
  * **셸만 공용화한다.** AI 슬롯은 13곳 넘게 반복되지만 본문 구조가 슬롯마다 다르다
  * (분석=위험 목록, 진단=막대, 점검=before/after 그리드, 채팅=말풍선).
@@ -51,6 +57,18 @@ export function AiGlyph() {
 type AiCardProps = {
   /** 기능 라벨. `AI 브리핑` · `AI 진단` · `AI 종목 분석` 등 (design.md §8.4). */
   label: string;
+  /**
+   * 라벨 줄을 제목으로 내보낸다. 기본은 제목이 아니다 — 대부분의 슬롯에서 이
+   * 라벨은 "이 덩어리는 AI 가 썼다" 는 표식이지 문서 구조가 아니다.
+   *
+   * **포트폴리오의 두 카드만 켠다.** 그쪽은 `성과`·`보유 종목` 같은 형제 `h2` 들과
+   * 한 탭에 나란히 서 있어서, 이 카드만 제목이 없으면 훑어 읽는 순서에서 빠진다.
+   * 흰 `Card` + `h2` 였던 것을 이 셸로 옮기며 잃지 않으려고 둔 값이다.
+   *
+   * **`onClick` 과 함께 쓰지 않는다.** 그때 셸이 `button` 으로 나가는데 `button`
+   * 안에는 제목을 넣을 수 없다(phrasing content 만 허용). 켜도 무시한다.
+   */
+  labelAs?: 'h2' | 'h3';
   /** 핵심 결론. 최대 2줄. 줄바꿈은 `\n` 으로 넣는다 (프로토타입이 `pre-line` 이다). */
   headline?: ReactNode;
   /** 하단 캡션. 기준 시각·핵심 메타 최대 2개 (design.md §8.1). */
@@ -68,6 +86,7 @@ type AiCardProps = {
 
 export function AiCard({
   label,
+  labelAs,
   headline,
   caption,
   children,
@@ -75,18 +94,42 @@ export function AiCard({
   className = '',
 }: AiCardProps) {
   const clickable = onClick !== undefined;
+  // 눌리는 카드는 button 이라 제목을 품을 수 없다. 위 `labelAs` 주석 참고.
+  const LabelTag = clickable ? 'span' : (labelAs ?? 'span');
 
   // 안쪽 요소를 전부 span 으로 두는 이유 — 눌리는 카드는 button 으로 나가는데
   // button 안에 section·div 를 넣으면 HTML 이 깨진다. 프로토타입도 같은 이유로
   // `.aimain`·`.aimeta` 를 span 에 display 를 얹어 쓴다.
   const body = (
     <>
-      <span className="mb-3.5 flex items-center gap-1.75 text-ai-text-muted">
+      {/*
+       * 라벨 줄은 **흰색**이다 (2026-09-22 QA 피드백 — "소제목이 눈에 안 띈다").
+       * 프로토타입 `.ailb` 는 rgba(255,255,255,.62) 였고 우리도 그 값
+       * (`--color-ai-text-muted`)을 썼는데, 이 줄은 캡션이 아니라 **이 덩어리를
+       * 누가 썼는지 말하는 표식**이라 흐릴 이유가 없었다. 13px 짜리 글자라 62%
+       * 에서는 대비가 5.52 로 기준만 겨우 넘는다.
+       *
+       * **글리프의 이중 감쇠도 이 한 줄이 함께 고친다.** `AiGlyph` 는
+       * `bg-current opacity-72` 라 이 래퍼의 글자색을 물려받는데, 62% 위에 72% 가
+       * 또 곱해져 실효 45% 였다. 프로토타입이 적은 것은 **흰색의 72%** 이고
+       * (`.aihd` 글리프 `opacity:.72`) `design.md` §3 도 "검정 Surface 위에서는
+       * White Symbol 사용" 이라고 못박았다. 래퍼가 흰색이 되면 그 값이 된다.
+       *
+       * **`--color-ai-accent` 를 쓰지 않는다.** 검정 면에서 무언가를 띄우라고
+       * 만든 색이 맞지만 `design.md` §4·§8.1 이 "핵심 결과에만" · "한 카드에 최대
+       * 2~3곳" 으로 범위를 묶어 뒀다. 모든 AI 카드의 라벨에 미리 써 버리면 정작
+       * 강조해야 할 숫자가 나왔을 때 쓸 것이 남지 않는다.
+       *
+       * 헤드라인과 색이 같아져도 위계는 남는다 — 이쪽은 `text-caption` 이고
+       * 헤드라인은 `text-body-1`. 크기와 굵기가 순서를 말한다. 아래 `caption`
+       * (기준 시각·메타)은 muted 그대로다. 그쪽은 정말로 캡션이다.
+       */}
+      <LabelTag className="mb-3.5 flex items-center gap-1.75 text-ai-text-primary">
         <AiGlyph />
         <span className="text-caption font-semibold tracking-[.02em]">
           {label}
         </span>
-      </span>
+      </LabelTag>
 
       {headline !== undefined && (
         <span className="block text-body-1 font-semibold whitespace-pre-line text-ai-text-primary">
