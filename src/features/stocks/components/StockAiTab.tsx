@@ -24,6 +24,10 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { useStockAnalysis } from '../api/useStockAnalysis';
 
+import {
+  AnalysisDetailList,
+  type AnalysisDetailEntry,
+} from './AnalysisDetailList';
 import { AnalysisSourceSheet } from './AnalysisSourceSheet';
 
 /**
@@ -63,6 +67,19 @@ import { AnalysisSourceSheet } from './AnalysisSourceSheet';
  *
  * **지표 표를 만들지 않는다**(ia.md §4 ★). PER·PBR 을 숫자로 나열하는 순간
  * 기획서가 피하려던 화면이 그대로 나온다. 숫자 강조는 `segments` 로만 한다.
+ *
+ * ## 그 아래는 이제 평면 섹션이 아니라 접히는 목록이다
+ *
+ * **검정 카드 아래를 `제목 + 문단` 평면 섹션으로 쌓던 것을 `자세히 보기` 목록으로
+ * 접었다** (FINCH-332). §8.3 이 막은 것은 "상세 분석 전체를 하나의 Dark Card
+ * 에 넣는 것" 이고 그 금지는 그대로다 — 상세는 여전히 기본 배경 위에 있고 검정
+ * 면으로 들어가지 않았다. 바뀐 것은 **넷이 동시에 펼쳐져 있던 것**뿐이다.
+ *
+ * 평면 섹션 판의 문제는 위계가 아니라 밀도였다. 넷이 36px 간격으로 전부 펼쳐져
+ * 있어서 375px 첫 화면에 결론과 다음 섹션의 첫 문단이 함께 들어왔고, 그래서 이 탭이
+ * 무엇을 먼저 말하는 화면인지가 화면 자체로 읽히지 않았다. 접으면 순서가
+ * `결론 → 훑기 → 고른 것만 읽기` 가 된다. 접는 규칙과 그 근거는
+ * `AnalysisDetailList` 주석에 있다.
  *
  * ## 만들지 않은 것
  *
@@ -194,44 +211,6 @@ function CurrentSummary({ section }: { section: AiAnalysisSection }) {
         </button>
       )}
     </>
-  );
-}
-
-/**
- * 검정 카드 아래의 평면 섹션 하나 (design.md §8.3 — "기본 Background 위 Flat Section",
- * "모든 Section을 Card로 만들지 않는다", "Section 간 충분한 여백").
- *
- * 위계는 프로토타입 실측이다 — 제목 `.sht`(**18px/700 `--t1`**, 아래 14px) ·
- * 본문 `.b1`(**16px/24 `--t1`**) (새 디코드 L1934·L1052·L1088).
- * 전에는 제목을 14px/600 회색, 본문을 15px 회색으로 뒀는데 그것은 섹션 제목이
- * 아니라 필드 라벨의 위계라 두 단계 낮았다.
- *
- * **섹션 간격은 36px 다** (FINCH-329). 프로토타입 실측은 40px 인데
- * `design.md` §7.6 "간격 체계" 표가 이 탭의 값을 36px 로 적어 두었다 — 그 표가
- * "이 탭은 섹션이 여섯 개라 값이 섞이면 바로 지저분해진다. 아래 값만 쓴다" 로
- * 시작하는 확정값이라 실측보다 문서가 뒤에 왔다. 코드만 40px 로 남아 있었다.
- */
-function AnalysisSectionBlock({
-  section,
-  caption,
-}: {
-  section: AiAnalysisSection;
-  caption?: string;
-}) {
-  const title = section.title ?? null;
-
-  return (
-    <section className="mt-9">
-      {title === null ? null : (
-        <h3 className="mb-3.5 text-section-title text-text-primary">{title}</h3>
-      )}
-      <p className="text-body-1 leading-6 text-pretty text-text-primary">
-        <AiSegmentText segments={section.segments} text={section.text} />
-      </p>
-      {caption === undefined ? null : (
-        <p className="mt-4 text-caption text-text-muted">{caption}</p>
-      )}
-    </section>
   );
 }
 
@@ -373,7 +352,17 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
   });
 
   const current = content.sections.current ?? null;
-  const flat = present.filter((entry) => entry.key !== 'current');
+  /*
+    결론(`current`)은 검정 카드가 지고 나머지는 `자세히 보기` 목록으로 간다.
+    캡션은 응답에 없는 시안 문구라 여기서 붙여 넘긴다.
+  */
+  const detailEntries: AnalysisDetailEntry[] = present
+    .filter((entry) => entry.key !== 'current')
+    .map((entry) => ({
+      key: entry.key,
+      section: entry.section,
+      caption: SECTION_CAPTION[entry.key],
+    }));
 
   const sourceLabels = citationTypeLabels(citations);
 
@@ -413,13 +402,9 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
         )}
       </AiCard>
 
-      {flat.map((entry) => (
-        <AnalysisSectionBlock
-          key={entry.key}
-          section={entry.section}
-          caption={SECTION_CAPTION[entry.key]}
-        />
-      ))}
+      {detailEntries.length > 0 && (
+        <AnalysisDetailList entries={detailEntries} />
+      )}
 
       {/*
         근거·기준 시각·면책은 **한 줄 뒤로 접힌다** (FINCH-329). 표기 모양은
