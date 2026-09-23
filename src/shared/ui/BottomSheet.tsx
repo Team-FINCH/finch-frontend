@@ -38,15 +38,41 @@ type BottomSheetProps = {
    */
   title: string;
   hideTitle?: boolean;
+  /**
+   * 보이는 제목의 꾸밈 (FINCH-341). **기본값이 있다** — `Modal` 쪽은 값을
+   * 안 넘기면 아무 꾸밈도 없는데, 시트는 반대로 두었다.
+   *
+   * 그 전에는 `Dialog.Title` 이 클래스 없이 나갔다. Tailwind preflight 가 `h2` 의
+   * 크기·굵기·여백을 전부 지우므로 **제목이 본문과 같은 글자였고 아래 첫 문단에
+   * 붙어 있었다.** 시트 다섯 곳이 전부 그랬다(`hideTitle` 인 주문 결과 시트만
+   * 예외). 한 곳씩 클래스를 넘기게 두면 다섯이 조금씩 다른 제목을 갖게 된다.
+   *
+   * `hideTitle` 이 켜져 있으면 무시된다.
+   */
+  titleClassName?: string;
   children: ReactNode;
   className?: string;
 };
+
+/**
+ * 시트 제목의 기본 꾸밈. **프로토타입에도 design.md 에도 시트 제목 치수가 없어서**
+ * 있는 토큰에서 끌어왔다 — `--text-section-title`(18px/700)은 화면 제목·섹션 제목이
+ * 쓰는 계단이고, 시트는 화면 하나를 덮는 면이라 그 자리에 든다. 새 값을 만들지 않았다.
+ *
+ * 모달 제목(22~28px)보다 한 단 아래다. 모달은 흐름을 끊고 말을 거는 자리라 제목이
+ * 크고, 시트는 보던 화면 위에 얹히는 자리다.
+ *
+ * 아래 12px 은 제목과 첫 문단을 가르는 최소값이다. 시트 다섯 곳의 본문이 전부
+ * 위 여백 없이 시작하므로 이 여백이 없으면 두 줄이 붙는다.
+ */
+const DEFAULT_TITLE_CLASS = 'mb-3 text-section-title text-text-primary';
 
 export function BottomSheet({
   open,
   onOpenChange,
   title,
   hideTitle = false,
+  titleClassName = DEFAULT_TITLE_CLASS,
   children,
   className = '',
 }: BottomSheetProps) {
@@ -77,7 +103,9 @@ export function BottomSheet({
             aria-hidden
             className="mx-auto mt-1.5 mb-3.5 h-1 w-10 flex-none rounded-full bg-border-strong"
           />
-          <Dialog.Title className={hideTitle ? 'sr-only' : undefined}>
+          <Dialog.Title
+            className={hideTitle ? 'sr-only' : `flex-none ${titleClassName}`}
+          >
             {title}
           </Dialog.Title>
           {children}
