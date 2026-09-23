@@ -1170,7 +1170,6 @@ export const aiHandlers = [
           },
           // 숫자 지표만 담긴다. rateSensitivity 처럼 문자열인 지표는 키째로 빠진다 (AI 명세 §7)
           delta: {
-            sectorCount: 21,
             hhi: 0.0523,
             top1Weight: 0.0544,
             top3Weight: 0.02,

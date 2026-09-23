@@ -61,8 +61,12 @@ export type AiOrderPreviewSummaryRow = z.infer<
 
 /**
  * 주문 전후 지표 (AI 명세 §7). 진단의 열두 키 중 `sectorCount` 는 이 응답에
- * 실려 오지 않는다 — `omit` 으로 뺀다 (GitLab #100). 나머지 열 키에
- * `topSectorWeight` 를 더한 **열한 키**이고 `before`·`after` 의 키 구성은 같다.
+ * 실려 오지 않는다 — `omit` 으로 뺀다 (GitLab #100). 나머지 열한 키에
+ * `topSectorWeight` 를 더한 **열두 키**이고 `before`·`after` 의 키 구성은 같다.
+ *
+ * **목(`mocks/handlers/ai.ts`)의 `before`·`after`·`delta` 에서도 이 키를 뺐다.**
+ * 목이 실제 응답에 없는 키를 주고 있어서 개발에서는 파싱이 통과했고, 그래서 이
+ * 버그가 운영에서야 드러났다.
  */
 export const AiOrderPreviewIndicatorsSchema = AiIndicatorsSchema.omit({
   sectorCount: true,
