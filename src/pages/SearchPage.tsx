@@ -5,6 +5,7 @@ import {
   RecentKeywordChips,
   RecentStockList,
   SearchSectionHeader,
+  ServiceStockList,
   StockSearchField,
   StockSearchResultList,
   useDebouncedValue,
@@ -15,6 +16,7 @@ import {
 } from '@/features/stocks';
 import { useDeleteRecentStock } from '@/features/stocks/api/useRecentStocks';
 import { STOCK_SEARCH_MIN_KEYWORD_LENGTH } from '@/shared/config/apiContract';
+import { SERVICE_STOCKS } from '@/shared/config/serviceStocks';
 import { showToast } from '@/shared/hooks/useToastStore';
 import { type StockSummary } from '@/shared/types/stock';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -31,16 +33,27 @@ import { Skeleton } from '@/shared/ui/Skeleton';
  * 프로토타입 `finch-prototype.html` 의 `isSearch` 블록.
  * API: `GET /api/v1/stocks/search?keyword=&size=` (검색) ·
  * `GET /api/v1/stocks/search/recent` · `DELETE /api/v1/stocks/search/recent/{keywordId}` ·
- * `DELETE /api/v1/stocks/search/recent` (최근 검색어) · `GET /api/v1/stocks/recent`.
+ * `DELETE /api/v1/stocks/search/recent` (최근 검색어) · `GET /api/v1/stocks/recent` ·
+ * `GET /api/v1/stocks/prices` (서비스 종목 시세).
  *
  * ## 화면이 갈리는 방식
  *
- * 검색어가 2글자 미만이면 **탐색 상태**(최근 검색어 + 최근 본 종목)를 그리고,
- * 2글자 이상이면 **결과 상태**로 바꾼다. 결과 상태에서는 최근 기록을 감춘다
+ * 검색어가 2글자 미만이면 **탐색 상태**(최근 검색어 + 최근 본 종목 + 서비스 종목)를
+ * 그리고, 2글자 이상이면 **결과 상태**로 바꾼다. 결과 상태에서는 나머지를 전부 감춘다
  * (design.md §336 "검색 결과 상태에서는 랭킹/최근 기록을 숨기고 결과만 표시").
  *
- * 시장 랭킹 섹션은 만들지 않는다. design.md 가 2026-09-07 에 이 절을 걷었고
+ * ## 서비스 종목 절은 랭킹이 아니다 (FINCH-338)
+ *
+ * 앞의 두 묶음은 **사용자의 행동 기록**이라 처음 온 사람에게는 둘 다 비어 있고,
+ * 서비스 종목이 30개로 닫혀 있다는 사실은 화면 어디에도 없었다. 세 번째 묶음이
+ * 그 자리다 — 프론트 상수(`shared/config/serviceStocks.ts`)로 목록을 그리고 시세만
+ * `GET /stocks/prices` 한 번으로 채운다. **백엔드에 새로 만든 것이 없다.**
+ *
+ * **시장 랭킹 섹션은 여전히 만들지 않는다.** design.md 가 2026-09-07 에 그 절을 걷었고
  * 프로토타입 `isSearch` 블록에도 랭킹 마크업이 없다 (`prototype-diff-search.md` E절).
+ * 서비스 종목 절은 순위를 매기지 않고(순위 숫자 없음) 정렬하지 않으며(정본 순서 고정)
+ * 일부를 고르지 않는다(전부). 셋 중 하나라도 어기면 그때부터 랭킹이고, 되살리려면
+ * design.md 절과 `featureSpec` §12 를 함께 고쳐야 한다.
  */
 
 /**
@@ -178,7 +191,7 @@ export function SearchPage() {
               )}
             </section>
 
-            <section className="mt-9 pb-5">
+            <section className="mt-9">
               {/* **`전체 보기` 링크는 일부러 없다 — 되살리지 마라**
                   (FINCH-324, 2026-09-17 사용자 결정).
 
@@ -208,6 +221,33 @@ export function SearchPage() {
                   종목을 둘러보면 여기에 모아둘게요.
                 </p>
               )}
+            </section>
+
+            {/* 서비스 종목 전체. **빈 상태 전용이 아니다 — 최근 본 종목이 있든
+                없든 항상 그린다.** 빈 자리를 메우는 장치로 만들면 종목 하나만
+                봐도 카탈로그가 사라진다. "이 앱에 뭐가 있나" 는 처음 온 사람만의
+                질문이 아니고, 빈 상태 전용은 사람이 딱 한 번 보고 마는 화면을
+                만드는 것이다.
+
+                **머리에 개수를 적는 것이 이 절의 요점이다.** 서비스 종목이 30개로
+                닫혀 있다는 사실이 지금까지 화면 어디에도 없었다 — 검색은 두 글자
+                이상을 요구하고 유니버스 밖 종목은 `STOCK_NOT_FOUND` 인데
+                (FINCH-300) 경계선을 볼 자리가 없었다. 숫자를 코드에 박지 않고
+                목록 길이에서 읽는다(ia.md §7). */}
+            <section className="mt-9 pb-5">
+              <SearchSectionHeader
+                label="서비스 종목"
+                className="mb-1.5"
+                action={
+                  <span className="text-caption text-text-muted">
+                    {SERVICE_STOCKS.length}개
+                  </span>
+                }
+              />
+              <p className="mb-1.5 text-body-2 text-text-secondary">
+                이 앱에서 거래할 수 있는 종목이에요.
+              </p>
+              <ServiceStockList />
             </section>
           </>
         )}

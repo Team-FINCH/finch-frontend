@@ -12,9 +12,10 @@ import {
 import { StockLogo } from './StockLogo';
 
 /**
- * 종목 한 줄. 실제로 쓰는 곳은 셋이다(grep 으로 확인, 2026-09-16) —
+ * 종목 한 줄. 실제로 쓰는 곳은 넷이다(grep 으로 확인, 2026-09-23) —
  * 홈의 내 종목·관심 종목(`HoldingsWatchlistPreview`), 최근 본 종목
- * (`RecentStockList`), 검색 결과(`StockSearchResultList`). 포트폴리오 보유
+ * (`RecentStockList`), 검색 결과(`StockSearchResultList`), 탐색의 서비스 종목
+ * (`ServiceStockList`, FINCH-338). 포트폴리오 보유
  * (`HoldingsTab`)·브리핑 전체(`BriefingFullList`)·알림함(`InboxList`)은 각자
  * 독자 컴포넌트를 쓰고, 시장 랭킹 화면은 `design.md` 가 걷어내 코드에 없다.
  *

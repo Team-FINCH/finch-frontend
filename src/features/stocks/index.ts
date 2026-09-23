@@ -15,6 +15,7 @@ export { ChartPeriodSegment } from './components/ChartPeriodSegment';
 export { RecentKeywordChips } from './components/RecentKeywordChips';
 export { RecentStockList } from './components/RecentStockList';
 export { SearchSectionHeader } from './components/SearchSectionHeader';
+export { ServiceStockList } from './components/ServiceStockList';
 export { StockAiTab } from './components/StockAiTab';
 export { StockChartTab } from './components/StockChartTab';
 export { StockDetailHeader } from './components/StockDetailHeader';
