@@ -383,21 +383,3 @@ export function resolveTopContributors(rows: readonly AiAttributionRow[]): {
     worst: rows.find((row) => row.contribution < 0),
   };
 }
-
-/**
- * 요인 셋을 기여도 절댓값 내림차순으로 (FINCH-333).
- *
- * `요약` 탭의 `초과 성과는 어디서 왔나요?` 가 1위를 크게 세우고 나머지를 작게
- * 깔기 때문에 순서가 필요하다. **`ATTRIBUTION_FACTOR_ORDER`(시장→업종→선택)를
- * 대신하지 않는다** — 그쪽은 `기여 분석` 탭이 쓰는 고정 표시 순서이고, 세 요인을
- * 나란히 견주는 화면에서는 순위로 줄을 세우면 기간마다 행이 움직여 비교가 어렵다.
- * 요약은 반대로 순위가 곧 내용이라 정렬한다.
- */
-export function sortFactorsByImpact(
-  breakdown: AiAttributionContent['breakdown'],
-): readonly { factor: AttributionFactor; value: number }[] {
-  return ATTRIBUTION_FACTOR_ORDER.map((factor) => ({
-    factor,
-    value: breakdown[factor],
-  })).sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
-}

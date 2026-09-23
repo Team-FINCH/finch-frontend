@@ -46,7 +46,7 @@ import { StockContributionSection } from './StockContributionSection';
  *                  시장 +0.89% · 시장보다 +1.24%p · 최근 21거래일 기준
  * [세그먼트]        요약 | 기여 분석 | 종목별
  *   요약  [AI 카드]  ✦ FINCH 분석 → 관련 공시 N건 (없으면 분석 전문 보기)
- *         (면 없음) 시장과 비교 ─ 초과 성과는 어디서 왔나요? ─ 영향을 준 종목
+ *         (면 없음) 시장과 비교 ─ 영향을 준 종목
  *   요인별  (면 없음) 수익률은 이렇게 만들어졌어요 ─ 해석 한 줄
  *                      시장 영향 / 업종 배분 / 종목 선택 ─ 수익률 구성
  *   종목별   (면 없음) 영향이 큰 순 ─ 순위 · 종목 · 기여도 · 막대 · 수익률/비중
@@ -56,9 +56,12 @@ import { StockContributionSection } from './StockContributionSection';
  *
  * ## 요약 탭은 네 질문에 차례로 답한다 (2026-09-23)
  *
- * `성과가 어땠나`(히어로) → `시장보다 잘했나`(비교) → `왜 그랬나`(요인) →
- * `어떤 종목이`(기여) → `해설`(FINCH). 각 블록의 근거는
- * `CauseSummaryPanel` 주석에 있다.
+ * `성과가 어땠나`(히어로) → `시장보다 잘했나`(비교) → `어떤 종목이`(기여) →
+ * `해설`(FINCH). 각 블록의 근거는 `CauseSummaryPanel` 주석에 있다.
+ *
+ * **`왜 그랬나`(요인 셋)는 2026-09-23 에 `요인별` 탭으로 넘어갔다** — 그 블록의
+ * `시장 영향` 이 바로 위 `시장과 비교` 의 `시장` 과 언제나 같은 값이었다
+ * (`breakdown.market = r_b`). 근거는 `CauseSummaryPanel` 주석.
  *
  * **면을 갖는 것은 FINCH 카드 하나다.** 전에는 히어로·요약·FINCH 가 전부 카드라
  * 넷이 비슷한 무게로 서서 어느 것을 먼저 봐야 하는지 표시가 없었다. 지금은 AI 가
@@ -292,7 +295,6 @@ export function CauseTab() {
             */}
               <FinchReturnInsight summary={summary} rows={rows} />
               <CauseSummaryPanel
-                breakdown={breakdown}
                 rows={rows}
                 portfolioReturn={portfolioReturn}
                 benchmarkReturn={benchmarkReturn}

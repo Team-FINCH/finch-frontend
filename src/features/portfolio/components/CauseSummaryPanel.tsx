@@ -1,20 +1,16 @@
-import {
-  type AiAttributionContent,
-  type AiAttributionRow,
-} from '@/shared/types/ai/attribution';
+import { type AiAttributionRow } from '@/shared/types/ai/attribution';
 
 import {
-  ATTRIBUTION_FACTOR_ORDER,
   resolveTopContributors,
   type CauseView,
 } from '../lib/attributionInsight';
 
 import { MarketComparison } from './MarketComparison';
-import { PerformanceDriver } from './PerformanceDriver';
 import { TopContributors } from './TopContributors';
 
 /**
- * `요약` 탭의 본문 — 질문 2·3·4 를 **하나의 리포트**로 잇는다 (FINCH-333).
+ * `요약` 탭의 본문 — 질문 2·4 를 **하나의 리포트**로 잇는다
+ * (FINCH-333 · 345).
  *
  * ## 카드를 걷었다 (2026-09-23)
  *
@@ -32,14 +28,29 @@ import { TopContributors } from './TopContributors';
  *           내 포트폴리오 ████████ +2.13%
  *           시장         ███      +0.89%
  *         ─────────────────────────────────
- *         초과 성과는 어디서 왔나요?
- *           종목 선택 +1.42%p + 막대 셋
- *         ─────────────────────────────────
  *         성과에 영향을 준 종목            전체
  *           SK하이닉스 / 카카오
  *
  * [연한 면] ✦ FINCH 분석
  * ```
+ *
+ * ## 질문 3(`초과 성과는 어디서 왔나요?`)을 걷었다 (FINCH-345)
+ *
+ * 요인 셋(`PerformanceDriver`)이 여기 있었다. 두 가지가 걸렸다.
+ *
+ * **1. 같은 값이 한 화면에 두 번 섰다.** `breakdown.market` 은
+ * `engine-formulas.md` §4.2 가 `r_b` 로 정의한다 — **벤치마크 수익률 그
+ * 자체**다. 바로 위 `시장과 비교` 가 그 값을 `시장 +0.89%` 로 이미 적고 있어서,
+ * 네 줄 아래 `시장 영향 +0.89%p` 가 같은 숫자를 단위만 바꿔 되풀이했다. 우연이
+ * 아니라 항상 같다. FINCH-334 가 세운 «같은 사실을 두 군데에 적지 않는다»
+ * 에 정면으로 걸린다.
+ *
+ * **2. 같은 세 값이 두 탭에서 다른 문법으로 그려졌다.** 여기는 순위대로 한
+ * 방향으로 뻗는 막대였고 `요인별` 탭은 0 을 가운데 둔 발산 막대다. 탭을 오가면
+ * 같은 숫자가 다른 그림으로 나왔다.
+ *
+ * **요인은 `요인별` 탭이 통째로 맡는다.** 이 탭의 «왜 그랬나» 는 맨 위 FINCH
+ * 카드가 문장으로 이미 답하고, 숫자로 된 답은 탭 하나 옆에 있다.
  *
  * **면을 갖는 것은 FINCH 패널 하나**다. 그 하나가 "이건 AI 가 쓴 글" 이라는
  * 표시를 하고, 나머지는 읽는 사람이 위에서 아래로 훑는 하나의 글이 된다.
@@ -59,13 +70,12 @@ import { TopContributors } from './TopContributors';
  *
  * ## 이 파일은 배치만 한다
  *
- * 세 섹션 모두 엔진 값이고(`benchmarkReturn`·`excessReturn` / `breakdown` /
- * `contributors`·`detractors`), 프론트가 하는 계산은 정렬·argmax·막대 폭뿐이다.
+ * 두 섹션 모두 엔진 값이고(`benchmarkReturn`·`excessReturn` /
+ * `contributors`·`detractors`), 프론트가 하는 계산은 정렬·막대 폭뿐이다.
  * 요청·응답·쿼리 키·캐시는 이 티켓에서 한 줄도 바뀌지 않았다.
  */
 
 type CauseSummaryPanelProps = {
-  breakdown: AiAttributionContent['breakdown'];
   /** `sortByImpact()` 가 절댓값 내림차순으로 정렬해 넘긴 목록 */
   rows: readonly AiAttributionRow[];
   portfolioReturn: number;
@@ -79,7 +89,6 @@ const SECTION_CLASS =
   'mt-8 border-t border-border pt-8 first:mt-0 first:border-t-0 first:pt-0';
 
 export function CauseSummaryPanel({
-  breakdown,
   rows,
   portfolioReturn,
   benchmarkReturn,
@@ -87,10 +96,6 @@ export function CauseSummaryPanel({
   onNavigate,
 }: CauseSummaryPanelProps) {
   const { best, worst } = resolveTopContributors(rows);
-  // 셋이 다 0 인 기간에는 "어디서 왔나" 에 답할 것이 없다.
-  const hasBreakdown = ATTRIBUTION_FACTOR_ORDER.some(
-    (factor) => breakdown[factor] !== 0,
-  );
   const hasContributors = best !== undefined || worst !== undefined;
 
   return (
@@ -102,12 +107,6 @@ export function CauseSummaryPanel({
           excessReturn={excessReturn}
         />
       </div>
-
-      {hasBreakdown && (
-        <div className={SECTION_CLASS}>
-          <PerformanceDriver breakdown={breakdown} />
-        </div>
-      )}
 
       {hasContributors && (
         <div className={SECTION_CLASS}>
