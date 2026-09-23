@@ -180,7 +180,7 @@
   --color-ai-surface: #343a42;
   --color-ai-border: #343a42;
 
-  /* 눌린 AI 면 (FINCH-335).
+  /* 눌린 AI 면 (FINCH-333).
 
      눌리는 면에 `active:bg-primary-soft`(#F0F1F3)를 쓰는 것이 이 앱의 관례인데
      (`StockRow` · `HoldingsTab` · `AiCitationList` …) 그 값은 거의 흰색이라

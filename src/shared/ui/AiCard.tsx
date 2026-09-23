@@ -22,7 +22,7 @@ import { type ReactNode } from 'react';
  * 여기서 하지 않는 것 — 근거 목록(citations)과 피드백은 이 셸의 밖, 응답 블록 최하단에
  * 온다 (ia.md §4 · design.md §7.6). 셸 안에 넣으면 검정 면 위에 갇힌다.
  *
- * ## 눌리는 카드에는 눌림 표시가 있다 (FINCH-335)
+ * ## 눌리는 카드에는 눌림 표시가 있다 (FINCH-333)
  *
  * `onClick` 을 받으면 셸이 `button` 으로 나가는데 **눌러도 아무 반응이 없었다.**
  * 이 앱의 다른 눌리는 면은 전부 `active:bg-primary-soft` 를 갖는다
