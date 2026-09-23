@@ -230,27 +230,6 @@ export function causeViewTabId(view: CauseView): string {
   return `cause-view-tab-${view}`;
 }
 
-// ── 요약 문구 ─────────────────────────────────────────────────────────────────
-/**
- * 시장과 견준 한 줄. **`excessReturn` 의 부호를 말로 옮긴 것뿐이다.**
- *
- * `ATTRIBUTION_FACTOR_NOTE` 와 같은 선 위에 있다 — 값을 비교하면 누구나 같은 답을
- * 내므로 AI 에게 묻지 않고, 인과도 말하지 않는다. "시장보다 앞섰다" 까지가
- * 사실이고 "그래서 잘했다" 부터가 해석이라 그쪽은 아래 FINCH 카드 몫이다.
- *
- * 크기를 말하지 않는 이유 — `+0.01%p` 와 `+3.20%p` 에 같은 문장이 붙는다.
- * 얼마나 앞섰는지는 바로 위 성과 카드의 `시장 대비` 숫자가 이미 말한다.
- */
-export function resolveExcessNote(excessReturn: number): string {
-  if (excessReturn > 0) {
-    return '시장보다 앞선 기간이에요.';
-  }
-  if (excessReturn < 0) {
-    return '시장에 못 미친 기간이에요.';
-  }
-  return '시장과 같은 수준이었어요.';
-}
-
 // ── 요약 탭 ───────────────────────────────────────────────────────────────────
 /**
  * 성과를 가장 많이 올린 종목과 가장 많이 깎은 종목 한 쌍 (FINCH-333).

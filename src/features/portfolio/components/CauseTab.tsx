@@ -42,11 +42,11 @@ import { StockContributionSection } from './StockContributionSection';
  *
  * ```
  * 기간 선택         1일 · 1주 · 1개월 · 3개월 · 올해
- * 성과 (면 없음)    이번 기간 수익률 / +2.13% / 시장보다 앞선 기간이에요
- *                  시장 +0.89% · 시장 대비 +1.24%p · 최근 21거래일 기준
+ * 성과 (면 없음)    이번 기간 수익률 / +2.13%
+ *                  시장 +0.89% · 시장보다 +1.24%p · 최근 21거래일 기준
  * [세그먼트]        요약 | 기여 분석 | 종목별
- *   요약  [카드]    시장과 비교 ─ 초과 성과는 어디서 왔나요? ─ 영향을 준 종목
- *         [패널]    ✦ FINCH 한줄 분석
+ *   요약  (면 없음) 시장과 비교 ─ 초과 성과는 어디서 왔나요? ─ 영향을 준 종목
+ *         [패널]    ✦ FINCH 분석
  *   기여 분석 [카드] 시장 영향 / 업종 영향 / 종목 선택 발산 막대 + 인사이트
  *   종목별   [카드] 종목 기여 목록 (기여도 · 기간 수익률 · 막대)
  * 안내 한 줄        09:12 기준 · 분석 기준 및 안내 ›
@@ -88,13 +88,19 @@ import { StockContributionSection } from './StockContributionSection';
  * 기간을 바꾸면 세 탭의 값이 **모두** 바뀌므로 탭보다 상위 축이다. 아래로
  * 내리면 탭마다 기간이 따로 있는 것처럼 보인다.
  *
- * ## 카드는 화면당 하나다
+ * ## `요약` 탭에는 카드가 없다 (2026-09-23)
  *
- * FINCH-327 이 "면을 갖는 것은 성과와 FINCH 해석 둘뿐" 이라고 정했고, 그
+ * FINCH-327 이 "면을 갖는 것은 성과와 FINCH 해석 둘뿐" 이라고 정했을 때
  * 이유는 **넷을 다 카드로 감싸면 카드가 겹겹이 쌓인 대시보드가 된다**는 것이었다.
- * 그 판단은 유효한데 2026-09-23 에 **개수를 더 줄였다** — 히어로가 카드를 벗고
- * FINCH 가 연한 패널로 내려가서, 테두리 있는 흰 카드는 어느 탭에서든 하나다.
- * 상자가 줄어든 만큼 위계는 타이포와 면색이 진다.
+ * 그 방향을 끝까지 밀었다 — 히어로가 카드를 벗고, 분석 세 섹션이 카드를 벗고,
+ * FINCH 는 흰 면 + 1px 로 내려갔다. **`요약` 탭에서 채워진 면은 서브탭 트랙
+ * 하나뿐**이고 나머지는 배경 위 글이다.
+ *
+ * 위계는 상자가 아니라 **타이포와 여백**이 진다 — 36px 수익률 → 18px 섹션 제목 →
+ * 18px 요인 1위 → 16px 종목명 → 13px 캡션, 섹션 사이 32px + 1px 선.
+ *
+ * **`기여 분석`·`종목별` 탭은 아직 카드다.** 이번 지시가 `요약` 범위라 남겨 뒀고,
+ * 세 탭의 결이 갈리므로 같은 처리를 이어서 하는 것이 맞다.
  *
  * ## 계산값과 AI 해석값
  *
@@ -108,7 +114,7 @@ import { StockContributionSection } from './StockContributionSection';
  * | `AnalysisInfoSheet` | 엔진 — `notes` / 봉투 — `citations` · `disclaimer` · `dataAsOf` |
  *
  * 수치는 하나도 프론트가 만들지 않는다. 프론트가 계산하는 것은 **순서와 강조**뿐이다
- * (`sortByImpact` · `resolveMainFactor` · `resolveExcessNote` · 막대 폭).
+ * (`sortByImpact` · `resolveMainFactor` · `sortFactorsByImpact` · 막대 폭).
  * 요청·응답·쿼리 키·캐시는 이 티켓에서 한 줄도 건드리지 않았다.
  *
  * ## 아래 여백을 여기서 주지 않는다
@@ -142,7 +148,7 @@ export function CauseTab() {
         {periodTabs}
         <div className="flex flex-col gap-3 pt-6">
           <Skeleton className="h-28 w-full" />
-          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-9 w-full" />
           <Skeleton className="h-40 w-full" />
         </div>
       </div>
