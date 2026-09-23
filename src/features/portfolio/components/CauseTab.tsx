@@ -47,8 +47,9 @@ import { StockContributionSection } from './StockContributionSection';
  * [세그먼트]        요약 | 기여 분석 | 종목별
  *   요약  [AI 카드]  ✦ FINCH 분석 → 관련 공시 N건 (없으면 분석 전문 보기)
  *         (면 없음) 시장과 비교 ─ 초과 성과는 어디서 왔나요? ─ 영향을 준 종목
- *   기여 분석 [카드] 시장 영향 / 업종 영향 / 종목 선택 발산 막대 + 인사이트
- *   종목별   [카드] 종목 기여 목록 (기여도 · 기간 수익률 · 막대)
+ *   기여 분석 (면 없음) 수익률은 이렇게 만들어졌어요 ─ 누적 워터폴 ─ 최종 수익률
+ *                      시장 움직임 / 업종 배분 / 종목 선택 + 인사이트
+ *   종목별   (면 없음) 영향이 큰 순 ─ 순위 · 종목 · 기여도 · 막대 · 수익률/비중
  * 안내 한 줄        09:12 기준 · 분석 기준 및 안내 ›
  * 피드백
  * ```
@@ -59,9 +60,9 @@ import { StockContributionSection } from './StockContributionSection';
  * `어떤 종목이`(기여) → `해설`(FINCH). 각 블록의 근거는
  * `CauseSummaryPanel` 주석에 있다.
  *
- * **면의 무게가 셋 다 다르다** — 배경(히어로) · 흰 카드(분석) · 연한 회색(해설).
- * 전에는 히어로·요약·FINCH 가 전부 카드라 넷이 비슷한 무게로 서서 어느 것을 먼저
- * 봐야 하는지 표시가 없었다.
+ * **면을 갖는 것은 FINCH 카드 하나다.** 전에는 히어로·요약·FINCH 가 전부 카드라
+ * 넷이 비슷한 무게로 서서 어느 것을 먼저 봐야 하는지 표시가 없었다. 지금은 AI 가
+ * 쓴 덩어리만 차콜이고 나머지는 배경 위 글이다.
  *
  * ## 왜 세로 한 줄을 탭으로 갈랐나 (FINCH-333)
  *
@@ -88,19 +89,19 @@ import { StockContributionSection } from './StockContributionSection';
  * 기간을 바꾸면 세 탭의 값이 **모두** 바뀌므로 탭보다 상위 축이다. 아래로
  * 내리면 탭마다 기간이 따로 있는 것처럼 보인다.
  *
- * ## `요약` 탭에는 카드가 없다 (2026-09-23)
+ * ## 세 탭 모두 카드가 없다 (2026-09-23 · FINCH-341)
  *
  * FINCH-327 이 "면을 갖는 것은 성과와 FINCH 해석 둘뿐" 이라고 정했을 때
  * 이유는 **넷을 다 카드로 감싸면 카드가 겹겹이 쌓인 대시보드가 된다**는 것이었다.
- * 그 방향을 끝까지 밀었다 — 히어로가 카드를 벗고, 분석 세 섹션이 카드를 벗고,
- * FINCH 는 흰 면 + 1px 로 내려갔다. **`요약` 탭에서 채워진 면은 서브탭 트랙
- * 하나뿐**이고 나머지는 배경 위 글이다.
+ * 그 방향을 끝까지 밀었다 — 히어로가 카드를 벗고, 요약 탭의 분석 세 섹션이 카드를
+ * 벗었다. 그때는 `기여 분석`·`종목별` 두 탭만 카드로 남아 **세 탭의 결이
+ * 갈렸고**, 주석에 *"같은 처리를 이어서 하는 것이 맞다"* 로 숙제를 남겨 뒀다.
+ *
+ * **FINCH-341 이 그 숙제를 했다.** 이제 이 화면에서 채워진 면은 서브탭 트랙과
+ * FINCH 차콜 카드 둘뿐이고 나머지는 배경 위 글이다.
  *
  * 위계는 상자가 아니라 **타이포와 여백**이 진다 — 36px 수익률 → 18px 섹션 제목 →
  * 18px 요인 1위 → 16px 종목명 → 13px 캡션, 섹션 사이 32px + 1px 선.
- *
- * **`기여 분석`·`종목별` 탭은 아직 카드다.** 이번 지시가 `요약` 범위라 남겨 뒀고,
- * 세 탭의 결이 갈리므로 같은 처리를 이어서 하는 것이 맞다.
  *
  * ## 계산값과 AI 해석값
  *
@@ -108,7 +109,7 @@ import { StockContributionSection } from './StockContributionSection';
  * | --- | --- |
  * | `PerformanceHero` | 엔진 — `portfolioReturn` · `benchmarkReturn` · `excessReturn` |
  * | `CauseSummaryPanel` | 엔진 — `excessReturn` 의 부호 · `resolveMainFactor` · `sortByImpact[0]` |
- * | `ReturnAttributionSection` | 엔진 — `breakdown` |
+ * | `ReturnAttributionSection` | 엔진 — `breakdown` · `portfolioReturn` |
  * | `StockContributionSection` | 엔진 — `contributors` · `detractors` |
  * | `FinchReturnInsight` | **AI** — `summary` |
  * | `AnalysisInfoSheet` | 엔진 — `notes` / 봉투 — `citations` · `disclaimer` · `dataAsOf` |
@@ -262,7 +263,12 @@ export function CauseTab() {
         )}
 
         {view === 'factor' && (
-          <ReturnAttributionSection breakdown={breakdown} />
+          <ReturnAttributionSection
+            breakdown={breakdown}
+            /* 워터폴의 도착점이다. 세 요인을 더한 값이 아니라 응답 값을 그대로
+               넘긴다 — 근거는 `AttributionWaterfall` 주석. */
+            portfolioReturn={portfolioReturn}
+          />
         )}
 
         {view === 'stock' && <StockContributionSection rows={rows} />}
