@@ -22,6 +22,17 @@ import { type ReactNode } from 'react';
  * 여기서 하지 않는 것 — 근거 목록(citations)과 피드백은 이 셸의 밖, 응답 블록 최하단에
  * 온다 (ia.md §4 · design.md §7.6). 셸 안에 넣으면 검정 면 위에 갇힌다.
  *
+ * ## 눌리는 카드에는 눌림 표시가 있다 (FINCH-335)
+ *
+ * `onClick` 을 받으면 셸이 `button` 으로 나가는데 **눌러도 아무 반응이 없었다.**
+ * 이 앱의 다른 눌리는 면은 전부 `active:bg-primary-soft` 를 갖는다
+ * (`StockRow` · `HoldingsTab` · `AiCitationList` · `PortfolioRiskSummary` …).
+ * 차콜 면에서 그 값(거의 흰색)을 쓸 수 없어서 빠져 있었던 것이고,
+ * `--color-ai-surface-pressed` 를 두어 메웠다.
+ *
+ * **지금 `onClick` 을 넘기는 슬롯은 홈 브리핑 하나다.** 나머지 열둘은 `section`
+ * 으로 나가므로 이 변경이 닿지 않는다.
+ *
  * design.md §8.1 이 금지한 것을 셸이 만들 수 없게 두었다 — Divider 없음,
  * Bullet List 없음, Full-width Button 없음. 본문 슬롯이 그 규칙을 지킬 몫은 남는다.
  */
@@ -135,8 +146,26 @@ export function AiCard({
       </LabelTag>
 
       {headline !== undefined && (
-        <span className="block text-body-1 font-semibold whitespace-pre-line text-ai-text-primary">
-          {headline}
+        <span className="flex items-start gap-3">
+          <span className="min-w-0 flex-1 text-body-1 font-semibold whitespace-pre-line text-ai-text-primary">
+            {headline}
+          </span>
+          {/*
+            셰브런은 눌리는 카드에만, 그리고 **캡션이 없을 때만** 여기 온다.
+            캡션이 있으면 그 줄 오른쪽 끝이 원래 자리다(아래) — 한 카드에 둘을
+            그리면 화살표가 둘이 된다.
+
+            `leading-6` 은 헤드라인(`--text-body-1`, 24px 행간)과 같은 값이다.
+            `items-start` 라 헤드라인이 두 줄로 넘어가도 화살표는 첫 줄에 남는다.
+          */}
+          {clickable && caption === undefined && (
+            <span
+              aria-hidden="true"
+              className="flex-none text-body-2 leading-6 text-ai-text-muted"
+            >
+              ›
+            </span>
+          )}
         </span>
       )}
 
@@ -155,7 +184,12 @@ export function AiCard({
     </>
   );
 
-  const shell = `block w-full rounded-ai border border-ai-border bg-ai-surface p-4.5 text-left ${className}`;
+  // 눌리는 카드만 눌림 표시를 갖는다. `section` 으로 나가는 카드에 `active:` 를
+  // 붙이면 아무 일도 없는 면이 눌린 것처럼 반응한다.
+  const pressable = clickable
+    ? 'transition-colors duration-(--motion-fast) ease-standard active:bg-ai-surface-pressed'
+    : '';
+  const shell = `block w-full rounded-ai border border-ai-border bg-ai-surface p-4.5 text-left ${pressable} ${className}`;
 
   if (clickable) {
     return (
