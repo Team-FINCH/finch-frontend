@@ -109,10 +109,20 @@ export function ReturnAttributionSection({
         <AttributionGuideSheet />
       </div>
 
-      {/* 이 탭에서 산문은 이 한 줄뿐이다. 제목과 같은 18/700 인 이유는 위가
-          이 화면이 무엇인지 말하는 틀이고 이 줄이 그 틀에 대한 답이라서다 —
-          한 단 내리면 답이 캡션이 된다. */}
-      <p className="mt-4 text-section-title text-pretty break-keep text-text-primary">
+      {/* 이 탭에서 산문은 이 한 줄뿐이다.
+
+          **제목보다 가볍다** (FINCH-345). 한때 제목과 같은 18/700 primary
+          였는데, 그러면 두 줄짜리 문장이 화면에서 가장 무거운 덩어리가 되어
+          제목을 덮었다(사용자 지적). 지금은 16/600 secondary 다 — 제목(18/700
+          primary)보다 크기·굵기·색이 모두 한 단 아래고, 아래 요인 라벨(16/500·600)
+          보다는 굵어서 그 사이에 선다.
+
+          **그래프를 보기 전에 한 번 읽는 줄**이지 결론을 대신하는 줄이 아니다.
+          줄 높이는 `--text-body-1` 이 24/16 = 1.5 로 이미 갖고 있다.
+
+          `text-pretty break-keep` 이 두 줄로 떨어질 때 마지막 줄에 한 단어만
+          남는 것과 단어 중간에서 끊기는 것을 막는다. */}
+      <p className="mt-4 text-body-1 font-semibold text-pretty break-keep text-text-secondary">
         {resolveAttributionVerdict(breakdown)}
       </p>
 
