@@ -60,10 +60,13 @@ export type AiOrderPreviewSummaryRow = z.infer<
 >;
 
 /**
- * 주문 전후 지표 (AI 명세 §7). 진단의 열한 키에 `topSectorWeight` 를 더한 **열두 키**이고
- * `before`·`after` 의 키 구성은 같다.
+ * 주문 전후 지표 (AI 명세 §7). 진단의 열두 키 중 `sectorCount` 는 이 응답에
+ * 실려 오지 않는다 — `omit` 으로 뺀다 (GitLab #100). 나머지 열 키에
+ * `topSectorWeight` 를 더한 **열한 키**이고 `before`·`after` 의 키 구성은 같다.
  */
-export const AiOrderPreviewIndicatorsSchema = AiIndicatorsSchema.extend({
+export const AiOrderPreviewIndicatorsSchema = AiIndicatorsSchema.omit({
+  sectorCount: true,
+}).extend({
   topSectorWeight: RatioSchema.nullable(),
 });
 export type AiOrderPreviewIndicators = z.infer<

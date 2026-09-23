@@ -1141,7 +1141,6 @@ export const aiHandlers = [
           feasible,
           shortfall: feasible ? null : ordersValue - store.cashBalance,
           before: {
-            sectorCount: 3,
             hhi: 0.3421,
             top1Weight: 0.4168,
             top3Weight: 0.9312,
@@ -1156,7 +1155,6 @@ export const aiHandlers = [
             topSectorWeight: 0.624,
           },
           after: {
-            sectorCount: 2,
             hhi: 0.3944,
             top1Weight: 0.4712,
             top3Weight: 0.9512,
