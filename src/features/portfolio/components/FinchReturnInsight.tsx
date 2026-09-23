@@ -100,7 +100,7 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  *
  * - **등락색이 다시 금색 하나로 합쳐진다.** 아래 «`onDark`» 절 참고. 밝은 면에서
  *   오름 적색·내림 청색으로 갈리던 문장이 차콜에서는 전부 `--ai-accent` 다
- * - **본문과 `분석 자세히 보기` 시트의 색이 다시 갈린다.** 시트는 흰 면이라
+ * - **본문과 아래 시트의 색이 다시 갈린다.** 시트는 흰 면이라
  *   등락색 그대로다. 6번이 덤으로 얻었던 "두 면이 같은 색" 은 잃는다
  *
  * 둘 다 차콜 면의 대비 제약(등락색 2.3·1.8)에서 오는 것이라 면을 검정으로 두는
@@ -120,7 +120,7 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * 한 줄 사라지는데, 이번 지시는 색에 대한 것이고 높이를 줄여 달라는 말이 아니었다.
  * 카드가 무겁게 느껴지면 그때 두 줄로 내린다 — `line-clamp-3` 한 곳만 고치면 된다.
  *
- * 잘린 뒷부분은 `분석 자세히 보기` 시트 맨 위에 전문으로 있다. **자료를 버리는
+ * 잘린 뒷부분은 시트 맨 위에 전문으로 있다. **자료를 버리는
  * 것이 아니라 접는 것이다.**
  *
  * ## `onDark` — 껐다가 7번에서 다시 켰다
@@ -143,10 +143,27 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  *
  * ## 공시는 여기로 모인다
  *
- * 종목 행에서 뺀 공시 제목이 `분석 자세히 보기` 시트에 있다. 근거 목록
- * (`citations`)은 본문 맨 아래 `분석 기준 및 안내` 로 갔다 — 그쪽은 "이 숫자를
- * 어디서 가져왔나" 를 모아 둔 자리고, 여기는 "FINCH 가 무엇을 읽고 그렇게
- * 말했나" 다.
+ * 종목 행에서 뺀 공시 제목이 이 시트에 있다. 근거 목록(`citations`)은 본문 맨 아래
+ * `분석 기준 및 안내` 로 갔다 — 그쪽은 "이 숫자를 어디서 가져왔나" 를 모아 둔
+ * 자리고, 여기는 "FINCH 가 무엇을 읽고 그렇게 말했나" 다.
+ *
+ * ## 시트를 여는 글자가 내용을 따라간다 (FINCH-341)
+ *
+ * `분석 자세히 보기 →` 하나였다. **그 이름이 틀린 것을 약속했다** — 눌러서 나오는
+ * 것 중 카드에 없는 것은 공시 목록 하나뿐이고, 문장은 대개 카드에 이미 다 보인다.
+ * 눌러 보면 방금 읽은 문장이 그대로 있고 새것은 그 아래에 있다.
+ *
+ * | 공시 | 글자 |
+ * | --- | --- |
+ * | 1건 이상 | `관련 공시 N건 →` |
+ * | 0건 | `분석 전문 보기 →` |
+ *
+ * **세는 것은 종목이 아니라 공시다.** 한 종목에 공시가 둘이면 `2건` 이다.
+ *
+ * **0건일 때 버튼을 감추지는 않았다.** `summary` 는 2~4문장이라 긴 응답에서는
+ * 세 줄 클램프에 걸리고, 그때 전문을 볼 자리가 여기밖에 없다. 문장이 실제로
+ * 잘렸는지 재서(`scrollHeight > clientHeight`, `StockAiTab` 에 선례가 있다)
+ * 잘리지도 않고 공시도 없을 때만 감추는 것이 정확하지만, 그것은 별건이다.
  */
 
 type FinchReturnInsightProps = {
@@ -167,6 +184,8 @@ export function FinchReturnInsight({
 
   const evidenced = rows.filter((row) => row.events.length > 0);
   const hasDetail = summary !== null || evidenced.length > 0;
+  // 종목 수가 아니라 공시 수다. 라벨이 `공시 N건` 이라 세는 대상이 공시여야 한다.
+  const eventCount = evidenced.reduce((sum, row) => sum + row.events.length, 0);
 
   return (
     /* 셸은 공용 `AiCard` 다 — 라벨 줄(글리프 + `FINCH 분석`)·면색·반경·여백이
@@ -196,7 +215,7 @@ export function FinchReturnInsight({
           onClick={() => setDetailOpen(true)}
           className="mt-2.5 text-caption font-semibold text-ai-text-primary"
         >
-          분석 자세히 보기 →
+          {eventCount > 0 ? `관련 공시 ${eventCount}건 →` : '분석 전문 보기 →'}
         </button>
       )}
 
