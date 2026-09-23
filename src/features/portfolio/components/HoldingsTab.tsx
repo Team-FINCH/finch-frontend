@@ -137,9 +137,11 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
           {formatSignedAmountWithRate(totalProfit, totalProfitRate)}
         </span>
       </div>
+      {/* 금액과 버튼이 섞인 줄이라 `items-center` 다 — `items-baseline` 이면
+          버튼 면이 숫자의 밑선에 걸려 위로 삐져나간다. */}
       <div className="mt-3 flex items-center justify-between gap-3">
         <span className="text-body-2 text-text-secondary">예수금</span>
-        <span className="flex items-baseline gap-3">
+        <span className="flex items-center gap-2.5">
           <span className="text-body-1 font-medium text-text-primary tabular-nums">
             {formatAmount(cashBalance)} 원
           </span>
@@ -148,12 +150,28 @@ export function HoldingsTab({ sort, onSortChange }: HoldingsTabProps) {
             (proto L2170)과 `design.md` L610 이 같이 요구한다. 프로토타입
             재내보내기(커밋 `99c6c71`)에서 문구가 `충전하기` → `입금하기` 로
             바뀌었다(이슈 #45).
+
+            **버튼 면을 입혔다** (2026-09-23). 전에는 `text-caption font-semibold
+            text-text-secondary` 맨 글자라 왼쪽 금액과 같은 층에 서 있었고,
+            **누를 수 있다는 표시가 없었다** — 금액 뒤에 붙은 설명처럼 읽혔다.
+
+            모양은 홈 빈 상태의 `입금하기`(`TotalAssetsSummary`)를 그대로 가져왔다.
+            **같은 화면 이동을 시키는 같은 버튼이라 같아야 한다** — 새 크기나
+            새 면색을 만들 이유가 없다.
+
+            높이 34px 은 design.md §15 의 최소 터치 44px 에 못 미치지만, 이 앱의
+            인라인 칩이 전부 그 계단에 있다(`AiFeedbackRow` 30px ·
+            `ChatContextSuggestionChips` 32px). 여기만 44px 로 올리면 한 화면에
+            칩 크기가 둘이 된다 — 올리려면 셋을 같이 올리는 별도 건이다.
           */}
           <Link
             to={ROUTES.deposit}
-            className="flex-none text-caption font-semibold text-text-secondary"
+            className="-my-1 inline-flex h-8.5 flex-none items-center gap-1.5 rounded-12 bg-primary-soft pr-3 pl-3.5 text-label font-medium text-text-secondary transition-colors duration-(--motion-fast) ease-standard active:bg-disabled-surface"
           >
             입금하기
+            <span aria-hidden="true" className="text-text-muted">
+              ›
+            </span>
           </Link>
         </span>
       </div>

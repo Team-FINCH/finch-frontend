@@ -110,7 +110,8 @@ export function TotalAssetsSummary({
           </p>
           <Link
             to={ROUTES.deposit}
-            className="inline-flex h-8.5 flex-none items-center gap-1.5 rounded-12 bg-primary-soft pr-3 pl-3.5 text-label font-medium text-text-secondary"
+            /* 보유 탭의 `입금하기` 와 같은 버튼이다 — 한쪽만 고치지 않는다. */
+            className="inline-flex h-8.5 flex-none items-center gap-1.5 rounded-12 bg-primary-soft pr-3 pl-3.5 text-label font-medium text-text-secondary transition-colors duration-(--motion-fast) ease-standard active:bg-disabled-surface"
           >
             입금하기
             <span aria-hidden="true" className="text-text-muted">
