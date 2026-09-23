@@ -618,7 +618,7 @@ react-router(`^7.18.2`, `package.json`)의 `useNavigate`가 돌려주는 `naviga
 
 **토큰의 값은 [`src/styles/index.css`](../src/styles/index.css) 한 곳에만 있다.**
 이 문서는 값을 적지 않는다. 두 곳에 적으면 어긋날 때 어느 쪽이 진실인지 다투게 된다.
-**값의 1차 근거는 Finch Design Guide [`design.md`](./design.md)(v2, 2026-09-03)다.**
+**값의 1차 근거는 FINCH Design Guide [`design.md`](./design.md)(v2, 2026-09-03)다.**
 2차 근거는 화면 프로토타입 [`prototype/screen/finch-prototype.html`](../../prototype/screen/finch-prototype.html)의 `:root`와 클래스 층이다.
 `design.md`가 값을 적지 않은 자리 — 반경, 그림자, 검정 AI 면 위 글자색 — 는 프로토타입에서 실측해 채운다.
 두 근거가 어긋나는 자리는 토큰 파일 주석에 둘 다 적고 디자인 확인이 필요하다고 표시한다.

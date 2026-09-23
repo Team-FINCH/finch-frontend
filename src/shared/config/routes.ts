@@ -74,7 +74,7 @@ export const ROUTES = {
   depositTransfer: '/deposit/transfer',
   chat: '/chat',
   /**
-   * 알림함 — Finch 가 물어다 놓는 것 열람. **경로 미확정** (ia.md §1·§7).
+   * 알림함 — FINCH 가 물어다 놓는 것 열람. **경로 미확정** (ia.md §1·§7).
    * 경로 `/inbox` 와 키 `inbox` 는 프론트가 제안한 값이고 팀 확인을 받지 않았다.
    * **프로토타입(`finch-prototype.html`) 내부 식별자는 여전히 `isMail`·`goMail` 이다** —
    * 라우트 이름만 `/inbox` 로 옮겼으므로 프로토타입을 보고 `/mail` 로 되돌리지 않는다.

@@ -5,7 +5,7 @@ import { PageMain } from '@/shared/ui/PageMain';
 import { SubPageHeader } from '@/shared/ui/SubPageHeader';
 
 /**
- * 알림함 — Finch 가 물어다 놓는 것 열람: 적어야 할 것(`record`, 매수 이유 기록 요청) ·
+ * 알림함 — FINCH 가 물어다 놓는 것 열람: 적어야 할 것(`record`, 매수 이유 기록 요청) ·
  * 확인해야 할 것(`wiki`, AI 추측 확인) · 읽을 것(`news`, 그 종목의 소식).
  * **화면 경로는 미확정** — `/inbox` 는 프론트가 제안한 값이고 팀 확인을 받지 않았다
  * (`ia.md` §1 "AI" 절). API 경로가 `/api/v1/inbox` 로 확정된 것과는 별개다.
