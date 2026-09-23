@@ -3,41 +3,61 @@ import {
   type AiIndicators,
   type AiRiskLevel,
 } from '@/shared/types/ai/diagnosis';
-import { Card } from '@/shared/ui/Card';
 
-import { METRIC_FINDING_ID, type RiskGrade, gradeOf } from '../lib/riskGrade';
+import { METRIC_FINDING_ID, gradeOf, type RiskGrade } from '../lib/riskGrade';
+import { useCountUp } from '../lib/useDiagnosisIntro';
 
 /**
- * AI 진단 Hero — 점수 · 등급 · 핵심 위험 한 줄 · KPI 3열 (FINCH-325).
+ * 위험도 — 점수 · 막대 · 지표 3열 (FINCH-325 · 334).
  *
- * ## 네 덩어리를 한 카드로 합쳤다
+ * ## 카드를 벗었다 (FINCH-334)
  *
- * 전에는 `위험 점수`(히어로) · `포트폴리오 상태`(3행 막대) 가 세로로 따로 서서
- * 첫 화면을 거의 다 먹었다. 둘 다 **같은 질문에 답하는 값**이라(계좌가 지금 어떤
- * 상태인가) 한 면에 넣고 세로를 KPI 3열로 접었다.
+ * 흰 면 + 테두리 + 반경이 있었고, 그 **안에** 지표 3열을 가르는 테두리가 하나 더
+ * 있었다. 같은 화면에 종목 집중도 카드까지 서서 면이 셋이었다.
  *
- * ## 옅은 브랜드 틴트를 쓰지 않았다
+ * 이제 페이지 배경(`--color-bg`) 위 flat 섹션이다. **면을 갖는 것은 검정 AI 카드
+ * 하나뿐이고**, 이 섹션과 종목 집중도는 위아래 36px 여백으로만 갈린다. 구분선도
+ * 새로 긋지 않는다 — 선을 그으면 테두리를 지우고 선을 얻는 것이라 상자가 다시
+ * 생긴다.
  *
- * 흰 `Card` + 테두리다. `--color-primary-soft`(#F0F1F3)는 `styles/index.css` 가
- * **"선택된 상태 하나에만 쓰인다"** 고 용도를 좁혀 둔 토큰이고, 브랜드색 자체가
- * 코발트가 아니라 그래파이트라 틴트를 깔아도 회색 면이 하나 더 생기는 것에
- * 가깝다. 점수 36px 이 이미 시선을 잡으므로 면색으로 한 번 더 강조하지 않는다.
+ * ## 점수 한 줄
  *
- * ## 한 줄 문장은 우리가 쓰지 않는다
+ * ```
+ * 내 포트폴리오 위험도                     ← 14px --t3
+ * 62 / 100 · 보통                        ← 44/700 · 18 --t3 · 16/600 --t2
+ * ████████████░░░░░░░░                   ← 6px, 채움 --t1
+ * ```
  *
- * `findings[0].title` 이다. **배열 순서가 곧 중요도 순위**라(`ai/diagnosis.ts`)
- * 서버가 이미 "가장 큰 문제"를 문장으로 준다. 프론트가 지표를 보고 "집중도가 조금
- * 높은 편이에요" 를 지어내면 임계값 판정을 새로 하는 것이고 `ia.md` §4 "프론트는
- * AI 응답을 조립하지 않는다" 를 어긴다. 걸린 항목이 없으면 이 줄을 접는다.
+ * **`보통` pill 을 없앴다.** 오른쪽 끝에 회색 면 배지로 떠 있었는데, 점수와 같은
+ * 것을 말하면서 자리는 멀어서 눈이 두 번 움직였다. 같은 줄 끝에 글자로 붙이면
+ * `62 / 100 · 보통` 이 한 호흡으로 읽힌다. 면이 하나 줄어드는 것은 덤이다.
  *
- * 등급 라벨의 색은 `lib/riskGrade` 가 갖는다 — 아래 `ConcentrationCard` 의 배지와
- * 같은 사전을 쓴다. 같은 말이 한 화면에서 두 색으로 보이면 안 된다.
+ * 막대 채움은 `--color-text-primary` 다. **점수에 상태색을 쓰지 않는다** —
+ * `design.md` §7.9 가 "상태색은 등급 막대와 종목 집중도 스택 바 안에서만" 으로
+ * 묶었고, 여기서 색을 쓰면 화면에서 가장 큰 상태색 덩어리가 된다. 높낮이는
+ * 길이가 말한다.
  *
- * ## 점수에 색을 얹지 않는다
+ * ## 지표 3열
  *
- * `design.md` §7.9 가 "상태색은 등급 막대와 종목 집중도 스택 바 안에서만 쓴다" 고
- * 못박았다. 36px 숫자를 칠하면 화면에서 가장 큰 상태색 덩어리가 된다. 높낮이는
- * 등급 배지가 말한다.
+ * 라벨 13px `--t3` / 상태 17px / 보조값 13px `--t2` 다.
+ *
+ * **상태 글자에 빨강·주황·초록을 쓰지 않는다.** 빨강·파랑은 등락색이라
+ * (컨벤션 §11) 위험도 판정에 쓰면 같은 화면에서 두 뜻이 된다. 주황·초록을
+ * 더하면 이 줄에만 쓰이는 상태색 체계가 새로 생긴다.
+ *
+ * 대신 **가장 나쁜 칸 하나만** 700 굵기 + 앞에 6px 점(`--color-attention-dot`)이다.
+ * 나머지는 600 · `--t2`. 셋 중 어디를 봐야 하는지는 그 둘로 충분하고, 무엇이
+ * 얼마나 나쁜지는 눌러서 계산 기준 시트에서 본다.
+ *
+ * `severity` 순위는 `high > medium > info > none` 이고, 같으면 왼쪽이 이긴다 —
+ * 순서는 화면이 정한 `집중도 → 업종 집중 → 변동성` 이다.
+ *
+ * ## 집중도 값의 출처가 바뀌었다 (FINCH-334)
+ *
+ * 전에는 엔진 `indicators.top1Weight` 였다. 이제 호출부가 **원장에서 계산한 1위
+ * 비중**을 넘긴다 — 아래 종목 집중도 섹션의 스택 바·목록과 같은 값이라야 화면이
+ * 자기모순을 일으키지 않는다. 근거는 `lib/concentration.ts` 주석에 있다.
+ * 엔진 값은 `AnalysisEvidenceSheet`(계산 기준)에 그대로 남는다.
  */
 
 /** 규칙 엔진의 3단 판정 (AI 명세 §5). LLM 이 정하는 값이 아니다. */
@@ -47,6 +67,20 @@ const RISK_LEVEL_LABEL: Record<AiRiskLevel, string> = {
   high: '높음',
 };
 
+/**
+ * `severity` 를 견주기 위한 순위.
+ *
+ * **`none` 을 포함한다.** `gradeOf` 는 걸린 항목이 없으면 `RISK_GRADE.none` 을
+ * 돌려주는데, 그 값은 응답의 `findings[].severity`(셋)에는 없는 **화면 쪽 상태**다.
+ * 그래서 `AiFinding['severity']` 가 아니라 `RiskGrade['severity']` 로 받는다.
+ */
+const SEVERITY_RANK: Record<RiskGrade['severity'], number> = {
+  none: 0,
+  info: 1,
+  medium: 2,
+  high: 3,
+};
+
 type PortfolioRiskSummaryProps = {
   riskScore: number | null;
   riskLevel: AiRiskLevel | null;
@@ -54,8 +88,11 @@ type PortfolioRiskSummaryProps = {
   insufficientHistory: string | null;
   findings: AiFinding[];
   indicators: AiIndicators;
-  /** KPI 를 누르면 계산 기준·근거 시트를 연다 */
+  /** 원장 기준 1위 종목 비중(0~100). 없으면 `null` */
+  top1Percent: number | null;
+  /** 지표를 누르면 계산 기준·근거 시트를 연다 */
   onOpenDetail: () => void;
+  intro: boolean;
 };
 
 export function PortfolioRiskSummary({
@@ -64,117 +101,161 @@ export function PortfolioRiskSummary({
   insufficientHistory,
   findings,
   indicators,
+  top1Percent,
   onOpenDetail,
+  intro,
 }: PortfolioRiskSummaryProps) {
   const levelLabel = riskLevel === null ? null : RISK_LEVEL_LABEL[riskLevel];
-  const headline = findings.at(0)?.title ?? null;
+  const shownScore = useCountUp(riskScore, { enabled: intro });
+
+  const metrics = [
+    {
+      label: '집중도',
+      grade: gradeOf(findings, METRIC_FINDING_ID.concentration),
+      value: top1Percent === null ? null : `${Math.round(top1Percent)}%`,
+    },
+    {
+      label: '업종 집중',
+      grade: gradeOf(findings, METRIC_FINDING_ID.sectorConcentration),
+      // **`sectorHhi` 를 % 로 적지 않는다.** 허핀달 지수는 비중이 아니라
+      // `41%` 로 쓰면 "어느 업종이 41%" 로 읽힌다. 개수는 그런 오해가 없다.
+      value: sectorCountText(indicators.sectorCount),
+    },
+    {
+      label: '변동성',
+      grade: gradeOf(findings, METRIC_FINDING_ID.volatility),
+      value: percentOrNull(indicators.annualizedVolatility),
+    },
+  ];
+
+  const worstRank = Math.max(
+    ...metrics.map((metric) => SEVERITY_RANK[metric.grade.severity]),
+  );
+  // 가장 나쁜 칸 **하나**만 표시한다. 같은 등급이 둘이면 왼쪽이 이긴다.
+  const worstIndex =
+    worstRank === 0
+      ? -1
+      : metrics.findIndex(
+          (metric) => SEVERITY_RANK[metric.grade.severity] === worstRank,
+        );
 
   return (
-    <Card className="mt-4">
-      <p className="text-caption text-text-muted">내 포트폴리오 위험도</p>
+    <section
+      className={`mt-9 ${
+        intro
+          ? 'animate-[diag-fade_480ms_var(--ease-standard)_260ms_both] motion-reduce:animate-none'
+          : ''
+      }`}
+    >
+      <p className="text-label text-text-muted">내 포트폴리오 위험도</p>
 
-      <div className="mt-1.5 flex items-center justify-between gap-3">
-        {riskScore === null ? (
-          // 판정 보류. 점수 자리를 0 으로 채우지 않는다 — 없는 값이 최상위 점수로 읽힌다.
-          <p className="text-title-2 text-text-secondary">판정 보류</p>
-        ) : (
-          <p className="text-display text-text-primary tabular-nums">
-            {riskScore}
-            <span className="text-[18px] font-medium text-text-muted">
-              {' '}
-              / 100
-            </span>
-          </p>
-        )}
-
-        {levelLabel !== null && (
-          <span className="flex h-7 flex-none items-center rounded-tag bg-surface-soft px-2.5 text-body-2 font-semibold text-text-primary">
-            {levelLabel}
+      {riskScore === null ? (
+        // 판정 보류. 점수 자리를 0 으로 채우지 않는다 — 없는 값이 최상위 점수로 읽힌다.
+        <p className="mt-2 text-title-2 text-text-secondary">판정 보류</p>
+      ) : (
+        <p className="mt-2 flex items-baseline gap-1.5">
+          <span className="text-[44px] leading-[52px] font-bold text-text-primary tabular-nums">
+            {shownScore ?? 0}
           </span>
-        )}
-      </div>
-
-      {headline !== null && (
-        <p className="mt-2 text-body-2 text-pretty text-text-secondary">
-          {headline}
+          <span className="text-[18px] font-medium text-text-muted">/ 100</span>
+          {levelLabel !== null && (
+            <span className="text-body-1 font-semibold text-text-secondary">
+              · {levelLabel}
+            </span>
+          )}
         </p>
+      )}
+
+      {riskScore !== null && (
+        <span
+          aria-hidden="true"
+          className="mt-3.5 block h-1.5 w-full overflow-hidden rounded-full bg-border"
+        >
+          <span
+            className={`block h-full origin-left rounded-full bg-primary ${
+              intro
+                ? 'animate-[diag-grow_900ms_cubic-bezier(.2,.8,.2,1)_300ms_both] motion-reduce:animate-none'
+                : ''
+            }`}
+            style={{ width: `${Math.min(Math.max(riskScore, 0), 100)}%` }}
+          />
+        </span>
       )}
 
       {/*
         계산이 막힌 사유는 **서버 문장을 그대로 내보내지 않는다.**
         `insufficient_history` 의 형식이 명세에 "string" 으로만 적혀 있어 사용자용
-        한국어라는 보장이 없다(`only 23 common trading days` 같은 진단 문구가 올 수
-        있다). 값의 유무만 읽고 문구는 우리가 쓴다 — `design.md` §13.
+        한국어라는 보장이 없다. 값의 유무만 읽고 문구는 우리가 쓴다 — `design.md` §13.
       */}
       {insufficientHistory !== null && (
-        <p className="mt-2 text-caption text-text-muted">
+        <p className="mt-2.5 text-caption text-text-muted">
           거래 기록이 짧아 변동성은 아직 비어 있어요.
         </p>
       )}
 
       {/*
-        KPI 3열. 전체를 하나의 버튼으로 둔다 — 칸마다 버튼을 두면 3열이 좁아 터치
+        지표 3열. 전체를 하나의 버튼으로 둔다 — 칸마다 버튼을 두면 3열이 좁아 터치
         영역이 겹치고, 어느 칸을 눌러도 열리는 곳이 같은 시트라 나눌 이유가 없다.
+        **안쪽 테두리를 걷었다** — 카드를 벗은 마당에 칸막이만 남으면 상자의 흔적이다.
       */}
       <button
         type="button"
         onClick={onOpenDetail}
         aria-label="지표 계산 기준 보기"
-        className="-mx-1 mt-4 flex w-[calc(100%+0.5rem)] items-start gap-2 rounded-sm border-t border-border px-1 pt-4 text-left active:bg-primary-soft"
+        className="-mx-1 mt-5 grid w-[calc(100%+0.5rem)] grid-cols-3 gap-3 rounded-sm px-1 py-1 text-left active:bg-primary-soft"
       >
-        <MetricCell
-          label="집중도"
-          grade={gradeOf(findings, METRIC_FINDING_ID.concentration)}
-          value={percentOrNull(indicators.top1Weight)}
-        />
-        <MetricCell
-          label="업종 집중"
-          grade={gradeOf(findings, METRIC_FINDING_ID.sectorConcentration)}
-          // **`sectorHhi` 를 % 로 적지 않는다.** 허핀달 지수는 비중이 아니라
-          // `41%` 로 쓰면 "어느 업종이 41%" 로 읽힌다. 개수는 그런 오해가 없다.
-          value={sectorCountText(indicators.sectorCount)}
-        />
-        <MetricCell
-          label="변동성"
-          grade={gradeOf(findings, METRIC_FINDING_ID.volatility)}
-          value={percentOrNull(indicators.annualizedVolatility)}
-        />
-        <span
-          aria-hidden="true"
-          className="flex-none self-center text-body-2 text-text-muted"
-        >
-          ›
-        </span>
+        {metrics.map((metric, index) => (
+          <MetricCell
+            key={metric.label}
+            label={metric.label}
+            text={metric.grade.label}
+            value={metric.value}
+            attention={index === worstIndex}
+          />
+        ))}
       </button>
-    </Card>
+    </section>
   );
 }
 
 /**
- * KPI 한 칸. 라벨 → 등급 → 값 순서다. 등급을 값보다 위에 두는 이유는 **판정이
- * 먼저 읽혀야** 하기 때문이다 — 숫자만으로는 좋은지 나쁜지 알 수 없다.
+ * 지표 한 칸. 라벨 → 상태 → 보조값 순서다. 상태를 값보다 위에 두는 이유는
+ * **판정이 먼저 읽혀야** 하기 때문이다 — 숫자만으로는 좋은지 나쁜지 알 수 없다.
  *
- * 값이 없으면 칸을 비운다(`null`). `—` 를 넣으면 세 칸의 리듬은 맞지만 "계산되지
- * 않음" 이 "0 에 가까움" 으로 읽힌다.
+ * 값이 없으면 칸을 비운다(`null`). `—` 를 넣으면 세 칸의 리듬은 맞지만
+ * "계산되지 않음" 이 "0 에 가까움" 으로 읽힌다.
  */
 function MetricCell({
   label,
-  grade,
+  text,
   value,
+  attention,
 }: {
   label: string;
-  grade: RiskGrade;
+  text: string;
   value: string | null;
+  attention: boolean;
 }) {
   return (
-    <span className="flex min-w-0 flex-1 flex-col gap-1">
+    <span className="flex min-w-0 flex-col gap-1">
       <span className="truncate text-caption text-text-muted">{label}</span>
+
       <span
-        className="truncate text-body-2 font-bold"
-        style={{ color: grade.color }}
+        className={`flex min-w-0 items-center gap-1.5 text-[17px] leading-[24px] ${
+          attention
+            ? 'font-bold text-text-primary'
+            : 'font-semibold text-text-secondary'
+        }`}
       >
-        {grade.label}
+        {attention && (
+          <span
+            aria-hidden="true"
+            className="size-1.5 flex-none rounded-full bg-attention-dot"
+          />
+        )}
+        <span className="truncate">{text}</span>
       </span>
+
       {value !== null && (
         <span className="truncate text-caption text-text-secondary tabular-nums">
           {value}

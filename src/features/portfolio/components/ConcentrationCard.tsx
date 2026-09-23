@@ -1,129 +1,75 @@
 import { type AiFinding } from '@/shared/types/ai/diagnosis';
-import { type Holding } from '@/shared/types/portfolio';
-import { Card } from '@/shared/ui/Card';
 
+import { shadeAt, type ConcentrationSlice } from '../lib/concentration';
 import { RISK_GRADE } from '../lib/riskGrade';
 
 /**
- * "종목 집중도" 카드 — 스택 바 + 상위 종목 + insight 한 줄 (FINCH-325).
- * (프로토타입 `concentration`, proto L2259–L2274 · L4008–L4013 · `design.md` §7.9.)
+ * 종목 집중도 — 스택 바 + 상위 종목 + insight 한 줄 (FINCH-325 · 334).
  *
- * ## `확인된 사항` 을 여기로 흡수했다
+ * ## 카드를 벗었다 (FINCH-334)
  *
- * 전에는 같은 사실이 세 군데서 반복됐다 — 이 스택 바, `확인된 사항` 의
- * `종목 집중도가 높아요 / 가장 비중이 큰 종목 하나가 41.68%예요`, 그리고 FINCH
- * 문장. **셋 다 같은 `ticker_concentration` 을 말하고 있었다.**
+ * 흰 면 + 테두리였다. 이제 페이지 배경 위 flat 섹션이고 위 위험도와 36px 여백으로만
+ * 갈린다 — 이 화면에서 면을 갖는 것은 검정 AI 카드 하나뿐이다.
  *
- * 그래서 이 카드 안에 등급 배지와 insight 한 줄을 넣고 `확인된 사항` 섹션을
- * 없앴다. insight 문장은 **`findings[].text` 를 그대로 쓴다** — 프론트가 지표를
- * 보고 문장을 새로 쓰면 `ia.md` §4 를 어긴다. 걸린 항목이 없으면 줄을 접는다.
+ * ## 색이 아니라 명도로 순위를 말한다
  *
- * ## 상위 셋만 펼친다
+ * 전에는 종목코드 해시로 틴트 다섯 쌍(파랑·주황·초록·보라·청록)을 배정했다.
+ * 두 가지가 잘못이었다.
  *
- * 나머지는 `그 외 N종목` 한 줄로 합친다. 스택 바에는 **전부 그린다** — 칸 너비의
- * 합이 100% 여야 하고, 접힌 종목의 칸이 사라지면 바가 거짓이 된다.
+ * - **색이 순위를 말해 주지 않았다.** 3위가 가장 진해 보이는 날이 생겨서, 스택
+ *   바를 보고 어느 칸이 1위인지 길이를 재야 알 수 있었다
+ * - 다섯 쌍에 적색·청색 계열이 섞여 있어 **등락색과 눈으로 겹쳤다**
  *
- * 전체 목록을 위한 시트를 따로 만들지 않았다. `보유` 탭이 이미 종목별 비중을 다
- * 보여주므로 같은 목록을 한 번 더 두는 것이 이 티켓이 없애려는 중복이다.
+ * 이제 1위 `--t1` → 2위 `#8B95A1` → 3위 `--border2` → 그 아래 한 단계 더 연하게다
+ * (`shadeAt`). 진할수록 크다는 것이 규칙이라 막대와 목록이 같은 이야기를 한다.
  *
- * 비중은 응답에 필드가 없어 화면이 계산한다 — 평가금액 합계가 이미 있어서
- * 지어내는 값이 아니다(`HoldingsTab` 의 보유 행 비중과 같은 근거). 분모도
- * 프로토타입과 같은 **예수금을 뺀 평가금액 합계**다.
+ * ## 스택 바
  *
- * **시세가 없는 종목은 빠진다.** 평가금액이 `null` 이라 비중을 낼 수 없고
- * (apiSpec v0.8.2), 합계에도 더해지지 않는다. 0 으로 치면 막대에 없는 칸이 생긴다.
+ * 높이 10px, 조각 사이 3px 간격, **양 끝만** 라운드. 전에는 14px 에 흰 1px
+ * 구분선이었는데, 틴트가 사라지면서 구분선도 필요 없어졌다 — 명도 계단이 이미
+ * 칸을 가르고, 3px 간격이 그것을 확실히 한다.
+ *
+ * 칸 너비는 반올림하지 않은 비중이다. 정수로 자르면 합이 100 을 벗어난다.
+ *
+ * ## 목록
+ *
+ * 10px 색 사각 + 종목명 16px/500 + 비중 16px/700, 행 여백 12px, 사이에
+ * `--color-border` 구분선이다.
+ *
+ * **`다소 높음` 라벨을 각 행에서 없앴다.** 종목별 비중 구간으로 매긴 값
+ * (`CONCENTRATION_LEVELS`)이었는데, 카드 머리의 등급(규칙 엔진이 계좌 전체를
+ * 판정한 값)과 **같은 말을 다른 눈금으로** 쓰고 있었다. 한 화면에 `다소 높음` 이
+ * 둘 있으면 어느 쪽이 무엇에 대한 판정인지 알 수 없다. 머리의 것만 남긴다.
+ *
+ * ## 비중은 정수다 (FINCH-334)
+ *
+ * `Math.round` 다. 화면의 모든 퍼센트가 정수라야 `41.68%` 같은 값이 섞여 들어와도
+ * 그것이 우리가 쓴 것이 아님이 드러난다.
+ *
+ * ## 계산을 밖으로 꺼냈다
+ *
+ * 비중은 `lib/concentration.ts` 의 `resolveConcentration` 이 낸다. 위험도 지표
+ * 3열의 `집중도` 가 **같은 값**을 써야 해서다 — 화면 안에서 최대 종목 비중이 두
+ * 숫자로 갈리던 문제의 답이고, 근거는 그 파일 주석에 있다.
  */
 
-/**
- * 색은 비중 구간이 아니라 **종목**을 가리킨다 (FINCH-294, 프로토타입
- * L4010-4011 과 달라졌다). 프로토타입은 구간색(40%↑ 적색 · 25~40% 주황 ·
- * 12~25% 청색 · 0~12% 회색)을 썼지만, 비중은 이미 막대 칸 너비와 우측 숫자가
- * 말하고 있어 색까지 같은 정보를 반복할 이유가 없다. 오히려 보유 종목 셋이
- * 나란히 25~40% 구간에 들면(예: 38%·31%·31%) 셋 다 같은 주황이 되어 스택
- * 막대가 통짜 하나로 보이고 범례 점으로도 어느 칸이 어느 종목인지 구분이
- * 안 됐다 — 이 정정의 발단이 된 실사용 증상이다.
- *
- * 그래서 길이는 비중, 색은 종목으로 나눈다. 종목별 색은 이미
- * `StockInitialBadge` 가 종목코드를 해시해 다섯 틴트 쌍 중 하나를 고르는
- * 방식으로 갖고 있다 — 그 해시를 그대로 재사용해 같은 종목이면 목록 뱃지와
- * 이 막대에서 같은 색이 나오게 한다. 해시 함수는 `hashStockCode` 로 아래에
- * 다시 적었다: 그 함수가 `shared/ui/StockInitialBadge.tsx` 안에 `export`
- * 없이 있어 그대로 import 하려면 shared/ui 파일을 고쳐야 하는데, 이 화면
- * 하나를 위해 공용 컴포넌트의 공개 표면을 넓히고 싶지 않다. **두 파일의
- * 알고리즘은 반드시 같이 바뀌어야 한다** — 하나만 바뀌면 같은 종목이 목록과
- * 이 막대에서 다른 색으로 보인다.
- *
- * 막대·범례 점에는 틴트의 진한 쪽(`-fg`)만 쓴다. 연한 쪽(면색)은 서로 대비가
- * 약해(흰 배경 대비 1.09~1.13, `styles/index.css` 틴트 블록 주석) 막대에
- * 쓰면 지금 겪은 "다 비슷해 보인다" 문제가 그대로 되풀이된다.
- *
- * 등급 글자색은 종목색을 얹지 않는다. `styles/index.css` 의 틴트 블록
- * 주석이 "이 다섯 쌍을 뱃지 밖에서, 특히 읽어야 하는 글자에 쓰지 마라"고
- * 못박아 뒀다(다섯 중 셋이 AA 미달) — 등급은 원래도 글자(`쏠림` 등)가 뜻을
- * 옮기므로 색이 빠져도 잃는 정보가 없다.
- */
-/** 틴트 다섯 쌍의 진한 쪽. 값은 `styles/index.css` 토큰을 그대로 가리킨다 —
- * 색을 복제해 적으면 디자인이 값을 바꿀 때 이 파일만 뒤처진다. */
-const STOCK_TINT_FG = [
-  'var(--color-stock-tint-1-fg)',
-  'var(--color-stock-tint-2-fg)',
-  'var(--color-stock-tint-3-fg)',
-  'var(--color-stock-tint-4-fg)',
-  'var(--color-stock-tint-5-fg)',
-] as const;
-
-function hashStockCode(stockCode: string): number {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < stockCode.length; index += 1) {
-    hash ^= stockCode.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0) % STOCK_TINT_FG.length;
-}
-
-const CONCENTRATION_LEVELS = [
-  { min: 40, level: '쏠림' },
-  { min: 25, level: '다소 높음' },
-  { min: 0, level: '적정' },
-] as const;
-
-/** 스택 바에는 전부 그리고 목록만 접는다. */
+/** 접었을 때 보여 줄 종목 수. 나머지는 `그 외 N종목` 한 줄로 합친다. */
 const VISIBLE_SLICE_COUNT = 3;
 
 type ConcentrationCardProps = {
-  holdings: Holding[];
-  /** 등급 배지와 insight 한 줄의 출처. 걸리지 않았으면 배열에 없다 */
+  slices: readonly ConcentrationSlice[];
   findings: AiFinding[];
+  intro: boolean;
 };
 
 export function ConcentrationCard({
-  holdings,
+  slices,
   findings,
+  intro,
 }: ConcentrationCardProps) {
-  const priced = holdings.filter(
-    (holding) => holding.evaluationAmount !== null,
-  );
-  const total = priced.reduce(
-    (sum, holding) => sum + (holding.evaluationAmount ?? 0),
-    0,
-  );
-
-  if (total === 0) {
+  if (slices.length === 0) {
     return null;
   }
-
-  const slices = priced
-    .map((holding) => {
-      const percent = ((holding.evaluationAmount ?? 0) / total) * 100;
-      return {
-        stockCode: holding.stockCode,
-        stockName: holding.stockName,
-        percent,
-        color: STOCK_TINT_FG[hashStockCode(holding.stockCode)],
-        level: CONCENTRATION_LEVELS.find((tier) => percent >= tier.min)?.level,
-      };
-    })
-    .sort((a, b) => b.percent - a.percent);
 
   const finding = findings.find((item) => item.id === 'ticker_concentration');
   const visible = slices.slice(0, VISIBLE_SLICE_COUNT);
@@ -131,88 +77,74 @@ export function ConcentrationCard({
   const restPercent = rest.reduce((sum, slice) => sum + slice.percent, 0);
 
   return (
-    <Card className="mt-8">
+    <section
+      className={`mt-9 ${
+        intro
+          ? 'animate-[diag-fade_480ms_var(--ease-standard)_380ms_both] motion-reduce:animate-none'
+          : ''
+      }`}
+    >
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-section-title text-text-primary">종목 집중도</h2>
-        {/*
-          카드 머리의 등급. **`lib/riskGrade` 의 사전을 쓴다** — Hero 의 KPI 3열과
-          같은 말에 같은 색이어야 한다. `CONCENTRATION_LEVELS` 의 종목별 수준과는
-          다른 눈금이다(그쪽은 비중 구간으로 종목 하나를 재고 이쪽은 규칙 엔진이
-          계좌 전체의 집중도를 판정한 값이다). 두 눈금이 `다소 높음` 이라는 말을
-          공유하므로 색도 같은 값에서 가져왔다.
-        */}
-        {finding !== undefined && (
-          <span
-            className="flex-none text-body-2 font-bold"
-            style={{ color: RISK_GRADE[finding.severity].color }}
-          >
-            {RISK_GRADE[finding.severity].label}
-          </span>
-        )}
+        <h2 className="min-w-0 text-[19px] leading-[26px] font-bold tracking-[-.01em] text-text-primary">
+          종목 집중도
+        </h2>
+        <span className="flex-none text-label text-text-muted tabular-nums">
+          {slices.length}종목
+        </span>
       </div>
 
-      {/*
-        스택 바는 장식이 아니라 아래 목록의 그림이라 같은 색을 쓴다.
-        칸 너비는 반올림하지 않은 비중이다 — 정수로 자르면 합이 100 을 벗어난다.
-
-        틴트가 다섯 쌍뿐이라 종목이 여섯 이상이면 해시가 겹치고, 겹친 두 칸이
-        마침 이웃하면 경계가 안 보인다. 그래서 칸 사이(마지막 칸 제외)에
-        1px 흰 선을 넣는다 — `--color-surface` 는 배경(`--color-bg`)보다
-        밝아 어떤 틴트 옆에서도 선이 드러난다. 마지막 칸에는 선을 안 그어
-        `rounded-[7px]` 로 잘리는 오른쪽 끝이 선에 걸려 어색해지지 않게 한다.
-        (왼쪽 끝은 애초에 `border-right`만 쓰므로 영향이 없다.)
-      */}
-      <div
+      {/* 스택 바. `gap` 이 조각 사이 3px 을 내고, 양 끝 라운드는 바깥 span 이
+          `overflow-hidden` 으로 만든다 — 조각마다 반경을 주면 가운데 칸들도 둥글어진다. */}
+      <span
         aria-hidden="true"
-        className="mt-3.5 mb-4 flex h-3.5 overflow-hidden rounded-[7px]"
+        className={`mt-4 flex h-2.5 w-full origin-left gap-[3px] overflow-hidden rounded-full ${
+          intro
+            ? 'animate-[diag-grow_900ms_cubic-bezier(.2,.8,.2,1)_460ms_both] motion-reduce:animate-none'
+            : ''
+        }`}
       >
         {slices.map((slice, index) => (
-          <div
+          <span
             key={slice.stockCode}
-            style={{
-              width: `${slice.percent}%`,
-              background: slice.color,
-              borderRight:
-                index < slices.length - 1
-                  ? '1px solid var(--color-surface)'
-                  : undefined,
-            }}
+            className="block h-full"
+            style={{ width: `${slice.percent}%`, background: shadeAt(index) }}
           />
         ))}
-      </div>
+      </span>
 
-      <div className="flex flex-col gap-3">
-        {visible.map((slice) => (
+      <div className="mt-4 flex flex-col">
+        {visible.map((slice, index) => (
           <div
             key={slice.stockCode}
-            className="flex items-center justify-between"
+            className="flex items-center justify-between gap-3 border-t border-border py-3 first:border-t-0 first:pt-0"
           >
-            <span className="flex min-w-0 items-center gap-2.25 text-body-1 text-text-primary">
+            <span className="flex min-w-0 items-center gap-2.5">
               <span
                 aria-hidden="true"
                 className="size-2.5 flex-none rounded-[3px]"
-                style={{ background: slice.color }}
+                style={{ background: shadeAt(index) }}
               />
-              <span className="truncate">{slice.stockName}</span>
+              <span className="truncate text-body-1 font-medium text-text-primary">
+                {slice.stockName}
+              </span>
             </span>
-            <span className="flex flex-none items-baseline gap-2">
-              {/* 등급 글자는 종목색을 얹지 않는다 — 틴트 다섯 쌍은 뱃지처럼
-                  장식 자리에만 쓰기로 했고(위 파일 머리 주석), 등급은 색
-                  없이도 글자(`쏠림` 등)로 뜻이 전해진다. */}
-              <span className="text-caption font-medium text-text-secondary">
-                {slice.level}
-              </span>
-              <span className="text-body-1 font-bold text-text-primary tabular-nums">
-                {Math.round(slice.percent)}%
-              </span>
+            <span className="flex-none text-body-1 font-bold text-text-primary tabular-nums">
+              {Math.round(slice.percent)}%
             </span>
           </div>
         ))}
 
         {rest.length > 0 && (
-          <div className="flex items-center justify-between">
-            <span className="min-w-0 truncate text-body-1 text-text-secondary">
-              그 외 {rest.length}종목
+          <div className="flex items-center justify-between gap-3 border-t border-border py-3">
+            <span className="flex min-w-0 items-center gap-2.5">
+              <span
+                aria-hidden="true"
+                className="size-2.5 flex-none rounded-[3px]"
+                style={{ background: shadeAt(VISIBLE_SLICE_COUNT) }}
+              />
+              <span className="truncate text-body-1 font-medium text-text-secondary">
+                그 외 {rest.length}종목
+              </span>
             </span>
             <span className="flex-none text-body-1 font-medium text-text-secondary tabular-nums">
               {Math.round(restPercent)}%
@@ -222,15 +154,34 @@ export function ConcentrationCard({
       </div>
 
       {/*
-        insight 한 줄. **AI 가 쓴 `findings[].text` 를 그대로 옮긴다** — 위 파일 머리
-        주석 "`확인된 사항` 을 여기로 흡수했다" 참고. 문장 생성이 막히면 `text` 가
-        `null` 이고 그때는 등급 배지만 남는다.
+        insight 한 줄. **AI 가 쓴 `findings[].text` 를 그대로 옮긴다.** 문장 생성이
+        막히면 `text` 가 `null` 이고 그때는 이 줄이 빠진다.
+
+        **이 문장 안의 퍼센트는 우리가 못 고친다.** 엔진 `top1Weight` 원값이 소수로
+        들어와 `41.68%` 처럼 보이는데, 프론트가 AI 문장을 다시 쓰지 않는다는 선
+        (`ia.md` §4)을 넘지 않는다. AI 파트 확인이 필요하다 —
+        `lib/concentration.ts` 주석 참고.
       */}
       {finding?.text != null && (
-        <p className="mt-4 text-body-2 text-pretty text-text-secondary">
+        <p className="mt-4 text-label text-pretty break-keep text-text-secondary">
           {finding.text}
         </p>
       )}
-    </Card>
+
+      {/* 머리의 등급. 계좌 전체를 규칙 엔진이 판정한 값이라 종목별 비중과 눈금이
+          다르다. 그래서 목록이 아니라 문장 아래에 둔다 — 목록 옆에 있으면 방금
+          읽은 종목 하나에 대한 판정으로 읽힌다. */}
+      {finding !== undefined && (
+        <p className="mt-1.5 text-caption text-text-muted">
+          집중도 판정{' '}
+          <span
+            className="font-semibold"
+            style={{ color: RISK_GRADE[finding.severity].color }}
+          >
+            {RISK_GRADE[finding.severity].label}
+          </span>
+        </p>
+      )}
+    </section>
   );
 }

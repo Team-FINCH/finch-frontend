@@ -12,10 +12,12 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { usePortfolio } from '../api/usePortfolio';
 import { usePortfolioDiagnosis } from '../api/usePortfolioDiagnosis';
+import { resolveConcentration } from '../lib/concentration';
+import { useDiagnosisIntro } from '../lib/useDiagnosisIntro';
 
 import { AnalysisEvidenceSheet } from './AnalysisEvidenceSheet';
 import { ConcentrationCard } from './ConcentrationCard';
-import { FinchInsightCard } from './FinchInsightCard';
+import { DiagnosisAiCard } from './DiagnosisAiCard';
 import { PortfolioRiskSummary } from './PortfolioRiskSummary';
 
 /**
@@ -26,13 +28,29 @@ import { PortfolioRiskSummary } from './PortfolioRiskSummary';
  * 이 파일은 그리지 않는다. **무엇을 어떤 차례로 놓을지**만 정한다.
  *
  * ```
- * 결과        PortfolioRiskSummary   점수 · 등급 배지 · 핵심 위험 한 줄 · KPI 3열
- * 시각적 근거  ConcentrationCard      스택 바 · 상위 종목 · insight 한 줄
- * 해석        FinchInsightCard       metric anchor · 요약 · 진단 자세히 보기
- * 상세        근거 N개 · 계산 기준 보기 › → AnalysisEvidenceSheet
+ * 결론   DiagnosisAiCard        [검정 카드] 한 문장 + 최대 낙폭 ›
+ * 근거   PortfolioRiskSummary   점수 44px · 막대 · 지표 3열
+ * 근거   ConcentrationCard      스택 바 · 상위 종목 · insight 한 줄
+ * 상세   근거 N개 · 계산 기준 보기 › → AnalysisEvidenceSheet
  * ```
  *
- * **카드는 셋뿐이다.** 나머지를 카드로 감싸면 카드가 겹겹이 쌓인 대시보드가 된다.
+ * ## 면은 하나뿐이다 (FINCH-334)
+ *
+ * 전에는 흰 카드 둘(위험도·집중도)에 검정 카드 하나, 그리고 위험도 카드 **안에**
+ * 지표 3열을 가르는 테두리가 또 있었다. 상자가 넷이라 내용이 아니라 상자가 리듬을
+ * 만들었다.
+ *
+ * 이제 **검정 AI 카드만 surface** 이고 나머지는 페이지 배경 위 flat 섹션이다.
+ * 섹션 사이는 36px 여백(`mt-9`)뿐 — 구분선도 새로 긋지 않는다. 선을 그으면
+ * 테두리를 지우고 선을 얻는 것이라 상자가 다시 생긴다.
+ *
+ * ## 결론이 먼저다 (FINCH-334)
+ *
+ * FINCH-325 가 검정 카드를 맨 아래로 내렸던 것을 되돌린다. 그때 이유는
+ * *"검정 면은 흰 배경 위에서 가장 먼저 눈에 들어와서 사용자가 자기 수치보다 AI
+ * 문장을 먼저 읽었다"* 였는데, **그 카드가 이제 숫자를 들지 않는다** — KPI 줄을
+ * 지우고 한 문장만 남겼다. FINCH-332 가 종목 상세 AI 탭에 같은 순서
+ * (`결론 → 근거`)를 이미 적용했고 그쪽에서 문제가 되지 않았다.
  *
  * ## 무엇을 없앴나
  *
@@ -49,7 +67,7 @@ import { PortfolioRiskSummary } from './PortfolioRiskSummary';
  *
  * **`확인된 사항` 을 그냥 지우면 정보가 없어진다.** `findings[].id` 6종 중
  * `correlation`·`liquidity`·`macro_exposure` 는 대응하는 시각화가 없어서,
- * `FinchInsightCard` 의 `진단 자세히 보기` 시트가 그 셋을 받는다.
+ * `DiagnosisAiCard` 의 `진단 자세히 보기` 시트가 그 셋을 받는다.
  *
  * ## 시트를 여는 입구가 둘인 이유
  *
@@ -61,9 +79,9 @@ import { PortfolioRiskSummary } from './PortfolioRiskSummary';
  *
  * | 블록 | source of truth |
  * | --- | --- |
- * | `PortfolioRiskSummary` | 엔진 — `riskScore` · `riskLevel` · `indicators` · `findings[].severity` / **AI** — `findings[0].title` |
+ * | `DiagnosisAiCard` | **AI** — `summary` / 엔진 — `indicators.maxDrawdown1y` |
+ * | `PortfolioRiskSummary` | 엔진 — `riskScore` · `riskLevel` · `findings[].severity` / 원장 — 1위 비중 |
  * | `ConcentrationCard` | 원장 — 보유 평가금액 / **AI** — `findings[].text` |
- * | `FinchInsightCard` | **AI** — `summary` · `findings[]` |
  * | `AnalysisEvidenceSheet` | 엔진 — `indicators` / 봉투 — `citations` · `disclaimer` |
  *
  * 프론트가 계산하는 것은 **순서와 강조**뿐이다. 수치를 만들지 않는다 — 종목 비중만
@@ -71,8 +89,15 @@ import { PortfolioRiskSummary } from './PortfolioRiskSummary';
  *
  * ## 간격
  *
- * 섹션 사이 `mt-8`(32px) 하나로 통일한다. 좌우 여백은 `PageMain` 의 26px 을 그대로
+ * 섹션 사이 `mt-9`(36px) 하나로 통일한다. 좌우 여백은 `PageMain` 의 26px 을 그대로
  * 쓴다 — **여기만 바꾸면 4탭의 좌우선이 어긋난다.**
+ *
+ * ## 진입 애니메이션은 한 번뿐이다
+ *
+ * `useDiagnosisIntro` 가 "이번 마운트에서 재생할지" 를 정하고 각 블록이 그것을
+ * 받아 클래스를 붙인다. 탭을 오가며 다시 볼 때는 재생하지 않고,
+ * `prefers-reduced-motion: reduce` 면 전부 꺼지고 최종값이 바로 보인다.
+ * **반복·루프 효과는 없다** — 반짝임·펄스·glow·shimmer 를 넣지 않는다.
  *
  * **피드백을 붙이지 않는다.** 프로토타입 실제 UI에서 피드백이 붙는 자리는 셋뿐이고
  * 이 탭은 그중 하나가 아니다(ia.md §4 "피드백 슬롯 배치 규칙" 각주).
@@ -84,6 +109,7 @@ import { PortfolioRiskSummary } from './PortfolioRiskSummary';
  */
 export function DiagnosisTab() {
   const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const intro = useDiagnosisIntro();
   const portfolio = usePortfolio('EVALUATION');
   const isColdStart = portfolio.data?.holdings.length === 0;
   const { data, isPending, isError, error, refetch } = usePortfolioDiagnosis(
@@ -162,25 +188,33 @@ export function DiagnosisTab() {
     aiMeta,
   } = data;
 
+  // 화면의 "최대 종목 비중" 은 이 계산 하나다 — 위험도 지표와 집중도 섹션이 같은
+  // 값을 써야 한다. 근거는 `lib/concentration.ts` 주석에 있다.
+  const { slices, top1Percent } = resolveConcentration(
+    portfolio.data?.holdings ?? [],
+  );
+
   return (
-    <div>
+    <div className="pt-4">
+      <DiagnosisAiCard
+        summary={summary}
+        findings={findings}
+        indicators={indicators}
+        intro={intro}
+      />
+
       <PortfolioRiskSummary
         riskScore={riskScore}
         riskLevel={riskLevel}
         insufficientHistory={insufficientHistory}
         findings={findings}
         indicators={indicators}
+        top1Percent={top1Percent}
         onOpenDetail={() => setEvidenceOpen(true)}
+        intro={intro}
       />
 
-      {portfolio.data !== undefined && (
-        <ConcentrationCard
-          holdings={portfolio.data.holdings}
-          findings={findings}
-        />
-      )}
-
-      <FinchInsightCard summary={summary} findings={findings} />
+      <ConcentrationCard slices={slices} findings={findings} intro={intro} />
 
       {/*
         근거 줄. 개수를 화면이 세는 것은 `citations.length` 뿐이고 문구는 고정이다.
@@ -189,7 +223,7 @@ export function DiagnosisTab() {
       <button
         type="button"
         onClick={() => setEvidenceOpen(true)}
-        className="mt-8 flex w-full items-center justify-between gap-3 py-2 text-left"
+        className="mt-9 flex w-full items-center justify-between gap-3 py-2 text-left"
       >
         <span className="min-w-0 truncate text-body-2 text-text-secondary">
           {aiMeta.citations.length > 0
