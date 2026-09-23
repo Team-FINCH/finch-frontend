@@ -37,7 +37,7 @@
 /*
  * 디자인 토큰. 단일 출처는 이 파일이다.
  *
- * 값의 1차 근거는 Finch Design Guide `frontend/docs/design.md` (v2, 2026-09-03)다.
+ * 값의 1차 근거는 FINCH Design Guide `frontend/docs/design.md` (v2, 2026-09-03)다.
  * 팀 저장소에 들어와 있어서 이제 우리가 참조할 수 있다.
  * 2차 근거는 화면 프로토타입 `prototype/screen/finch-prototype.html` 의 `:root` 와
  * 클래스 층이다. design.md 가 값을 적지 않은 자리 — 반경, 그림자, 검정 면 위
