@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { type AiAttributionRow } from '@/shared/types/ai/attribution';
 import { type AiSection } from '@/shared/types/ai/envelope';
-import { AiGlyph } from '@/shared/ui/AiCard';
+import { AiCard } from '@/shared/ui/AiCard';
 import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
@@ -13,7 +13,11 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * ## 면이 다섯 번 바뀐 자리다
  *
  * `AiCard`(검정) → `--color-surface-soft` 상자 → 흰 `Card` → 다시 `AiCard` →
- * **연한 패널**(2026-09-23). 같은 자리를 또 뒤집지 않도록 이력을 남긴다.
+ * 연한 패널 → 흰 면 + 1px → **다시 `AiCard`**(2026-09-23).
+ * 같은 자리를 또 뒤집지 않도록 이력을 남긴다.
+ *
+ * **지금 상태는 1번·4번과 같은 공용 차콜 셸이다.** 아래 5·6번(연한 패널·흰 면)은
+ * 지나간 상태이고, 왜 그리로 갔다가 왜 돌아왔는지가 7번에 있다.
  *
  * 1. **검정 `AiCard`, 화면 맨 위** — 흰 배경 위 검정 덩어리는 어떤 위계를 주더라도
  *    가장 먼저 눈에 들어와서, 사용자가 자기 수익률보다 AI 문장을 먼저 읽었다
@@ -73,18 +77,34 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * **3번의 문제는 남는다** — 옆 카드와 다른 면색이지만 검정만큼 강한 표식은
  * 아니다. 그래서 글리프와 `FINCH` 라는 이름을 라벨 줄에 함께 세운다.
  *
- * ### 대가: AI 면이 앱에서 둘로 갈렸다
+ * ### 대가: AI 면이 앱에서 둘로 갈렸다 — 7번에서 해소됐다
  *
  * `design.md` §1·§4·§15 가 "AI 가 관여한 영역은 Dark Charcoal Surface" 로 못박았고
  * 다른 AI 슬롯(홈 브리핑 · AI 진단 · 종목 분석 · 채팅)은 전부 `AiCard` 차콜이다.
- * **이 슬롯 하나만 밝다.** 알고 한 것이다.
+ * **이 슬롯 하나만 밝았다.** 알고 한 것이고, 그때 "`design.md` 개정이 따라와야
+ * 하는 부채" 로 적어 뒀다. 7번이 그 부채를 갚는 대신 문서 쪽을 그대로 뒀다.
  *
- * - **`shared/ui/AiCard` 를 고치지 않았다.** 거기를 건드리면 13곳 넘는 AI 슬롯이
- *   함께 뒤집힌다. 이 파일이 자기 셸을 직접 그린다
- * - **`design.md` §1·§4·§15 개정이 따라와야 한다.** 문서가 말하는 규칙과 화면이
- *   어긋난 상태이고, 이것은 이 MR 이 만든 부채다
- * - 팀이 차콜을 유지하기로 하면 되돌리는 것은 `AiCard` 로 감싸는 일이라 어렵지
- *   않다. **본문 구조는 4번과 같게 두었다**
+ * ## 7. 다시 공용 차콜 셸로 (2026-09-23, FINCH-341)
+ *
+ * 사용자 지시 — *"AI 분석 부분은 모두 같은 색이어야 해. 그 검정 박스."*
+ * 5·6번을 만든 같은 날의 지시(*"과하게 강조하지 말 것 / 연한 패널"*)를 뒤집는
+ * 것이지만, **뒤집는 쪽이 문서와 맞는다** — 위 «대가» 절이 부채로 적어 둔 것이
+ * 바로 이 어긋남이고, 차콜로 돌아오면서 `design.md` 개정 숙제가 사라진다.
+ *
+ * **자기 셸을 그리지 않고 `AiCard` 를 쓴다.** 6번까지는 이 파일이 면색·반경·
+ * 라벨 줄을 직접 들고 있었는데, 그러면 "다른 AI 슬롯과 같은 색" 이 **값이 같다는
+ * 뜻이지 같은 것을 본다는 뜻이 아니다.** 공용 셸이 바뀌는 날 이 카드만 남는다.
+ * 라벨 줄(글리프 + `FINCH 분석`)도 셸이 그리므로 여기서 지웠다.
+ *
+ * ### 되돌아온 대가 둘
+ *
+ * - **등락색이 다시 금색 하나로 합쳐진다.** 아래 «`onDark`» 절 참고. 밝은 면에서
+ *   오름 적색·내림 청색으로 갈리던 문장이 차콜에서는 전부 `--ai-accent` 다
+ * - **본문과 `분석 자세히 보기` 시트의 색이 다시 갈린다.** 시트는 흰 면이라
+ *   등락색 그대로다. 6번이 덤으로 얻었던 "두 면이 같은 색" 은 잃는다
+ *
+ * 둘 다 차콜 면의 대비 제약(등락색 2.3·1.8)에서 오는 것이라 면을 검정으로 두는
+ * 한 피할 수 없다. 1·4번도 같은 상태였다.
  *
  * ## 본문은 세 줄에서 끊는다
  *
@@ -93,18 +113,26 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * `line-clamp` 은 짧은 응답에는 아무 일도 하지 않고 긴 응답에서만 접힌다.
  * 마침표로 자르면 문장이 2개로 오는 날 자리가 빈다.
  *
- * 밝은 면으로 오면서 두 줄에서 세 줄로 되돌렸다 — 검정 면일 때는 높이를 줄이는
- * 것이 무게를 줄이는 유일한 수단이었는데, 지금은 면색이 그 일을 한다.
+ * 밝은 면으로 오면서 두 줄에서 세 줄로 되돌렸었다 — 검정 면일 때는 높이를 줄이는
+ * 것이 무게를 줄이는 유일한 수단이었기 때문이다.
+ *
+ * **7번에서 면이 다시 검정이 됐지만 세 줄로 둔다.** 줄 수를 되돌리면 보이던 문장이
+ * 한 줄 사라지는데, 이번 지시는 색에 대한 것이고 높이를 줄여 달라는 말이 아니었다.
+ * 카드가 무겁게 느껴지면 그때 두 줄로 내린다 — `line-clamp-3` 한 곳만 고치면 된다.
  *
  * 잘린 뒷부분은 `분석 자세히 보기` 시트 맨 위에 전문으로 있다. **자료를 버리는
  * 것이 아니라 접는 것이다.**
  *
- * ## `onDark` 를 껐다
+ * ## `onDark` — 껐다가 7번에서 다시 켰다
  *
  * 차콜 면에서는 등락색(`#C93B3B`·`#2258C9`)의 대비가 2.3·1.8 로 읽히지 않아
- * `--color-ai-accent` 로만 강조했다. **밝은 면에서는 그 우회가 필요 없다** —
- * `AiSegmentText` 가 기본 모드에서 쓰는 등락색이 그대로 맞는다. 덤으로 이 패널과
- * 아래 시트가 같은 색으로 칠해진다(전에는 두 면에서 다르게 칠해졌다).
+ * `--color-ai-accent` 로만 강조한다. 6번(밝은 면)에서는 그 우회가 필요 없어
+ * 껐었고, **면이 다시 차콜이 됐으므로 다시 켠다.** 끄면 문장 속 수치가 읽히지
+ * 않는다 — 고를 수 있는 값이 아니라 면색이 정하는 값이다.
+ *
+ * 그 대가로 오름·내림이 색으로 갈리지 않고 전부 금색이 된다. 방향은 부호(`+`·`−`)가
+ * 말한다 — 색만으로 등락을 말하지 않는다는 규약(`frontConvention` §11)이 원래
+ * 요구하는 것이기도 하다.
  *
  * ## 큰 숫자를 새로 세우지 않는다
  *
@@ -141,24 +169,24 @@ export function FinchReturnInsight({
   const hasDetail = summary !== null || evidenced.length > 0;
 
   return (
-    <section
-      className={`rounded-sm border border-border bg-surface px-4 py-3.5 ${className}`}
-    >
-      {/* 글리프는 `bg-current` 마스크라 이 줄의 글자색을 물려받는다. 밝은 면이라
-          흰색이 아니라 `--color-text-secondary` 가 된다 — design.md §3 이
-          "검정 Surface 위에서는 White Symbol" 이라고 적은 것의 반대 경우다. */}
-      <h2 className="flex items-center gap-1.75 text-text-muted">
-        <AiGlyph />
-        <span className="text-caption font-semibold tracking-[.02em]">
-          FINCH 분석
-        </span>
-      </h2>
+    /* 셸은 공용 `AiCard` 다 — 라벨 줄(글리프 + `FINCH 분석`)·면색·반경·여백이
+       전부 그 안에 있다. 자기 셸을 그리지 않는 이유는 아래 "7. 다시 차콜" 참고.
 
-      <p className="mt-2 line-clamp-3 text-body-2 text-pretty break-keep text-text-secondary">
+       `labelAs="h2"` 를 켠다. 이 탭에는 `시장과 비교`·`수익률 기여` 같은 형제
+       `h2` 들이 나란히 서 있어서, 이 카드만 제목이 없으면 훑어 읽는 순서에서
+       빠진다 (`AiCard` 의 `labelAs` 주석이 "포트폴리오의 두 카드만 켠다" 로
+       적어 둔 그 자리다). */
+    <AiCard label="FINCH 분석" labelAs="h2" className={className}>
+      {/* `mt` 를 주지 않는다 — `AiCard` 의 라벨 줄이 이미 `mb-3.5` 를 갖는다. */}
+      <p className="line-clamp-3 text-body-2 text-pretty break-keep text-ai-text-secondary">
         {summary === null ? (
           '수익률 원인 분석을 준비하지 못했어요.'
         ) : (
-          <AiSegmentText segments={summary.segments} text={summary.text} />
+          <AiSegmentText
+            segments={summary.segments}
+            text={summary.text}
+            onDark
+          />
         )}
       </p>
 
@@ -166,7 +194,7 @@ export function FinchReturnInsight({
         <button
           type="button"
           onClick={() => setDetailOpen(true)}
-          className="mt-2.5 text-caption font-semibold text-text-secondary"
+          className="mt-2.5 text-caption font-semibold text-ai-text-primary"
         >
           분석 자세히 보기 →
         </button>
@@ -224,6 +252,6 @@ export function FinchReturnInsight({
           </div>
         </BottomSheet>
       )}
-    </section>
+    </AiCard>
   );
 }
