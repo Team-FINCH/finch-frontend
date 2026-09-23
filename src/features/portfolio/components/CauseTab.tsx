@@ -45,8 +45,8 @@ import { StockContributionSection } from './StockContributionSection';
  * 성과 (면 없음)    이번 기간 수익률 / +2.13%
  *                  시장 +0.89% · 시장보다 +1.24%p · 최근 21거래일 기준
  * [세그먼트]        요약 | 기여 분석 | 종목별
- *   요약  (면 없음) 시장과 비교 ─ 초과 성과는 어디서 왔나요? ─ 영향을 준 종목
- *         [패널]    ✦ FINCH 분석
+ *   요약  [패널]    ✦ FINCH 분석 → 분석 자세히 보기
+ *         (면 없음) 시장과 비교 ─ 초과 성과는 어디서 왔나요? ─ 영향을 준 종목
  *   기여 분석 [카드] 시장 영향 / 업종 영향 / 종목 선택 발산 막대 + 인사이트
  *   종목별   [카드] 종목 기여 목록 (기여도 · 기간 수익률 · 막대)
  * 안내 한 줄        09:12 기준 · 분석 기준 및 안내 ›
@@ -240,6 +240,16 @@ export function CauseTab() {
       >
         {view === 'summary' && (
           <>
+            {/*
+              FINCH 가 근거보다 **위**에 있다 (2026-09-23). 맨 아래에 있을 때는
+              시장 비교·요인·종목을 다 지나야 닿아서 실기기에서 보이지 않았다.
+              자세한 사유는 `FinchReturnInsight` 주석.
+            */}
+            <FinchReturnInsight
+              summary={summary}
+              rows={rows}
+              className="mt-5"
+            />
             <CauseSummaryPanel
               breakdown={breakdown}
               rows={rows}
@@ -247,11 +257,6 @@ export function CauseTab() {
               benchmarkReturn={benchmarkReturn}
               excessReturn={excessReturn}
               onNavigate={setView}
-            />
-            <FinchReturnInsight
-              summary={summary}
-              rows={rows}
-              className="mt-4"
             />
           </>
         )}
