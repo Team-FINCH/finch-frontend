@@ -34,11 +34,25 @@ import { type AiFinding } from '@/shared/types/ai/diagnosis';
  *
  * **등락 표기에는 절대 쓰지 않는다.** 이 상수는 등급 라벨 전용이다.
  */
+/**
+ * `severity` 를 함께 든다 (FINCH-334). 호출부가 등급끼리 **견줘야** 하는
+ * 자리가 생겼다 — 위험도 지표 3열이 셋 중 가장 나쁜 칸 하나만 굵게 한다.
+ * 라벨 문자열로 견주면 문구를 고치는 날 판정이 조용히 깨진다.
+ *
+ * `color` 는 남겨 두지만 **쓰는 곳이 줄었다.** 지표 3열은 이제 상태 글자에 색을
+ * 쓰지 않는다(빨강·파랑은 등락색이고 주황·초록을 더하면 상태색 체계가 새로
+ * 생긴다 — `PortfolioRiskSummary` 주석). 남은 소비자는 종목 집중도 머리의
+ * 등급 글자 하나다.
+ */
 export const RISK_GRADE = {
-  none: { label: '양호', color: '#1B7F5A' },
-  info: { label: '보통', color: 'var(--color-text-secondary)' },
-  medium: { label: '다소 높음', color: '#E0912F' },
-  high: { label: '높음', color: '#E25555' },
+  none: { severity: 'none', label: '양호', color: '#1B7F5A' },
+  info: {
+    severity: 'info',
+    label: '보통',
+    color: 'var(--color-text-secondary)',
+  },
+  medium: { severity: 'medium', label: '다소 높음', color: '#E0912F' },
+  high: { severity: 'high', label: '높음', color: '#E25555' },
 } as const;
 
 export type RiskGrade = (typeof RISK_GRADE)[keyof typeof RISK_GRADE];
