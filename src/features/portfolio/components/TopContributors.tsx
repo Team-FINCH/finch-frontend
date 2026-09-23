@@ -86,9 +86,11 @@ export function TopContributors({
   return (
     <section>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="min-w-0 text-section-title text-text-primary">
+        {/* `h3` 다 — `h2` 는 이 패널 밖 `수익률 상세 분석` 이 갖는다
+            (FINCH-341). */}
+        <h3 className="min-w-0 text-section-title text-text-primary">
           성과에 영향을 준 종목
-        </h2>
+        </h3>
         <button
           type="button"
           onClick={onSeeAll}
@@ -152,7 +154,7 @@ function ContributorRow({
       </span>
 
       <p className="mt-2 text-caption text-text-muted tabular-nums">
-        {positive ? '가장 크게 기여' : '성과를 일부 낮춤'} · 기간 수익률{' '}
+        {positive ? '성과를 가장 크게 올림' : '성과를 일부 낮춤'} · 기간 수익률{' '}
         {formatSignedPercent(row.return)}
       </p>
     </div>

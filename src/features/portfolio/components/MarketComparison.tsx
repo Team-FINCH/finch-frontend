@@ -68,7 +68,10 @@ export function MarketComparison({
 
   return (
     <section>
-      <h3 className="text-body-2 font-bold text-text-primary">시장과 비교</h3>
+      {/* 형제 두 섹션(`PerformanceDriver`·`TopContributors`)과 같은 계단이다
+          (FINCH-341). 혼자 `text-body-2 font-bold`(15px) 라 요약 탭의 세
+          제목 중 이것만 한 단 작았는데, 근거가 적혀 있지 않은 차이였다. */}
+      <h3 className="text-section-title text-text-primary">시장과 비교</h3>
 
       <div className="mt-3.5 flex flex-col gap-2.5">
         <ComparisonBar

@@ -74,10 +74,14 @@ export function ReturnAttributionSection({
   );
 
   return (
-    <section className="mt-5">
-      <p className="text-label font-medium text-text-muted">
+    <section>
+      {/* 제목이다. 전에는 `text-label`(14px) muted 라 **제목으로 보이지 않았다**
+          — 아래 요인 라벨(16px/600)보다 작고 옅어서 목록의 머리가 아니라 캡션으로
+          읽혔다(사용자 지적). 카드 안의 머리라 `h3` 다 — `h2` 는 카드 밖
+          `수익률 상세 분석` 이 갖는다. */}
+      <h3 className="text-section-title text-text-primary">
         수익률은 이렇게 만들어졌어요
-      </p>
+      </h3>
 
       <div className="mt-4">
         <AttributionWaterfall

@@ -5,9 +5,9 @@ import { formatSignedPercentPoint } from '../lib/attributionInsight';
 import { DivergingBar } from './DivergingBar';
 
 /**
- * 기여 한 줄. **요인 목록과 종목 목록이 같이 쓴다** (FINCH-333).
+ * 기여 한 줄. **지금 쓰는 곳은 `종목별` 탭 하나다** (FINCH-333 · 341).
  *
- * ## 왜 하나로 합쳤나
+ * ## 왜 하나로 합쳤나 — 그리고 왜 지금은 한 곳만 쓰나
  *
  * 전에는 `AttributionRow`(요인)와 `StockContributionRow`(종목) 둘이 각자 있었다.
  * 하는 일이 같은데 — `라벨 / 값 / 막대` — 값이 조금씩 달랐다.
@@ -23,16 +23,25 @@ import { DivergingBar } from './DivergingBar';
  * 동시에 보이지 않으니 아무도 틀렸다고 말하지 못하는데, 오갈 때 화면이 정돈되지
  * 않은 느낌만 남는다. "컴포넌트 일관성이 부족하다" 는 지적의 실체가 이것이다.
  *
- * 이제 한 파일이 값을 하나씩만 갖는다. 고치면 두 탭이 같이 움직인다.
+ * 333 이 하나로 합쳤고, 341 에서 요인 쪽이 누적 워터폴(`AttributionWaterfall`)로
+ * 갈라져 나갔다. **부품은 남는다** — 두 탭의 행이 다시 갈리지 않으려면 치수가
+ * 한 곳에 있어야 하고, 워터폴 쪽이 이 파일의 값을 보고 맞춘다.
+ *
+ * | | 이 부품 (종목별) | 워터폴 (요인별) |
+ * | --- | --- | --- |
+ * | 행 사이 | 14px + 1px 선 | 같음 |
+ * | 라벨 → 막대 | 6px | 같음 |
+ * | 막대 높이 | 6px | 같음 |
+ * | 값 글자 | 18px/700 | 같음 |
  *
  * ## 세 층의 간격을 고정했다
  *
  * ```
- * 종목 선택                          +1.42%p   ← 라벨/값 (baseline 정렬)
- *                                              8px
- * ░░░░░░░░░░░│███████████░░░░░░░░░░░░         ← 막대
+ * 1  SK하이닉스                       +2.02%p   ← 순위/라벨/값 (baseline 정렬)
  *                                              6px
- * 기간 수익률 +9.12%                           ← 보조 (있을 때만)
+ * ░░░░░░░░░░░│███████████░░░░░░░░░░░░         ← 막대 6px
+ *                                              6px
+ * 기간 수익률 +9.12% · 비중 22.1%              ← 보조 (있을 때만)
  * ─────────────────────────────────────        ← divider, 위아래 14px
  * ```
  *
@@ -110,7 +119,7 @@ export function ContributionRow({
   rank,
 }: ContributionRowProps) {
   return (
-    <div className="mt-3 border-t border-divider pt-3 first:mt-0 first:border-t-0 first:pt-0">
+    <div className="mt-3.5 border-t border-divider pt-3.5 first:mt-0 first:border-t-0 first:pt-0">
       <div className="flex items-baseline justify-between gap-3">
         <span className="flex min-w-0 items-baseline gap-2">
           {rank !== undefined && (
@@ -125,7 +134,7 @@ export function ContributionRow({
           </span>
         </span>
         <span
-          className={`flex-none text-body-1 font-bold whitespace-nowrap tabular-nums ${
+          className={`flex-none text-[18px] leading-6 font-bold whitespace-nowrap tabular-nums ${
             value === 0
               ? 'text-stock-neutral'
               : value > 0

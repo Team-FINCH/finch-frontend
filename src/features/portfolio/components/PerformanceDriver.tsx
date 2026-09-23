@@ -85,9 +85,11 @@ export function PerformanceDriver({ breakdown }: PerformanceDriverProps) {
 
   return (
     <section>
-      <h2 className="text-section-title text-text-primary">
+      {/* `h3` 다 — `h2` 는 이 패널 밖 `수익률 상세 분석` 이 갖는다
+          (FINCH-341). */}
+      <h3 className="text-section-title text-text-primary">
         초과 성과는 어디서 왔나요?
-      </h2>
+      </h3>
 
       <div className="mt-4">
         <FactorRow

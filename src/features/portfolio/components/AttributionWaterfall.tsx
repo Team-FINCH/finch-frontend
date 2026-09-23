@@ -55,6 +55,16 @@ import {
  *
  * **단위가 다른 것이 맞다.** 요인 셋은 `%p`(수익률의 조각)이고 최종은 `%`다.
  *
+ * ## 막대는 보조다 (FINCH-341)
+ *
+ * 높이 6px · 완전 라운드다. 10px 각진 막대였는데 **숫자보다 먼저 보였다**
+ * (사용자 지적) — 이 화면에서 읽어야 하는 것은 `+0.89%p` 라는 값이고 막대는 그
+ * 값들의 크기 관계를 거드는 그림이다. 값을 16px 에서 18px 로 올리고 막대를 반으로
+ * 낮춰 둘의 무게를 뒤집었다.
+ *
+ * 요인 사이에 1px 선을 둔다. 행마다 라벨·값·막대·설명 넉 줄이 쌓여서, 선이 없으면
+ * 어디까지가 한 요인인지 여백만으로 가려야 한다.
+ *
  * ## 색은 저채도 짝이다
  *
  * `--color-stock-*-muted`. 확정값(`--color-stock-up`)을 쓰는 자리는 이 화면에서
@@ -99,29 +109,33 @@ export function AttributionWaterfall({
         const lead = !allZero && step.factor === mainFactor;
 
         return (
-          <div key={step.factor} className="mt-4 first:mt-0">
+          <div
+            key={step.factor}
+            className="mt-3.5 border-t border-divider pt-3.5 first:mt-0 first:border-t-0 first:pt-0"
+          >
             <div className="flex items-baseline justify-between gap-3">
               <span
-                className={`min-w-0 truncate text-body-2 ${
+                className={`min-w-0 truncate text-body-1 ${
                   lead
                     ? 'font-bold text-text-primary'
-                    : 'font-medium text-text-secondary'
+                    : 'font-semibold text-text-primary'
                 }`}
               >
                 {ATTRIBUTION_FACTOR_LABEL[step.factor]}
               </span>
               <span
-                className={`flex-none text-body-1 font-bold whitespace-nowrap tabular-nums ${valueColor(step.value)}`}
+                className={`flex-none text-[18px] leading-6 font-bold whitespace-nowrap tabular-nums ${valueColor(step.value)}`}
               >
                 {formatSignedPercentPoint(step.value)}
               </span>
             </div>
 
-            {/* 막대. 트랙은 `DivergingBar` 와 같은 높이·반경·면색이라 종목별 탭과
-                결이 갈리지 않는다. 다른 것은 칸이 서는 자리 하나다. */}
+            {/* 막대. 면색(`--color-chart-track`)은 `DivergingBar` 와 같고 높이만
+                낮다 — 위 «막대는 보조다» 참고. 0 선은 트랙 위아래로 3px 씩 나와
+                6px 막대보다 길다. 짧으면 6px 안에 묻혀 출발점이 보이지 않는다. */}
             <span
               aria-hidden="true"
-              className="relative mt-1.5 block h-2.5 w-full rounded-[3px] bg-chart-track"
+              className="relative mt-2 block h-1.5 w-full rounded-full bg-chart-track"
             >
               <span
                 className="absolute -top-[3px] -bottom-[3px] w-px -translate-x-1/2 bg-border-strong"
@@ -129,7 +143,7 @@ export function AttributionWaterfall({
               />
               {step.value !== 0 && (
                 <span
-                  className={`absolute inset-y-0 rounded-[3px] ${
+                  className={`absolute inset-y-0 rounded-full ${
                     step.value > 0 ? 'bg-stock-up-muted' : 'bg-stock-down-muted'
                   }`}
                   style={{ left: `${left}%`, width: `${width}%` }}
@@ -146,8 +160,8 @@ export function AttributionWaterfall({
 
       {/* 도착점. 위 세 칸과 달리 막대가 없다 — 이 줄은 흐름의 한 걸음이 아니라
           걸음들이 닿은 자리다. 선 하나로 갈라 둔다. */}
-      <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-divider pt-3.5">
-        <span className="min-w-0 truncate text-body-2 font-medium text-text-secondary">
+      <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-border pt-4">
+        <span className="min-w-0 truncate text-body-1 font-semibold text-text-primary">
           최종 수익률
         </span>
         <span

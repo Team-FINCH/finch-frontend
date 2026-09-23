@@ -116,7 +116,7 @@ export function StockContributionSection({
 
   if (rows.length === 0) {
     return (
-      <section className="mt-5">
+      <section>
         <p className="text-body-1 text-text-secondary">
           이 기간 동안 특별한 기여가 없었어요.
         </p>
@@ -125,18 +125,36 @@ export function StockContributionSection({
   }
 
   return (
-    <section className="mt-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="min-w-0 truncate text-label font-medium text-text-muted">
+    <section>
+      {/* 제목 + 설명 한 줄. 전에는 `영향이 큰 순` 이라는 정렬 기준이 제목 자리에
+          앉아 있었다 — 무엇을 보여주는 목록인지는 말하지 않고 어떤 순서인지만
+          말했다(사용자 지적). 정렬 기준은 아래 메타 줄로 내렸다.
+
+          설명이 단위를 함께 푼다. `+2.02%p` 가 그 종목의 수익률이 아니라 **내 계좌
+          수익률을 그만큼 움직였다**는 뜻인데, 보조 줄에 `기간 수익률 +9.12%` 가
+          같이 서 있어 둘 중 무엇이 포트폴리오 이야기인지 가를 수 없었다.
+          단위(`%p` 대 `%`)가 이미 가르지만 그것은 아는 사람에게만 보인다. */}
+      <h3 className="text-section-title text-text-primary">
+        종목마다 이만큼 움직였어요
+      </h3>
+      <p className="mt-1 text-label text-pretty break-keep text-text-secondary">
+        각 종목이 내 수익률을 얼마나 움직였는지예요.
+      </p>
+
+      {/* 정렬 기준과 진입점. **개수는 메타로 내렸다** — `2종목` 은 목록을 세면
+          알 수 있는 값이라 제목 자리를 차지할 이유가 없었다. 펼칠 것이 있을 때만
+          누를 수 있는 글자가 된다. */}
+      <div className="mt-3.5 flex items-baseline justify-between gap-3">
+        <span className="min-w-0 truncate text-caption text-text-muted">
           영향이 큰 순
-        </p>
+        </span>
 
         {collapsible ? (
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
             aria-expanded={expanded}
-            className="-my-1 flex-none py-1 text-body-2 font-medium whitespace-nowrap text-text-secondary"
+            className="-my-1 flex-none py-1 text-caption font-medium whitespace-nowrap text-text-secondary"
           >
             {expanded ? '접기' : `전체 ${rows.length}종목 ›`}
           </button>
@@ -147,16 +165,7 @@ export function StockContributionSection({
         )}
       </div>
 
-      {/* 이 목록의 숫자가 무엇인지 한 줄로 못박는다 (FINCH-341). `+2.02%p` 가
-          그 종목의 수익률이 아니라 **내 계좌 수익률을 그만큼 움직였다**는 뜻인데,
-          바로 아래 보조 줄에 `기간 수익률 +9.12%` 가 함께 서 있어 둘 중 무엇이
-          포트폴리오 이야기인지 읽는 사람이 가를 수 없었다(사용자 지적 4번).
-          단위(`%p` 대 `%`)가 이미 가르고 있지만 그것은 아는 사람에게만 보인다. */}
-      <p className="mt-0.5 text-caption text-pretty break-keep text-text-muted">
-        포트폴리오 수익률을 몇 %p 움직였는지예요.
-      </p>
-
-      <div className="mt-3.5">
+      <div className="mt-2.5">
         {visible.map((row, index) => (
           <ContributionRow
             key={row.ticker}
