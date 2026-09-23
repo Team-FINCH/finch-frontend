@@ -14,6 +14,7 @@ const BRIEFING_EVENT_LABELS: Record<AiBriefingEventType, string> = {
   earnings: '실적',
   dividend: '배당',
   product: '신제품',
+  news: '뉴스',
 };
 
 /** 제목 아래 줄(`BRIEF_MIX`)에 나열하는 순서. AI 명세 §8 매핑 표의 순서다. */
@@ -23,6 +24,7 @@ const EVENT_TYPE_ORDER: readonly AiBriefingEventType[] = [
   'earnings',
   'dividend',
   'product',
+  'news',
 ];
 
 function isKnownEventType(

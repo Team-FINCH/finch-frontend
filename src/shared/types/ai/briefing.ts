@@ -55,6 +55,7 @@ export const AI_BRIEFING_EVENT_TYPES = [
   'dividend',
   'macro',
   'product',
+  'news',
 ] as const;
 export type AiBriefingEventType = (typeof AI_BRIEFING_EVENT_TYPES)[number];
 
