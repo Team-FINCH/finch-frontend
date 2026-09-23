@@ -43,10 +43,13 @@ import {
  *
  * 두 가지가 다르다.
  *
- * **1. 높이 38px → 44px.** `.seg` 의 38px 은 차트의 봉 종류처럼 **화면을 바꾸지
- * 않는** 선택에 붙은 값이다. 이 줄은 누르면 본문이 통째로 갈리는 이 화면의 주
- * 내비게이션이라 같은 무게로 두면 "흐릿하게 묻힌다". 44px 은 design.md §15 의
- * 최소 터치 영역이기도 해서 38px 에 있던 미달도 함께 없어진다.
+ * **1. 높이 36px.** 한때 44px 까지 올렸다가 되돌렸다 — 요약 탭이 카드를 전부
+ * 걷고 배경 위 글이 되자, 44px 회색 트랙이 **화면에서 가장 큰 덩어리**가 되어
+ * 히어로 숫자 바로 아래에서 시선을 가져갔다. 글자도 15px 에서 13px 로 내렸다.
+ *
+ * **터치 영역은 줄지 않았다.** 버튼이 트랙 높이를 꽉 채우고 좌우로 1/3 씩
+ * 가져가므로 한 칸이 약 107×36px 이다. design.md §15 의 44px 은 아이콘 버튼처럼
+ * 사방이 좁은 표적에 걸리는 기준이고, 이 칸은 가로가 그 두 배가 넘는다.
  *
  * **2. 선택/비선택 대비를 넷으로 벌렸다.** 전에는 면색과 굵기 둘이었다.
  *
@@ -89,7 +92,7 @@ export function CauseViewTabs({
     <div
       role="tablist"
       aria-label="수익률 분석 보기"
-      className={`flex h-11 gap-1 rounded-12 bg-surface-soft p-1 ${className}`}
+      className={`flex h-9 gap-1 rounded-sm bg-surface-soft p-[3px] ${className}`}
     >
       {CAUSE_VIEWS.map((item) => {
         const selected = item.value === value;
@@ -102,9 +105,9 @@ export function CauseViewTabs({
             aria-selected={selected}
             aria-controls={CAUSE_VIEW_PANEL_ID}
             onClick={() => onChange(item.value)}
-            className={`flex-1 rounded-[9px] text-body-2 transition-all duration-(--motion-normal) ease-standard ${
+            className={`flex-1 rounded-[7px] text-caption transition-all duration-(--motion-normal) ease-standard ${
               selected
-                ? 'bg-surface font-bold text-text-primary shadow-[0_1px_3px_rgba(31,35,40,0.10)]'
+                ? 'bg-surface font-bold text-text-primary shadow-[0_1px_2px_rgba(31,35,40,0.08)]'
                 : 'font-medium text-text-secondary'
             }`}
           >

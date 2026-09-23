@@ -24,6 +24,21 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * 4. **다시 `AiCard`** (2026-09-22 QA) — AI 면을 앱 전체에서 하나로 모았다
  * 5. **연한 패널** (2026-09-23) — 아래 참고
  *
+ * ## 6. 흰 면 + 1px 로 한 단 더 내렸다 (2026-09-23)
+ *
+ * 5번(`--color-surface-soft` 회색 면)에서 **흰 면 + 1px 테두리**로 옮겼다.
+ * 요약 탭이 카드를 전부 걷어 배경 위 글이 되면서, 회색 면 하나가 화면에서
+ * 유일한 덩어리가 되어 **다시 가장 눈에 띄는 것**이 됐다 — 5번이 풀려던 문제가
+ * 배경이 바뀌자 그대로 돌아온 것이다.
+ *
+ * 흰 면은 배경(#F7F8FA)보다 **밝아서** 회색 면처럼 무게를 더하지 않는다.
+ * 1px 테두리가 경계를 만들고 그림자는 없다. 반경도 `--radius-sm`(10px)으로
+ * 내렸다 — `--radius-ai`(12px)는 검정 카드의 값이라 이 자리에 크다.
+ *
+ * 라벨도 `--color-text-muted` 로 한 단 내렸고 CTA 는 `›` 대신 `→` 다.
+ * 셰브런은 이 화면에서 "눌러서 이동" 을 뜻하는 기호로 쓰지 않기로 했다
+ * (`PerformanceDriver` 에서 걷은 것과 같은 이유).
+ *
  * ## 5번으로 간 이유와 그 대가
  *
  * 검정 면이 `요약` 탭의 마지막에 있어도 **화면에서 가장 무거운 덩어리**였다.
@@ -106,18 +121,20 @@ export function FinchReturnInsight({
   const hasDetail = summary !== null || evidenced.length > 0;
 
   return (
-    <section className={`rounded-ai bg-surface-soft px-4 py-3.5 ${className}`}>
+    <section
+      className={`rounded-sm border border-border bg-surface px-4 py-3.5 ${className}`}
+    >
       {/* 글리프는 `bg-current` 마스크라 이 줄의 글자색을 물려받는다. 밝은 면이라
           흰색이 아니라 `--color-text-secondary` 가 된다 — design.md §3 이
           "검정 Surface 위에서는 White Symbol" 이라고 적은 것의 반대 경우다. */}
-      <h3 className="flex items-center gap-1.75 text-text-secondary">
+      <h2 className="flex items-center gap-1.75 text-text-muted">
         <AiGlyph />
         <span className="text-caption font-semibold tracking-[.02em]">
-          FINCH 한줄 분석
+          FINCH 분석
         </span>
-      </h3>
+      </h2>
 
-      <p className="mt-2.5 line-clamp-3 text-body-2 text-pretty break-keep text-text-secondary">
+      <p className="mt-2 line-clamp-3 text-body-2 text-pretty break-keep text-text-secondary">
         {summary === null ? (
           '수익률 원인 분석을 준비하지 못했어요.'
         ) : (
@@ -129,9 +146,9 @@ export function FinchReturnInsight({
         <button
           type="button"
           onClick={() => setDetailOpen(true)}
-          className="mt-3 text-caption font-semibold text-text-primary"
+          className="mt-2.5 text-caption font-semibold text-text-secondary"
         >
-          분석 자세히 보기 ›
+          분석 자세히 보기 →
         </button>
       )}
 
