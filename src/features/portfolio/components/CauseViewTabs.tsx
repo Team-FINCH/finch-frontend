@@ -33,15 +33,35 @@ import {
  * 적은 숫자가 4탭 줄의 글자 크기를 따라 조용히 어긋난다. 탭을 가른 뒤 한 패널의
  * 높이가 짧아져서 붙박이가 벌어 주는 것도 적다.
  *
- * ## `.seg` 실측값을 쓴다
+ * ## `.seg` 를 따르되 두 값을 올렸다 (FINCH-333)
  *
- * 트랙 높이 38px · 반경 12px(`--radius-12`) · 안쪽 여백 4px · 버튼 반경 9px ·
- * 선택된 버튼만 흰 면 + 옅은 그림자. 종목 상세의 `ChartPeriodSegment` 와 같은
- * 값이다 — feature 끼리는 import 하지 않아서(ESLint `import-x/no-restricted-paths`)
- * 값을 옮겨 적었다. **셋째 자리가 생기면 `shared/ui` 로 올리는 것이 맞다.**
+ * 바탕은 프로토타입 `.seg` 실측이다 — 반경 12px(`--radius-12`) · 안쪽 여백 4px ·
+ * 버튼 반경 9px · 선택된 버튼만 흰 면 + 그림자. 종목 상세의
+ * `ChartPeriodSegment` 와 같은 값이고, feature 끼리는 import 하지 않아서
+ * (ESLint `import-x/no-restricted-paths`) 옮겨 적었다.
+ * **셋째 자리가 생기면 `shared/ui` 로 올리는 것이 맞다.**
  *
- * 선택된 버튼만 `font-semibold` 다. 그쪽은 둘 다 `font-medium` 인데, 여기는
- * 화면의 내용이 통째로 바뀌는 탭이라 눌린 곳이 면색 하나로만 표시되면 약하다.
+ * 두 가지가 다르다.
+ *
+ * **1. 높이 38px → 44px.** `.seg` 의 38px 은 차트의 봉 종류처럼 **화면을 바꾸지
+ * 않는** 선택에 붙은 값이다. 이 줄은 누르면 본문이 통째로 갈리는 이 화면의 주
+ * 내비게이션이라 같은 무게로 두면 "흐릿하게 묻힌다". 44px 은 design.md §15 의
+ * 최소 터치 영역이기도 해서 38px 에 있던 미달도 함께 없어진다.
+ *
+ * **2. 선택/비선택 대비를 넷으로 벌렸다.** 전에는 면색과 굵기 둘이었다.
+ *
+ * | | 면 | 굵기 | 글자색 | 그림자 |
+ * | --- | --- | --- | --- | --- |
+ * | 선택 | 흰색 | 700 | `--color-text-primary` (15.80) | 0 1px 3px .10 |
+ * | 비선택 | (트랙) | 500 | `--color-text-secondary` (6.3) | 없음 |
+ *
+ * 비선택 글자색을 `--color-text-muted`(#78828E)에서 올렸다. 트랙(#F1F3F6) 위
+ * 대비가 3.7 로 **AA 미달이었고**, 그래서 고르지 않은 두 칸이 비활성 버튼처럼
+ * 보였다. `--color-text-secondary` 는 같은 면에서 6.3 이다. 대비가 올라가도
+ * 선택된 칸과 헷갈리지 않는다 — 흰 면·굵기·15.80 이 셋으로 이미 갈린다.
+ *
+ * 그림자를 .06 에서 .10 으로 올렸다. .06 은 375px 실기기에서 거의 보이지 않아
+ * 흰 칸이 트랙 위에 떠 있다는 느낌을 주지 못했다.
  *
  * ## 접근성
  *
@@ -69,7 +89,7 @@ export function CauseViewTabs({
     <div
       role="tablist"
       aria-label="수익률 분석 보기"
-      className={`flex h-9.5 gap-1 rounded-12 bg-surface-soft p-1 ${className}`}
+      className={`flex h-11 gap-1 rounded-12 bg-surface-soft p-1 ${className}`}
     >
       {CAUSE_VIEWS.map((item) => {
         const selected = item.value === value;
@@ -84,8 +104,8 @@ export function CauseViewTabs({
             onClick={() => onChange(item.value)}
             className={`flex-1 rounded-[9px] text-body-2 transition-all duration-(--motion-normal) ease-standard ${
               selected
-                ? 'bg-surface font-semibold text-text-primary shadow-[0_1px_3px_rgba(31,35,40,0.06)]'
-                : 'font-medium text-text-muted'
+                ? 'bg-surface font-bold text-text-primary shadow-[0_1px_3px_rgba(31,35,40,0.10)]'
+                : 'font-medium text-text-secondary'
             }`}
           >
             {item.label}

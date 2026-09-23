@@ -59,10 +59,11 @@ import { StockContributionSection } from './StockContributionSection';
  * 1. **두 차트를 비교하게 된다.** 요인 막대와 종목 막대는 `divergingScale` 을
  *    각자 잡으므로 길이를 서로 견주면 안 되는데(그 함수 주석), 나란히 서 있으면
  *    같은 축의 차트로 읽힌다. 이제 구조적으로 한 화면에 함께 서지 않는다
- * 2. **적색이 반복된다.** 한 화면의 등락색 요소가 열넷 안팎이었다.
- *    `요약` 은 넷(성과 둘 + 요약 둘)이다. **색 토큰은 한 글자도 바꾸지 않았다** —
- *    `--color-stock-up` 은 이슈 #32 회신으로 확정된 값이고 앱 전체가 공유한다.
- *    줄인 것은 자리 수이고, 막대는 같은 색을 80% 로 얹어 면적만 줄였다
+ * 2. **적색이 반복된다.** 한 화면의 등락색 요소가 열넷 안팎이었고 전부 같은
+ *    채도였다. `요약` 은 넷(성과 둘 + 요약 둘)이다. **확정 토큰 값은 한 글자도
+ *    바꾸지 않았다** — `--color-stock-up` 은 이슈 #32 회신으로 확정됐고 앱 전체가
+ *    공유한다. 대신 저채도 짝(`--color-stock-*-muted`)을 더해서, 이 화면에서
+ *    확정값을 쓰는 자리가 **성과 카드의 큰 수익률 하나**만 남게 했다
  * 3. **스크롤이 길다.** 보유 여덟 종목이면 본문이 화면 셋을 넘겼다
  *
  * ## 성과 카드는 탭 밖에 남는다
@@ -128,7 +129,7 @@ export function CauseTab() {
         {periodTabs}
         <div className="flex flex-col gap-3 pt-6">
           <Skeleton className="h-28 w-full" />
-          <Skeleton className="h-9.5 w-full" />
+          <Skeleton className="h-11 w-full" />
           <Skeleton className="h-40 w-full" />
         </div>
       </div>
