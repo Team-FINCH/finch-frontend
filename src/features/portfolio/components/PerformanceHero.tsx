@@ -53,6 +53,16 @@ import { formatSignedPercentPoint } from '../lib/attributionInsight';
  * 기간 수익률·시장은 `%`, 시장 대비는 `%p` 다. 두 퍼센트의 차라서 그렇다 —
  * 근거는 `attributionInsight.ts` 의 `formatSignedPercentPoint` 주석에 있다.
  *
+ * ## 보조 수치를 2열 격자에 앉혔다 (FINCH-333)
+ *
+ * `flex gap-8` 이었다. 두 값이 왼쪽에 붙고 카드 오른쪽 절반이 통째로 비어서,
+ * **여백은 많은데 정렬이 정교하지 않아 허전한** 모양이 났다. 값의 길이에 따라
+ * 둘째 값의 x 좌표가 매번 달라지는 것도 같은 문제다 — `+0.89%` 인 날과
+ * `+12.40%` 인 날에 `시장 대비` 가 다른 자리에 선다.
+ *
+ * `grid-cols-2` 는 두 값을 카드 폭의 0% 와 50% 에 고정한다. 값이 길어져도 자리가
+ * 움직이지 않고, 아래 탭·목록 카드의 좌우 정렬과도 눈이 맞는다.
+ *
  * ## 흰 카드로 올렸다 (FINCH-327)
  *
  * 전에는 페이지 배경 위에 그대로 섰다. 카드를 남발하지 않는다는 판단 자체는
@@ -107,8 +117,8 @@ export function PerformanceHero({
         최근 {tradingDays}거래일 수익률
       </p>
 
-      {/* gap-8 로만 갈린다 — 두 값을 나누는 선을 두지 않는다. */}
-      <dl className="mt-5 flex gap-8">
+      {/* 선을 두지 않는다 — 위 "세 숫자를 하나의 성과로 묶는다" 참고. */}
+      <dl className="mt-5 grid grid-cols-2 gap-4">
         <HeroMetric label="시장" text={formatSignedPercent(benchmarkReturn)} />
         <HeroMetric
           label="시장 대비"
