@@ -15,22 +15,26 @@ import { useEffect, useRef, useState } from 'react';
  *
  * **`sessionStorage` 를 쓰지 않는다.** 저장소가 막힌 브라우저에서 예외가 나고,
  * 되살아나서 좋을 값도 아니다(다음 방문에 애니메이션이 영영 안 나온다).
+ *
+ * ## 화면마다 따로 센다 (FINCH-345)
+ *
+ * 전에는 플래그가 하나(`hasPlayed`)였다. `수익률 분석` 탭이 같은 연출을 쓰게
+ * 되면서 **한 플래그를 나눠 쓰면 먼저 연 탭이 다른 탭의 애니메이션을 잡아먹는다** —
+ * 진단을 보고 수익률 분석으로 넘어가면 막대가 이미 다 자란 채로 나타난다.
+ *
+ * 키별로 센다. 둘은 서로 다른 화면이고 "처음 들어왔다" 도 각자 따진다.
  */
-let hasPlayed = false;
+const hasPlayed: Record<string, boolean> = {};
 
 /**
- * 이번 마운트에서 진입 애니메이션을 재생할지.
- *
- * 처음 한 번만 `true` 이고 그 뒤로는 계속 `false` 다. `prefers-reduced-motion:
- * reduce` 면 언제나 `false` — 호출부는 그때 애니메이션 클래스를 붙이지 않고
- * 최종값을 바로 그린다.
+ * 이 화면에서 진입 애니메이션을 재생할지. 화면당 한 번이다.
  *
  * **첫 렌더에 판정을 끝낸다.** `useEffect` 로 켜면 한 프레임 동안 최종 상태가
  * 보였다가 애니메이션이 처음부터 다시 시작해 깜빡인다.
  */
-export function useDiagnosisIntro(): boolean {
+function useIntroOnce(key: string): boolean {
   const [play] = useState(() => {
-    if (hasPlayed) {
+    if (hasPlayed[key]) {
       return false;
     }
     // SSR 이 없는 앱이지만 `matchMedia` 가 없는 환경(테스트 러너)에서 터지지 않게 한다.
@@ -43,10 +47,27 @@ export function useDiagnosisIntro(): boolean {
   });
 
   useEffect(() => {
-    hasPlayed = true;
-  }, []);
+    hasPlayed[key] = true;
+  }, [key]);
 
   return play;
+}
+
+/**
+ * AI 진단 탭. 처음 한 번만 `true` 이고 `prefers-reduced-motion: reduce` 면
+ * 언제나 `false` — 호출부는 그때 애니메이션 클래스를 붙이지 않고 최종값을
+ * 바로 그린다.
+ */
+export function useDiagnosisIntro(): boolean {
+  return useIntroOnce('diagnosis');
+}
+
+/**
+ * 수익률 분석 `요인별` 탭 (FINCH-345). 진단과 **다른 플래그**를 쓴다 —
+ * 위 «화면마다 따로 센다» 참고.
+ */
+export function useAttributionIntro(): boolean {
+  return useIntroOnce('attribution');
 }
 
 /** 스펙의 카운트업 이징. `cubic-bezier` 가 아니라 JS 라 직접 적는다. */

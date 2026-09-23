@@ -8,6 +8,7 @@ import {
   resolveAttributionVerdict,
   resolveMainFactor,
 } from '../lib/attributionInsight';
+import { useAttributionIntro } from '../lib/useDiagnosisIntro';
 
 import { AttributionGuideSheet } from './AttributionGuideSheet';
 import { ContributionRow } from './ContributionRow';
@@ -89,10 +90,24 @@ type ReturnAttributionSectionProps = {
   portfolioReturn: number;
 };
 
+/**
+ * 막대가 자라기 시작하는 시각(ms)과 행 사이 간격.
+ *
+ * 패널이 `tab-panel-fade-in`(180ms)으로 먼저 떠오르므로 그 뒤에 시작한다.
+ * 겹치면 떠오르는 면 위에서 막대가 자라 둘 다 어수선해 보인다.
+ *
+ * 행마다 80ms 씩 늦춰 위에서 아래로 훑게 한다. 셋이 한꺼번에 벌어지면 움직임이
+ * 한 번에 끝나서 **어느 쪽으로 벌어졌는지**가 남지 않는다 — 이 연출이 축을 한 번
+ * 더 말하게 하려는 것이므로 차례가 있어야 한다.
+ */
+const BAR_INTRO_DELAY = 220;
+const BAR_INTRO_STAGGER = 80;
+
 export function ReturnAttributionSection({
   breakdown,
   portfolioReturn,
 }: ReturnAttributionSectionProps) {
+  const intro = useAttributionIntro();
   const mainFactor = resolveMainFactor(breakdown);
   const values = ATTRIBUTION_FACTOR_ORDER.map((factor) => breakdown[factor]);
   const allZero = values.every((value) => value === 0);
@@ -155,12 +170,14 @@ export function ReturnAttributionSection({
       </div>
 
       <div className="mt-2">
-        {ATTRIBUTION_FACTOR_ORDER.map((factor) => (
+        {ATTRIBUTION_FACTOR_ORDER.map((factor, index) => (
           <ContributionRow
             key={factor}
             label={ATTRIBUTION_FACTOR_LABEL[factor]}
             value={breakdown[factor]}
             scale={scale}
+            animate={intro}
+            delay={BAR_INTRO_DELAY + index * BAR_INTRO_STAGGER}
             /* 셋이 모두 0 인 기간에는 `lead` 가 없다 — `resolveMainFactor` 는
                절댓값 비교라 그때도 `market` 을 돌려주는데, 아무것도 움직이지
                않은 기간에 하나만 굵게 하면 없는 순위를 만든다. */

@@ -123,6 +123,10 @@ type ContributionRowProps = {
    * 아니라 번호를 붙이면 없는 순위를 만든다.
    */
   rank?: number;
+  /** 0 축에서 바깥으로 자라는 진입 연출 (FINCH-345). 지금은 `요인별` 만 켠다 */
+  animate?: boolean;
+  /** 자라기 시작하는 시각(ms) */
+  delay?: number;
 };
 
 export function ContributionRow({
@@ -132,6 +136,8 @@ export function ContributionRow({
   emphasis = 'normal',
   sub,
   rank,
+  animate = false,
+  delay = 0,
 }: ContributionRowProps) {
   return (
     <div className="mt-3.5 border-t border-divider pt-3.5 first:mt-0 first:border-t-0 first:pt-0">
@@ -161,7 +167,13 @@ export function ContributionRow({
         </span>
       </div>
 
-      <DivergingBar value={value} scale={scale} className="mt-1.5" />
+      <DivergingBar
+        value={value}
+        scale={scale}
+        animate={animate}
+        delay={delay}
+        className="mt-1.5"
+      />
 
       {sub !== undefined && (
         <p className="mt-1.5 text-caption text-text-muted tabular-nums">

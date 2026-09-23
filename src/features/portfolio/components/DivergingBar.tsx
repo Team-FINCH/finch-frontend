@@ -57,6 +57,25 @@ import { divergingWidth } from '../lib/attributionInsight';
  * 화면에서 실제로 보이는 색이 토큰에 적혀 있지 않았다. 지금은 눈에 보이는 색이
  * 곧 토큰 값이다.
  *
+ * ## 자라는 연출은 0 축에서 바깥으로 (FINCH-345)
+ *
+ * AI 진단 탭의 막대와 **같은 키프레임**(`diag-grow` — `scaleX(0) → scaleX(1)`)을
+ * 쓴다. 다른 점은 자라는 **기준 변**이다. 진단 막대는 언제나 왼쪽 끝에서
+ * 오른쪽으로 자라지만(`origin-left`), 이쪽은 0 축이 가운데라 **부호에 따라 기준이
+ * 갈린다** — 양수는 `origin-left`, 음수는 `origin-right` 다. 둘 다 `scaleX(0)` 에서
+ * 0 축에 붙어 있다가 바깥으로 벌어진다.
+ *
+ * 그 움직임 자체가 축을 한 번 더 말한다. 정지 화면에서 `수익률을 낮춤 · 0 ·
+ * 수익률을 높임` 라벨이 하는 일을, 첫 진입에서는 막대가 벌어지는 방향이 한다.
+ *
+ * **`width` 가 아니라 `transform` 이다.** 레이아웃을 다시 계산하지 않는다.
+ *
+ * 지연은 호출부가 정한다 — 행마다 조금씩 늦춰 위에서 아래로 훑게 한다. Tailwind
+ * 임의값 클래스는 정적이어야 해서 `animationDelay` 만 인라인으로 준다.
+ *
+ * **재생 여부도 호출부가 정한다**(`useAttributionIntro`). 탭을 오갈 때마다 다시
+ * 자라면 읽던 화면이 계속 움직인다.
+ *
  * ## 낭독기에 내보내지 않는다
  *
  * 같은 값이 언제나 바로 곁에 글자로 서 있다 (`ContributionRow` 는 같은 줄 오른쪽,
@@ -68,12 +87,18 @@ type DivergingBarProps = {
   value: number;
   /** `divergingScale()` 이 준 기준. 같은 차트 안의 행들이 같은 값을 받아야 한다 */
   scale: number;
+  /** 0 축에서 바깥으로 자라는 진입 연출. 화면당 한 번만 켠다 */
+  animate?: boolean;
+  /** 자라기 시작하는 시각(ms). 행마다 늦춰 위에서 아래로 훑게 한다 */
+  delay?: number;
   className?: string;
 };
 
 export function DivergingBar({
   value,
   scale,
+  animate = false,
+  delay = 0,
   className = '',
 }: DivergingBarProps) {
   const width = divergingWidth(value, scale);
@@ -91,14 +116,18 @@ export function DivergingBar({
         <span
           className={`absolute inset-y-0 ${
             positive
-              ? 'rounded-r-[3px] bg-stock-up-muted'
-              : 'rounded-l-[3px] bg-stock-down-muted'
+              ? 'origin-left rounded-r-[3px] bg-stock-up-muted'
+              : 'origin-right rounded-l-[3px] bg-stock-down-muted'
+          } ${
+            animate
+              ? 'animate-[diag-grow_900ms_cubic-bezier(.2,.8,.2,1)_both] motion-reduce:animate-none'
+              : ''
           }`}
-          style={
-            positive
-              ? { left: '50%', width: `${width}%` }
-              : { right: '50%', width: `${width}%` }
-          }
+          style={{
+            ...(positive ? { left: '50%' } : { right: '50%' }),
+            width: `${width}%`,
+            ...(animate ? { animationDelay: `${delay}ms` } : {}),
+          }}
         />
       )}
     </span>
