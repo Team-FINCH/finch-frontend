@@ -28,7 +28,27 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * 2번에서 내려온 맨 아래 자리 그대로다. 되돌리지 마라. 면도 순검정이 아니라
  * `#343A42` 로 한 단계 밝아졌다 (`styles/index.css` 의 `--color-ai-surface` 주석).
  *
- * AI 진단 탭의 `FinchInsightCard` 와 같은 셸이다 — 둘은 항상 같이 움직인다.
+ * AI 진단 탭의 `FinchInsightCard` 와 같은 셸이다 — **면색과 셸은** 항상 같이
+ * 움직인다. 본문 안쪽 여백은 슬롯마다 내용이 달라(이쪽은 문단, 그쪽은 지표 격자)
+ * 따로 정한다.
+ *
+ * ## 면은 그대로 차콜이다 (FINCH-333)
+ *
+ * 2026-09-23 에 "라이트 톤 카드로 재설계하는 안" 을 검토했고 **하지 않기로 했다.**
+ * 다시 올라올 제안이라 근거를 남긴다.
+ *
+ * - **위 3번이 정확히 그 안이고 이미 한 번 버렸다.** 흰 `Card` 로 만들었더니
+ *   옆의 일반 카드들과 같은 면이 되어 *이것이 AI 가 쓴 글이라는 표시가
+ *   없어졌다.* 글리프 하나로는 모자랐다. 라이트로 가면 같은 자리로 돌아간다
+ * - **`design.md` §1·§4·§15 가 "Dark Charcoal Surface + White" 로 못박았다.**
+ *   화면 대부분이 White/Graphite 이고 AI 가 관여한 영역만 검정으로 갈라 보이는
+ *   것이 이 앱의 체계다. 이 카드만 라이트로 바꾸면 체계가 깨지고, 전부 바꾸면
+ *   채팅 말풍선·브리핑·진단까지 13곳 넘게 함께 움직인다
+ * - **전면 동결 당일이다.** `shared/ui/AiCard` 는 앱에서 가장 넓게 쓰이는 셸이다
+ *
+ * 무게 문제 자체는 실재하고, 그것은 **면적으로 푼다** — 위 "카드 높이를 34px
+ * 줄였다" 가 그 답이다. 라이트 전환을 정말 하려면 AI 면 체계 전체를 다루는
+ * 별도 티켓이라야 하고 `design.md` §1·§4·§15 개정이 먼저다.
  *
  * ## 큰 숫자를 새로 세우지 않는다
  *
@@ -56,15 +76,42 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * 주석). 부호가 `value` 문자열에 들어 있어 색 없이도 방향은 남는다. **아래 시트는
  * 흰 면이라 `onDark` 를 켜지 않는다** — 같은 문장이 두 면에서 다르게 칠해진다.
  *
- * ## 본문은 세 줄에서 끊는다
+ * ## 본문은 두 줄에서 끊는다 (FINCH-333)
  *
  * `summary` 는 2~4문장이 이어진 하나다(`NARRATIVE_SCHEMA` 가 `{narrative: string}`
  * 필드 하나). 문장 수를 프론트가 고를 수 없으므로 **줄 수로 끊는다** —
- * `line-clamp-3` 은 짧은 응답에는 아무 일도 하지 않고 긴 응답에서만 접힌다.
+ * `line-clamp` 은 짧은 응답에는 아무 일도 하지 않고 긴 응답에서만 접힌다.
  * 마침표로 자르지 않는 이유는 그대로다. 문장이 2개로 오는 날 자리가 빈다.
  *
  * 잘린 뒷부분은 `분석 자세히 보기` 시트 맨 위에 전문으로 있다. **자료를 버리는
  * 것이 아니라 접는 것이다.**
+ *
+ * ## 카드 높이를 34px 줄였다 (FINCH-333)
+ *
+ * "FINCH 분석 카드가 너무 어둡고 무거워서 전체 화면 흐름을 끊는다" 는 지적의 답
+ * 이다. **면색을 바꾸지 않고 면적을 줄였다** — 아래 "면은 그대로 차콜이다" 참고.
+ *
+ * - `line-clamp-3` → `line-clamp-2`. 22px. 이 카드는 이제 `요약` 탭의 **마지막**
+ *   블록이라 위에서 이미 성과·요인 1위·종목 1위를 다 읽고 온다. 세 줄이 필요했던
+ *   것은 이 카드가 화면의 유일한 설명이던 시절의 값이다
+ * - 라벨과 본문 사이 이중 여백 12px. `AiCard` 의 라벨이 `mb-3.5`(14px)를 이미
+ *   갖는데 여기서 `mt-3`(12px)을 또 얹어 26px 이었다. **둘 다 우리가 넣은 값이라
+ *   어느 쪽도 실측 근거가 아니다.** 14px 하나만 남긴다
+ *
+ * 184px → 150px 이다. `요약` 탭에서 성과 카드(125px)보다 컸던 것이 이제 작다 —
+ * 화면에서 가장 큰 면이 AI 가 아니라 사용자의 수익률이어야 맞는다.
+ *
+ * **`AiCard` 셸은 고치지 않았다.** `mb-3.5` 는 13곳 넘는 AI 슬롯이 공유한다.
+ * 고친 것은 이 슬롯이 자기 본문에 얹던 `mt-3` 하나다.
+ *
+ * ## CTA 를 한 단 밝혔다
+ *
+ * `분석 자세히 보기 ›` 가 `--color-ai-text-secondary`(72%)였다. 본문과 같은 색이라
+ * **누를 수 있는 줄인지 표시가 `›` 하나뿐**이었다. `--color-ai-text-primary` 로
+ * 올리면 차콜 면 대비 10.80 이 되어 본문(6.84)과 갈린다.
+ *
+ * 면이나 테두리를 주지 않는다 — `design.md` §8.1 이 `AiCard` 안의 Full-width
+ * Button 을 막았고, 검정 면 위 채운 버튼은 카드 안에 또 하나의 덩어리를 만든다.
  *
  * ## 공시는 여기로 모인다
  *
@@ -99,7 +146,7 @@ export function FinchReturnInsight({
 
   return (
     <AiCard label="FINCH가 분석했어요" labelAs="h2" className={className}>
-      <p className="mt-3 line-clamp-3 text-body-2 text-pretty text-ai-text-secondary">
+      <p className="line-clamp-2 text-body-2 text-pretty text-ai-text-secondary">
         {summary === null ? (
           '수익률 원인 분석을 준비하지 못했어요.'
         ) : (
@@ -116,7 +163,7 @@ export function FinchReturnInsight({
         <button
           type="button"
           onClick={() => setDetailOpen(true)}
-          className="mt-4 text-body-2 font-medium text-ai-text-secondary"
+          className="mt-3.5 text-body-2 font-medium text-ai-text-primary"
         >
           분석 자세히 보기 ›
         </button>
