@@ -92,6 +92,13 @@ type ContributionRowProps = {
    * 없다 — `breakdown` 은 기여도 하나뿐이다.
    */
   sub?: ReactNode;
+  /**
+   * 라벨 앞 순위 (FINCH-341). 넘기면 왼쪽 끝에 붙는다.
+   *
+   * **종목 목록만 쓴다.** 요인 셋은 고정 순서(시장→업종→선택)이지 정렬한 것이
+   * 아니라 번호를 붙이면 없는 순위를 만든다.
+   */
+  rank?: number;
 };
 
 export function ContributionRow({
@@ -100,14 +107,22 @@ export function ContributionRow({
   scale,
   emphasis = 'normal',
   sub,
+  rank,
 }: ContributionRowProps) {
   return (
-    <div className="mt-3.5 border-t border-divider pt-3.5 first:mt-0 first:border-t-0 first:pt-0">
+    <div className="mt-3 border-t border-divider pt-3 first:mt-0 first:border-t-0 first:pt-0">
       <div className="flex items-baseline justify-between gap-3">
-        <span
-          className={`min-w-0 truncate text-body-1 ${LABEL_CLASS[emphasis]}`}
-        >
-          {label}
+        <span className="flex min-w-0 items-baseline gap-2">
+          {rank !== undefined && (
+            <span className="flex-none text-caption text-text-muted tabular-nums">
+              {rank}
+            </span>
+          )}
+          <span
+            className={`min-w-0 truncate text-body-1 ${LABEL_CLASS[emphasis]}`}
+          >
+            {label}
+          </span>
         </span>
         <span
           className={`flex-none text-body-1 font-bold whitespace-nowrap tabular-nums ${
@@ -122,7 +137,7 @@ export function ContributionRow({
         </span>
       </div>
 
-      <DivergingBar value={value} scale={scale} className="mt-2" />
+      <DivergingBar value={value} scale={scale} className="mt-1.5" />
 
       {sub !== undefined && (
         <p className="mt-1.5 text-caption text-text-muted tabular-nums">

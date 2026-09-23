@@ -2,7 +2,6 @@ import { useState } from 'react';
 
 import { formatSignedPercent } from '@/shared/lib/formatNumber';
 import { type AiAttributionRow } from '@/shared/types/ai/attribution';
-import { Card } from '@/shared/ui/Card';
 
 import {
   CONTRIBUTION_COLLAPSED_COUNT,
@@ -17,8 +16,11 @@ import { ContributionRow } from './ContributionRow';
  *
  * ## 행을 그리지 않는다
  *
- * `ContributionRow` 가 그린다. `기여 분석` 탭과 같은 부품이라 두 목록의 간격·
- * 정렬·색이 갈릴 수 없다 — 전에는 각자 그려서 행 사이가 14px 대 16px 이었다.
+ * `ContributionRow` 가 그린다. **이제 그 부품을 쓰는 곳은 여기 하나다**
+ * (FINCH-341) — `기여 분석` 탭이 누적 워터폴이 되면서 "같은 모양의 목록 둘"
+ * 이라는 전제가 깨졌다. 부품은 그대로 둔다. 되돌리는 날 두 탭이 다시 갈리지
+ * 않으려면 행의 치수가 한 곳에 있어야 하고, 지금도 `기여 분석` 의 막대 트랙이
+ * 이 부품의 `DivergingBar` 와 같은 높이·반경·면색을 쓴다.
  *
  * ## 한 행에서 두 가지를 덜어냈다
  *
@@ -65,13 +67,32 @@ import { ContributionRow } from './ContributionRow';
  * 막는다. 펼침은 그대로 이 자리에서 일어난다 — 바닥 시트로 보내지 않는 이유는
  * 목록의 정렬과 막대 스케일이 본문과 같아야 해서다.
  *
- * ## 제목을 지우고 카드로 감쌌다 (FINCH-333)
+ * ## 제목을 지웠다 (FINCH-333)
  *
  * `종목별 기여` `h2` 가 있었다. 이제 `종목별` 탭을 눌러야 나오므로 탭 라벨이
  * 제목이다 — `ReturnAttributionSection` 과 같은 판단이고 이유도 같다.
  *
- * 카드로 감싼 덕에 **펼쳤을 때 목록이 어디서 끝나는지**가 생겼다. 전에는 평면
- * 위로 여덟 종목이 흐르다가 그대로 다음 섹션이 이어졌다.
+ * ## 카드를 벗었다 (FINCH-341)
+ *
+ * 333 이 흰 `Card` 로 감쌌었다. 이유는 **펼쳤을 때 목록이 어디서 끝나는지**를
+ * 만들려는 것이었는데, `요약` 탭이 카드를 전부 걷은 뒤로는 이 탭만 상자가 남아
+ * 세 탭의 결이 갈렸다(`CauseTab` 주석이 남겨 둔 숙제다).
+ *
+ * 끝을 말하는 일은 **이 탭에 다른 섹션이 없다**는 사실이 대신한다 — 목록 아래로
+ * 이어지는 것이 없어서 카드 없이도 어디서 끝나는지 흐려지지 않는다.
+ *
+ * ## 머리 아래 한 줄이 단위를 푼다 (FINCH-341)
+ *
+ * `%p` 와 `%` 로 갈라 두는 것만으로는 부족했다 — 그 차이는 아는 사람에게만
+ * 보인다. `포트폴리오 수익률을 몇 %p 움직였는지예요.` 한 줄을 목록 위에 **한 번**
+ * 둔다. 행마다 같은 말을 붙이면 여덟 줄짜리 목록에서 같은 문장이 여덟 번 나온다.
+ *
+ * ## 보조 줄에 비중이 붙는다 (FINCH-341)
+ *
+ * `기간 수익률 +9.12% · 비중 22.1%`. 비중은 응답의 `weight` 를 그대로 쓴다.
+ * **이 값이 있어야 기여도가 왜 그 크기인지 읽힌다** — 비중 1%가 20% 오른 것과
+ * 비중 20%가 1% 오른 것이 같은 기여를 낸다는 것이 이 화면의 요점인데, 전에는
+ * 그 둘 중 하나(비중)가 화면에 없었다.
  */
 
 type StockContributionSectionProps = {
@@ -95,20 +116,20 @@ export function StockContributionSection({
 
   if (rows.length === 0) {
     return (
-      <Card className="mt-4">
+      <section className="mt-5">
         <p className="text-body-1 text-text-secondary">
           이 기간 동안 특별한 기여가 없었어요.
         </p>
-      </Card>
+      </section>
     );
   }
 
   return (
-    <Card className="mt-4">
+    <section className="mt-5">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="min-w-0 truncate text-caption text-text-muted">
+        <p className="min-w-0 truncate text-label font-medium text-text-muted">
           영향이 큰 순
-        </span>
+        </p>
 
         {collapsible ? (
           <button
@@ -126,17 +147,38 @@ export function StockContributionSection({
         )}
       </div>
 
-      <div className="mt-3">
-        {visible.map((row) => (
+      {/* 이 목록의 숫자가 무엇인지 한 줄로 못박는다 (FINCH-341). `+2.02%p` 가
+          그 종목의 수익률이 아니라 **내 계좌 수익률을 그만큼 움직였다**는 뜻인데,
+          바로 아래 보조 줄에 `기간 수익률 +9.12%` 가 함께 서 있어 둘 중 무엇이
+          포트폴리오 이야기인지 읽는 사람이 가를 수 없었다(사용자 지적 4번).
+          단위(`%p` 대 `%`)가 이미 가르고 있지만 그것은 아는 사람에게만 보인다. */}
+      <p className="mt-0.5 text-caption text-pretty break-keep text-text-muted">
+        포트폴리오 수익률을 몇 %p 움직였는지예요.
+      </p>
+
+      <div className="mt-3.5">
+        {visible.map((row, index) => (
           <ContributionRow
             key={row.ticker}
+            rank={index + 1}
             label={row.name}
             value={row.contribution}
             scale={scale}
-            sub={`기간 수익률 ${formatSignedPercent(row.return)}`}
+            sub={`기간 수익률 ${formatSignedPercent(row.return)} · 비중 ${formatWeight(row.weight)}`}
           />
         ))}
       </div>
-    </Card>
+    </section>
   );
+}
+
+/**
+ * 보유 비중. **응답의 `weight` 를 그대로 쓴다** — 화면이 다시 계산하지 않는다.
+ *
+ * 소수 한 자리다. 같은 줄의 `기간 수익률` 은 두 자리인데 일부러 다르게 둔다 —
+ * 수익률 계열과 비중은 다른 종류의 숫자이고, 자릿수가 같으면 `+9.12% · 22.10%`
+ * 처럼 둘이 한 계열로 읽힌다. 부호도 붙지 않는다(비중은 언제나 양수다).
+ */
+function formatWeight(ratio: number): string {
+  return `${(ratio * 100).toFixed(1)}%`;
 }
