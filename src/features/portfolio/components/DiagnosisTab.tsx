@@ -29,10 +29,24 @@ import { PortfolioRiskSummary } from './PortfolioRiskSummary';
  *
  * ```
  * 결론   DiagnosisAiCard        [검정 카드] 한 문장 + 최대 낙폭 ›
- * 근거   PortfolioRiskSummary   점수 44px · 막대 · 지표 3열
- * 근거   ConcentrationCard      스택 바 · 상위 종목 · insight 한 줄
- * 상세   근거 N개 · 계산 기준 보기 › → AnalysisEvidenceSheet
+ * 근거   PortfolioRiskSummary   머리줄 + 근거 N개 › · 점수 44px · 막대 · 지표 3열
+ * 근거   ConcentrationCard      머리줄 + 등급 · 스택 바 · 상위 종목
  * ```
+ *
+ * ## 아래에 매달려 있던 두 덩이를 위로 올렸다 (FINCH-341)
+ *
+ * 배포 화면을 본 사용자 지적이다. 본문이 끝난 뒤에 작은 글씨가 더 붙어 있어
+ * 섹션이 언제 끝나는지 흐렸고, 닿으려면 화면을 더 내려야 했다.
+ *
+ * | 있던 자리 | 간 자리 |
+ * | --- | --- |
+ * | 탭 맨 아래 `근거 N개 · 계산 기준 보기 ›` 한 줄 | `PortfolioRiskSummary` 머리줄 오른쪽 |
+ * | 집중도 목록 밑 `집중도 판정 높음` | `ConcentrationCard` 머리줄 오른쪽 |
+ * | 집중도 목록 밑 AI insight 한 줄 | 없앴다 (그 컴포넌트 주석) |
+ *
+ * **시트를 여는 곳이 하나 줄지 않았다.** 위험도 지표 3열이 이미 같은
+ * `onOpenDetail` 을 물고 있어서, 링크가 그 블록 머리로 간 것은 같은 동작을 같은
+ * 블록 안에 모은 것이다.
  *
  * ## 면은 하나뿐이다 (FINCH-334)
  *
@@ -211,32 +225,14 @@ export function DiagnosisTab() {
         indicators={indicators}
         top1Percent={top1Percent}
         onOpenDetail={() => setEvidenceOpen(true)}
+        /* 근거 줄이 이 블록의 머리로 들어갔다 (FINCH-341). 개수를 화면이
+           세는 것은 여전히 `citations.length` 뿐이고, 0 이면 컴포넌트가
+           `계산 기준 ›` 으로 바꾼다 — 근거가 없어도 계산 기준은 늘 있다. */
+        citationCount={aiMeta.citations.length}
         intro={intro}
       />
 
       <ConcentrationCard slices={slices} findings={findings} intro={intro} />
-
-      {/*
-        근거 줄. 개수를 화면이 세는 것은 `citations.length` 뿐이고 문구는 고정이다.
-        근거가 하나도 없어도 **계산 기준은 늘 있으므로** 줄을 감추지 않는다.
-      */}
-      <button
-        type="button"
-        onClick={() => setEvidenceOpen(true)}
-        className="mt-9 flex w-full items-center justify-between gap-3 py-2 text-left"
-      >
-        <span className="min-w-0 truncate text-body-2 text-text-secondary">
-          {aiMeta.citations.length > 0
-            ? `근거 ${aiMeta.citations.length}개 · 계산 기준 보기`
-            : '계산 기준 보기'}
-        </span>
-        <span
-          aria-hidden="true"
-          className="flex-none text-body-2 text-text-muted"
-        >
-          ›
-        </span>
-      </button>
 
       <AnalysisEvidenceSheet
         open={evidenceOpen}

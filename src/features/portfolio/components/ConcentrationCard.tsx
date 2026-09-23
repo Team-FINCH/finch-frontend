@@ -4,7 +4,29 @@ import { shadeAt, type ConcentrationSlice } from '../lib/concentration';
 import { RISK_GRADE } from '../lib/riskGrade';
 
 /**
- * 종목 집중도 — 스택 바 + 상위 종목 + insight 한 줄 (FINCH-325 · 334).
+ * 종목 집중도 — 머리줄(종목 수 · 등급) + 스택 바 + 상위 종목
+ * (FINCH-325 · 334 · 341).
+ *
+ * ## 아래 두 줄을 걷고 등급만 머리로 올렸다 (FINCH-341)
+ *
+ * 배포 화면을 본 사용자 지적이다 — *"이 글씨가 아래에 있으니까 보기가 안 좋다"*.
+ * 목록이 끝난 뒤에 작은 글씨 두 줄이 더 붙어 섹션이 언제 끝나는지 흐렸다.
+ *
+ * | 걷은 것 | 어떻게 됐나 |
+ * | --- | --- |
+ * | `가장 비중이 큰 종목 하나가 41.68%예요.` (AI insight 한 줄) | **없앴다** |
+ * | `집중도 판정 높음` | 머리줄 오른쪽으로 올렸다 |
+ *
+ * **insight 줄을 없앤 것이 덤으로 오래된 문제 하나를 닫는다.** 그 문장은 AI 가 쓴
+ * `findings[].text` 를 그대로 옮긴 것이라 안의 퍼센트를 프론트가 고칠 수 없었고
+ * (`ia.md` §4 — AI 문장을 다시 쓰지 않는다), 엔진 원값이 소수로 들어와 `41.68%`
+ * 로 찍혔다. **화면의 다른 퍼센트는 전부 정수인데 그 줄만 소수 둘째 자리였다.**
+ * 같은 값(1위 비중)이 바로 위 목록에 `38%` 로 이미 있으니 문장이 없어도 잃는
+ * 정보가 없다.
+ *
+ * 그래서 `lib/concentration.ts` 주석이 적어 둔 "AI 파트 확인 필요" 는 이 화면
+ * 기준으로는 닫힌다 — 다만 **`findings[].text` 자체는 진단 모달에 그대로 나가므로**
+ * 소수 표기 문제는 AI 쪽에 남아 있다.
  *
  * ## 카드를 벗었다 (FINCH-334)
  *
@@ -88,8 +110,32 @@ export function ConcentrationCard({
         <h2 className="min-w-0 text-[19px] leading-[26px] font-bold tracking-[-.01em] text-text-primary">
           종목 집중도
         </h2>
+        {/* 오른쪽은 종목 수 + 등급이다 (FINCH-341).
+
+            **등급이 맨 아래에서 여기로 올라왔다.** 전에는 목록 밑 insight 문장
+            아래에 `집중도 판정 높음` 으로 있었다. 그 자리에 둔 이유가 *"목록 옆에
+            있으면 방금 읽은 종목 하나에 대한 판정으로 읽힌다"* 였는데, 머리줄은
+            목록 옆이 아니라 **스택 바보다도 위**라 그 걱정이 닿지 않는다. 오히려
+            섹션 제목과 같은 줄에 있어 "이 섹션 전체에 대한 판정" 으로 읽힌다.
+
+            `집중도 판정` 이라는 라벨은 뗐다. 바로 왼쪽이 `종목 집중도` 라 같은
+            말을 두 번 하는 것이고, 라벨을 붙이면 320px 에서 머리줄이 넘친다.
+
+            등급 글자에만 상태색을 쓴다 — `RISK_GRADE` 의 색이고 `보통` 은
+            중립이라 색이 없다(그 파일 주석). 종목 수는 muted 그대로다. */}
         <span className="flex-none text-label text-text-muted tabular-nums">
           {slices.length}종목
+          {finding !== undefined && (
+            <>
+              {' · '}
+              <span
+                className="font-semibold"
+                style={{ color: RISK_GRADE[finding.severity].color }}
+              >
+                {RISK_GRADE[finding.severity].label}
+              </span>
+            </>
+          )}
         </span>
       </div>
 
@@ -152,36 +198,6 @@ export function ConcentrationCard({
           </div>
         )}
       </div>
-
-      {/*
-        insight 한 줄. **AI 가 쓴 `findings[].text` 를 그대로 옮긴다.** 문장 생성이
-        막히면 `text` 가 `null` 이고 그때는 이 줄이 빠진다.
-
-        **이 문장 안의 퍼센트는 우리가 못 고친다.** 엔진 `top1Weight` 원값이 소수로
-        들어와 `41.68%` 처럼 보이는데, 프론트가 AI 문장을 다시 쓰지 않는다는 선
-        (`ia.md` §4)을 넘지 않는다. AI 파트 확인이 필요하다 —
-        `lib/concentration.ts` 주석 참고.
-      */}
-      {finding?.text != null && (
-        <p className="mt-4 text-label text-pretty break-keep text-text-secondary">
-          {finding.text}
-        </p>
-      )}
-
-      {/* 머리의 등급. 계좌 전체를 규칙 엔진이 판정한 값이라 종목별 비중과 눈금이
-          다르다. 그래서 목록이 아니라 문장 아래에 둔다 — 목록 옆에 있으면 방금
-          읽은 종목 하나에 대한 판정으로 읽힌다. */}
-      {finding !== undefined && (
-        <p className="mt-1.5 text-caption text-text-muted">
-          집중도 판정{' '}
-          <span
-            className="font-semibold"
-            style={{ color: RISK_GRADE[finding.severity].color }}
-          >
-            {RISK_GRADE[finding.severity].label}
-          </span>
-        </p>
-      )}
     </section>
   );
 }
