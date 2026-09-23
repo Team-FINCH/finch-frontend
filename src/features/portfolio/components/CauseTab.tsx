@@ -48,7 +48,7 @@ import { StockContributionSection } from './StockContributionSection';
  *   요약  [AI 카드]  ✦ FINCH 분석 → 관련 공시 N건 (없으면 분석 전문 보기)
  *         (면 없음) 시장과 비교 ─ 영향을 준 종목
  *   요인별  (면 없음) 수익률은 이렇게 만들어졌어요 ─ 해석 한 줄
- *                      시장 영향 / 업종 배분 / 종목 선택 ─ 수익률 구성
+ *                      축 라벨 ─ 시장 영향 / 업종 배분 / 종목 선택 ─ 내 수익률
  *   종목별   (면 없음) 영향이 큰 순 ─ 순위 · 종목 · 기여도 · 막대 · 수익률/비중
  * 안내 한 줄        09:12 기준 · 분석 기준 및 안내 ›
  * 피드백
@@ -141,7 +141,7 @@ import { StockContributionSection } from './StockContributionSection';
  * | `AnalysisInfoSheet` | 엔진 — `notes` / 봉투 — `citations` · `disclaimer` · `dataAsOf` |
  *
  * 수치는 하나도 프론트가 만들지 않는다. 프론트가 계산하는 것은 **순서와 강조**뿐이다
- * (`sortByImpact` · `resolveMainFactor` · `sortFactorsByImpact` · 막대 폭).
+ * (`sortByImpact` · `resolveMainFactor` · `resolveAttributionVerdict` · 막대 폭).
  * 요청·응답·쿼리 키·캐시는 이 티켓에서 한 줄도 건드리지 않았다.
  *
  * ## 아래 여백을 여기서 주지 않는다
@@ -307,8 +307,8 @@ export function CauseTab() {
           {view === 'factor' && (
             <ReturnAttributionSection
               breakdown={breakdown}
-              /* `수익률 구성` 의 도착점이다. 세 요인을 더한 값이 아니라 응답 값을
-               그대로 넘긴다 — 근거는 `AttributionCalcSummary` 주석. */
+              /* 차트 마지막 행의 도착점이다. 세 요인을 더한 값이 아니라 응답
+               값을 그대로 넘긴다 — 근거는 `ReturnAttributionSection` 주석. */
               portfolioReturn={portfolioReturn}
             />
           )}
