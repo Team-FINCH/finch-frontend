@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { type AiFinding, type AiIndicators } from '@/shared/types/ai/diagnosis';
 import { type AiSection } from '@/shared/types/ai/envelope';
 import { AiGlyph } from '@/shared/ui/AiCard';
-import { BottomSheet } from '@/shared/ui/BottomSheet';
+
+import { DiagnosisDetailModal } from './DiagnosisDetailModal';
 
 /**
  * AI 진단 탭의 검정 카드 — 이 화면에서 **면을 갖는 유일한 블록** (FINCH-334).
@@ -11,9 +12,33 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * ## 왜 `AiCard` 를 쓰지 않나
  *
  * 시안이 이 카드에만 쓰는 치수를 정해 뒀다 — 글리프 20px(셸은 17px), 핵심 문장
- * 19px/600/28px(셸의 헤드라인은 16px), 보조 줄 13.5px, 오른쪽 위 원 장식.
+ * 17px/600/24px(셸의 헤드라인은 16px), 보조 줄 13.5px, 오른쪽 위 원 장식.
  * `AiCard` 는 13곳 넘는 AI 슬롯이 공유하는 셸이라 **거기를 고치면 홈 브리핑·
  * 종목 분석·채팅이 함께 움직인다.**
+ *
+ * ## 카드를 163px 에서 141px 로 줄였다 (FINCH-341)
+ *
+ * 배포 화면을 본 사용자 지적이다 — *"박스가 너무 크다"*. 탭을 열자마자 검정
+ * 덩어리가 화면의 4분의 1을 먹고 있었다. 높이는 이렇게 쌓여 있었다.
+ *
+ * | | 전 | 후 |
+ * | --- | --- | --- |
+ * | 안쪽 여백 위아래 | 20+20 | 16+16 |
+ * | `AI 진단` 머리줄 | 20 | 20 |
+ * | 머리줄 ↔ 문장 | 12 | 10 |
+ * | 문장 두 줄 | 56 (19/28) | 48 (17/24) |
+ * | 문장 ↔ 보조 줄 | 16 | 12 |
+ * | 보조 줄 | 19 | 19 |
+ * | **합** | **163** | **141** |
+ *
+ * **글자를 줄인 것이 덤으로 잘림을 덜어 준다.** 문장은 `line-clamp-2` 라 두 줄을
+ * 넘으면 잘리는데, 17px 은 같은 폭에 글자가 더 들어가서 `…최대 낙폭은…` 처럼
+ * 문장 한가운데가 끊기는 경우가 줄어든다.
+ *
+ * **면색과 반경은 그대로다.** `--color-ai-surface` 는 13곳 넘는 AI 슬롯이 함께
+ * 쓰는 토큰이고 2026-09-22 QA 피드백("완전 검정은 별로")으로 `#343A42` 가 된
+ * 값이다. 이 카드가 커 보였다고 그 색을 건드리면 홈 브리핑·종목 분석·채팅이
+ * 같이 움직인다.
  *
  * 그래서 이 파일이 자기 셸을 그린다. 면색·반경·글자색은 여전히 토큰이라
  * (`--color-ai-surface` 등) AI 면 체계에서 벗어나지 않는다.
@@ -57,20 +82,39 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  *
  * ## 원 장식
  *
- * 오른쪽 위 지름 180px, `rgba(233,199,127,.07)`. `--color-ai-accent` 의 7% 라
+ * 오른쪽 위 지름 120px, `rgba(233,199,127,.07)`. `--color-ai-accent` 의 7% 라
  * 같은 색 계열이고, 검정 면 대비 1.05 라 면이 살짝 밝아 보이는 정도다.
  * `pointer-events:none` 이라 카드 안의 버튼을 가리지 않고, `overflow:hidden` 이
  * 카드 밖으로 나간 부분을 자른다.
  *
+ * **카드와 같은 비율로 줄였다** (180 → 120, FINCH-341). 카드가 141px 로
+ * 낮아졌는데 원이 180px 그대로면 면의 절반 넘게를 덮어 밝은 쪽과 어두운 쪽이
+ * 두 덩어리로 갈려 보인다. 위치(`-top`·`-right`)도 같은 비율로 당겼다.
+ *
  * **반복 효과가 아니다.** 정적인 면이고 움직이지 않는다.
+ *
+ * ## 상세는 시트가 아니라 모달이다 (FINCH-341)
+ *
+ * 배포 화면을 본 사용자 지적이다 — *"눌렀을 때 아래에서 뜨는 게 별로다"*.
+ *
+ * **`Modal` 이 정의상 맞는 자리다.** 그 컴포넌트 주석이 시트와 모달을 이렇게
+ * 갈라 뒀다 — *"기본은 `BottomSheet` … 선택지를 고르거나 무언가를 입력하는
+ * 흐름은 전부 시트로 간다. 이것은 **읽고 닫는 짧은 안내** 자리다."* 진단 상세는
+ * 고를 것도 입력할 것도 없고 읽고 닫는다. 시트에 있던 쪽이 규칙에서 벗어나 있었다.
+ *
+ * **`닫기` 버튼을 붙였다.** 시트에는 위쪽 손잡이(`.handle`)가 있어 내려서 닫는
+ * 것이 보이는데 모달에는 그런 표시가 없다. 스크림 탭과 ESC 만 남기면 닫는 길이
+ * 화면에 안 보인다 — `UpdateNoticeModal` 도 같은 이유로 `확인` 을 갖는다.
+ *
+ * **모달 안쪽은 `DiagnosisDetailModal` 로 나갔다.** 이 파일이 검정 카드 하나로
+ * 이미 길었고, 모달은 제목·요약·핵심 수치·항목 목록·안내·버튼까지 자기 위계를
+ * 갖는 화면이라 카드의 JSX 꼬리에 매달아 둘 만한 크기가 아니다. **열림 상태
+ * (`detailOpen`)는 여기 남는다** — 그것을 여는 버튼이 이 카드 안에 있다.
+ *
+ * 탭 아래쪽 `AnalysisEvidenceSheet`(근거 N개 · 계산 기준)는 **그대로 시트다.**
+ * 이번 지적은 이 카드의 진입에 대한 것이고, 두 오버레이를 한꺼번에 바꾸면
+ * 지적받지 않은 자리까지 함께 흔든다.
  */
-
-/** `findings[]` 에 실제로 실려 오는 값 셋. `none`(걸린 항목 없음)은 여기 오지 않는다. */
-const SEVERITY_LABEL: Record<AiFinding['severity'], string> = {
-  info: '참고',
-  medium: '주의',
-  high: '높음',
-};
 
 type DiagnosisAiCardProps = {
   /** 문장 생성이 막히면 `null` 이다. 그때도 카드는 서고 문구만 바뀐다 */
@@ -93,7 +137,7 @@ export function DiagnosisAiCard({
 
   return (
     <section
-      className={`relative overflow-hidden rounded-ai bg-ai-surface p-5 ${
+      className={`relative overflow-hidden rounded-ai bg-ai-surface p-4 ${
         intro
           ? 'animate-[diag-rise_520ms_cubic-bezier(.2,.8,.2,1)_both] motion-reduce:animate-none'
           : ''
@@ -102,7 +146,7 @@ export function DiagnosisAiCard({
       {/* 장식. 카드 오른쪽 위 밖으로 걸쳐 두고 `overflow-hidden` 이 자른다. */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -top-16 -right-14 size-[180px] rounded-full"
+        className="pointer-events-none absolute -top-10 -right-9 size-30 rounded-full"
         style={{ background: 'rgba(233, 199, 127, .07)' }}
       />
 
@@ -117,7 +161,7 @@ export function DiagnosisAiCard({
       </h2>
 
       <p
-        className={`relative mt-3 line-clamp-2 text-[19px] leading-[28px] font-semibold text-pretty break-keep text-ai-text-primary ${
+        className={`relative mt-2.5 line-clamp-2 text-[17px] leading-6 font-semibold text-pretty break-keep text-ai-text-primary ${
           intro
             ? 'animate-[diag-fade_480ms_var(--ease-standard)_180ms_both] motion-reduce:animate-none'
             : ''
@@ -135,7 +179,7 @@ export function DiagnosisAiCard({
           type="button"
           onClick={() => setDetailOpen(true)}
           disabled={!hasDetail}
-          className={`relative mt-4 flex w-full items-center justify-between gap-3 text-left text-[13.5px] leading-[19px] text-ai-text-secondary ${
+          className={`relative mt-3 flex w-full items-center justify-between gap-3 text-left text-[13.5px] leading-[19px] text-ai-text-secondary ${
             intro
               ? 'animate-[diag-fade_480ms_var(--ease-standard)_320ms_both] motion-reduce:animate-none'
               : ''
@@ -162,44 +206,12 @@ export function DiagnosisAiCard({
       )}
 
       {hasDetail && (
-        <BottomSheet
+        <DiagnosisDetailModal
           open={detailOpen}
           onOpenChange={setDetailOpen}
-          title="FINCH 진단"
-        >
-          {summary !== null && (
-            <p className="text-body-1 text-pretty text-text-primary">
-              {summary.text}
-            </p>
-          )}
-
-          {findings.length > 0 && (
-            <div className="mt-6 flex flex-col divide-y divide-border">
-              {findings.map((finding) => (
-                <div key={finding.id} className="py-3.5 first:pt-0">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-5 flex-none items-center rounded-xs bg-surface-soft px-1.5 text-caption font-medium text-text-secondary">
-                      {SEVERITY_LABEL[finding.severity]}
-                    </span>
-                    <span className="min-w-0 text-body-1 font-semibold text-text-primary">
-                      {finding.title}
-                    </span>
-                  </div>
-                  {finding.text !== null && (
-                    <p className="mt-1.5 text-body-2 text-pretty text-text-secondary">
-                      {finding.text}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <p className="mt-6 text-caption text-pretty text-text-muted">
-            등급과 점수는 정해진 계산 규칙으로 나오고, FINCH는 그 이유만
-            설명해요.
-          </p>
-        </BottomSheet>
+          findings={findings}
+          indicators={indicators}
+        />
       )}
     </section>
   );
