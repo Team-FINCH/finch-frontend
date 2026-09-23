@@ -24,6 +24,21 @@ import { useHomeBriefing } from '../api/useHomeBriefing';
  *
  * **그 빈 상태에 설명 한 줄을 더했다** (FINCH-262). 보여줄지 말지의 판정은
  * 위 TODO 그대로 두고 문구만 고친 것이다 — 이유는 해당 분기 주석에 있다.
+ *
+ * ## 보조 줄을 걷어 카드를 92px 로 줄였다 (FINCH-335)
+ *
+ * `오늘 확인할 소식이 3건 있어요.` 아래 `오늘 3건` 이 또 있었다. **125px 차콜
+ * 면이 말하는 사실이 "3건" 하나인데 그것을 두 번 말하고 있었다.**
+ *
+ * 원인이 있다. 프로토타입의 그 줄은 `오늘 3건 · 확인 필요 1건` 이고 뒤 조각이
+ * 실제 정보였는데, 그 값의 출처가 브리핑 응답에 없어서(알림함의 종류별 미읽음
+ * 개수 — GitLab #57 회신 대기) 우리가 뺐다. **남은 앞 조각이 헤드라인과 겹치는
+ * 말이 됐다.**
+ *
+ * 그래서 보조 줄 자체를 없앴다. `확인 필요 {K}건` 이 생기면 그때 되살린다 —
+ * 그때는 헤드라인이 말하지 않는 값이라 겹치지 않는다.
+ *
+ * 셰브런은 `AiCard` 가 헤드라인 줄 오른쪽 끝에 그린다(캡션이 없는 눌리는 카드).
  */
 type BriefingSectionProps = {
   hasNoStocks: boolean;
@@ -68,7 +83,7 @@ export function BriefingSection({
   }
 
   if (briefing.isPending) {
-    return <Skeleton className="mb-5 h-21 w-full rounded-ai" />;
+    return <Skeleton className="mb-5 h-23 w-full rounded-ai" />;
   }
 
   // aiFail — 조회 실패. 재시도만 준다(design.md §10, ia.md §4 "에러 자리의 피드백").
@@ -143,26 +158,34 @@ export function BriefingSection({
 
   // briefHas — 정상. 카드 전체가 브리핑 전체 화면으로 이동한다(프로토타입 `goBriefing`).
 
+  /*
+    건수만 `--color-ai-accent` 로 칠한다 (FINCH-335).
+
+    이 카드가 하는 일은 **소식함으로 보내는 것** 하나다. 문장 전체가 같은 흰색
+    이면 누를 이유가 어디 있는지 표시가 없어서, 읽는 사람이 찾아야 할 값 하나만
+    띄운다 — `design.md` §4·§15 가 그 색을 "핵심 결과에만 · 한 카드에 최대 2~3곳"
+    으로 묶어 뒀고 하나면 그 안이다. 차콜 면 대비 7.07 이라 잘 읽힌다.
+
+    **`--color-notify`(#D94A4A)를 쓰지 않는다.** 미확인 알림의 점·뱃지 전용이고
+    (design.md §4·§7.11) 차콜 면 대비가 3 을 밑돌아 읽히지도 않는다.
+  */
+  const count = (
+    <span className="font-bold text-ai-accent tabular-nums">
+      {items.length}건
+    </span>
+  );
+
   return (
     <AiCard
       className="mb-5"
       label="AI 브리핑"
       headline={
-        hasHoldings
-          ? `오늘 확인할 소식이 ${items.length}건 있어요.`
-          : `관심 종목에서 오늘 확인할 소식이 ${items.length}건 있어요.`
+        hasHoldings ? (
+          <>오늘 확인할 소식이 {count} 있어요.</>
+        ) : (
+          <>관심 종목에서 오늘 확인할 소식이 {count} 있어요.</>
+        )
       }
-      /*
-        보조 줄은 `오늘 {N}건` 이다 (프로토타입 `briefMetaLine`). 전에는
-        `items[].category` 를 이어 붙여 `보유 종목 동향 · 실적` 처럼 그렸는데
-        프로토타입에 없는 모양이었다.
-
-        **`확인 필요 {K}건` 은 넣지 않는다.** 프로토타입은 `확인 필요 1건` 을
-        상수로 박아 뒀고, 실제 값은 알림함의 종류별 미읽음 개수라 브리핑 응답에
-        출처가 없다 — GitLab #57 회신 뒤에 붙인다. 자리만 비워 두면 `·` 만
-        덩그러니 남으므로 조각 자체를 넣지 않는다.
-      */
-      caption={`오늘 ${items.length}건`}
       onClick={() => navigate(ROUTES.briefing)}
     />
   );
