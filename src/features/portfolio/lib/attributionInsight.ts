@@ -44,6 +44,20 @@ export function formatSignedPercentPoint(ratio: number, digits = 2): string {
   return `${sign}${Math.abs(points).toFixed(digits)}%p`;
 }
 
+/**
+ * 부호를 뗀 크기만 (FINCH-345). `0.0040` → `0.40%p`.
+ *
+ * **문장 안에서만 쓴다.** `describeFactor` 의 `…0.40%p 낮췄어요` 처럼 방향을
+ * 동사가 지는 자리다. `-0.40%p 낮췄어요` 라고 하면 마이너스가 두 번이라
+ * "0.40 낮춘 것" 인지 "0.40 만큼 마이너스가 된 것" 인지 갈린다.
+ *
+ * 값 자리(목록 오른쪽 · `수익률 구성`)는 여전히 `formatSignedPercentPoint` 다 —
+ * 부호가 화면에서 사라지면 색만으로 방향을 말하게 된다.
+ */
+export function formatPercentPointMagnitude(ratio: number, digits = 2): string {
+  return `${Math.abs(ratio * 100).toFixed(digits)}%p`;
+}
+
 // ── 기간 ──────────────────────────────────────────────────────────────────────
 /**
  * 기간 선택지. **AI 서버가 실제로 처리하는 다섯 개만 둔다** —
@@ -70,56 +84,88 @@ export const DEFAULT_ATTRIBUTION_PERIOD: AiAttributionPeriod = '1d';
 export type AttributionFactor = 'market' | 'sector' | 'selection';
 
 /**
- * 요인 이름 (FINCH-341 에서 둘을 고쳤다).
+ * 요인 이름 (FINCH-341 · 345).
  *
- * `시장 영향`·`업종 영향` 이었다. 프로토타입 원문이라 그대로 두고 있었는데,
- * **`영향` 이 셋 중 둘에만 붙어 있어 세 축이 같은 계열로 읽히지 않았다** —
- * `시장 영향`·`업종 영향`·`종목 선택` 은 앞의 둘이 결과, 뒤의 하나가 행동처럼
- * 보인다. 셋 다 "내가 무엇을 해서 생긴 몫" 이라 행동 쪽으로 맞췄다.
+ * `시장 영향`·`업종 영향`·`종목 선택` 이 프로토타입 원문이었다. 341 이 **`영향`
+ * 이 셋 중 둘에만 붙어 세 축이 같은 계열로 읽히지 않는다**는 이유로 셋을 행동
+ * 쪽(`시장 움직임`)으로 맞췄다.
  *
- * `ATTRIBUTION_FACTOR_NOTE` 가 이미 `시장 흐름`·`업종 배분` 이라고 쓰고 있어서
- * 라벨과 문장이 서로 다른 말을 하던 것도 이번에 닫힌다.
+ * **345 에서 `market` 만 되돌렸다.** 그 판단은 셋의 *꼴*만 보고 내린 것이라,
+ * 각 이름이 무엇을 가리키는지는 보지 않았다 — `시장 움직임` 은 **시장이 얼마나
+ * 움직였나**(시장 수익률)로 읽히는데 이 값은 그게 아니라 **그 움직임이 내
+ * 수익률을 얼마나 밀고 당겼나**(기여도)다. 사용자가 실제로 물은 것이
+ * *"이 숫자가 시장 수익률인가?"* 였다.
+ *
+ * `영향` 이 그 구분을 진다. 나머지 둘은 `배분`·`선택` 이 이미 "내가 한 일"을
+ * 말하고 있어 `영향` 을 붙이면 오히려 겹친다.
+ *
+ * **셋 다 받침으로 끝난다**(ㅇ·ㄴ·ㄱ). `describeFactor` 와
+ * `resolveAttributionVerdict` 가 조사를 `이`·`을`·`과` 로 고정해 쓰므로,
+ * 라벨을 고칠 때 받침 없는 말로 바꾸면 그 문장들이 깨진다.
  */
 export const ATTRIBUTION_FACTOR_LABEL: Record<AttributionFactor, string> = {
-  market: '시장 움직임',
+  market: '시장 영향',
   sector: '업종 배분',
   selection: '종목 선택',
 };
 
 /**
- * 요인이 무엇인지 한 줄로 푼 것. **기간마다 바뀌지 않는 정의다.**
+ * 설명 문장의 주어 (FINCH-345).
  *
- * 부호·크기를 말하지 않는 이유가 있다 — 그것은 `ATTRIBUTION_FACTOR_NOTE` 한 줄이
- * 이미 하고 있고, 세 줄이 각자 "높였어요/낮췄어요" 를 말하면 **무엇을 먼저 읽어야
- * 하는지가 사라진다.** 여기는 축이 무엇인지만 말한다.
- *
- * 셋이 어떻게 더해지는지는 글이 아니라 워터폴이 말한다(`resolveWaterfall`).
- *
- * **세 줄의 어미를 맞췄다** (FINCH-341). `~만큼이에요` 하나에 `~의 몫이에요`
- * 둘이라 반쯤만 맞은 모양이었다. 나란히 서는 목록 문구는 **완전히 같은 꼴**이라야
- * 다른 부분(앞쪽 설명)이 곧 세 요인의 차이로 읽힌다.
+ * 라벨을 그대로 주어로 쓰지 않는다 — `시장 영향이 내 수익률을 낮췄어요` 는
+ * 동어반복이다. 라벨이 **축의 이름**이라면 이쪽은 **그 축이 실제로 무엇인지**를
+ * 푼 말이라, 둘이 같은 자리에 서면 사용자가 한 번 더 읽을 것이 생긴다.
  */
-export const ATTRIBUTION_FACTOR_DESCRIPTION: Record<AttributionFactor, string> =
-  {
-    market: '시장 전체가 움직여서 생긴 몫이에요.',
-    sector: '업종을 어떻게 나눠 담았는지로 생긴 몫이에요.',
-    selection: '업종 안에서 어떤 종목을 골랐는지로 생긴 몫이에요.',
-  };
-
-/**
- * 가장 큰 요인 한 줄. **argmax 를 말로 옮긴 것뿐이고 인과를 말하지 않는다.**
- *
- * "종목 선택이 수익률을 끌어올렸어요" 가 아니라 "영향이 가장 컸어요" 다 — 앞엣것은
- * 해석이라 AI 몫이고, 뒤엣것은 세 값을 비교하면 누구나 같은 답을 내는 사실이다.
- * 부호를 말하지 않으므로 가장 크게 *깎은* 요인에도 같은 문장이 맞는다.
- */
-export const ATTRIBUTION_FACTOR_NOTE: Record<AttributionFactor, string> = {
-  market: '시장 흐름의 영향이 가장 컸어요.',
-  sector: '업종 배분의 영향이 가장 컸어요.',
-  selection: '종목 선택의 영향이 가장 컸어요.',
+const ATTRIBUTION_FACTOR_SUBJECT: Record<AttributionFactor, string> = {
+  market: '전체 시장의 움직임이',
+  sector: '어떤 업종을 얼마나 보유했는지가',
+  selection: '선택한 종목들의 성과가',
 };
 
-/** 화면에 그리는 순서. `breakdown` 객체의 키 순서에 기대지 않는다. */
+/**
+ * 요인 한 줄 설명 (FINCH-345). **부호와 크기를 문장 안에 넣는다.**
+ *
+ * ## 왜 정의를 판정으로 바꿨나
+ *
+ * 전에는 `시장 전체가 움직여서 생긴 몫이에요.` 처럼 **기간과 무관한 정의**였고,
+ * 부호·크기를 말하지 않는 이유가 달려 있었다 — *"세 줄이 각자 높였다/낮췄다를
+ * 말하면 무엇을 먼저 읽어야 하는지가 사라진다"*.
+ *
+ * **그 걱정은 읽는 순서를 세우는 문장이 따로 없을 때의 것이다.** 이제 목록 위에
+ * `resolveAttributionVerdict` 의 해석 한 줄이 16px/700 으로 서서 "이번 기간의
+ * 주인공"을 먼저 말한다. 세 줄은 그 아래 13px 캡션이라 위계가 이미 갈려 있고,
+ * 셋이 나란히 판정을 말해도 해석 줄과 경쟁하지 않는다.
+ *
+ * 반대로 정의만 남겨 두면 **`-0.40%p` 가 무슨 뜻인지 화면 어디에도 없다** —
+ * 그것이 이 티켓의 출발점이다. `몫` 이라는 말은 이미 아는 사람에게만 닿는다.
+ *
+ * ## 막대를 못 읽어도 이 줄이 답한다
+ *
+ * 막대는 부호를 방향으로, 크기를 길이로 말한다. 둘 다 **비교해야 보이는** 표현이라
+ * 처음 보는 사람에게는 근거가 없다. 이 문장은 같은 사실을 비교 없이 말한다.
+ *
+ * ## 부호는 동사가 지고 숫자는 크기만 적는다
+ *
+ * `-0.40%p 낮췄어요` 라고 하면 마이너스가 두 번이라 "0.40 낮춘 것"인지 "0.40 만큼
+ * 마이너스가 된 것"인지 갈린다. 그래서 `formatPercentPointMagnitude` 로 부호를
+ * 떼고 `높였어요`/`낮췄어요` 가 방향을 진다. 값 자리(`+0.42%p`)는 부호를 그대로
+ * 달고 있으므로 화면에서 부호가 사라지지는 않는다.
+ */
+export function describeFactor(
+  factor: AttributionFactor,
+  value: number,
+): string {
+  const subject = ATTRIBUTION_FACTOR_SUBJECT[factor];
+
+  // 0 은 방향이 없다. `0.00%p 높였어요` 라고 쓰면 아주 조금 올랐다는 뜻이 된다.
+  if (value === 0) {
+    return `${subject} 내 수익률을 움직이지 않았어요.`;
+  }
+
+  const size = formatPercentPointMagnitude(value);
+  return `${subject} 내 수익률을 ${size} ${value > 0 ? '높였어요' : '낮췄어요'}.`;
+}
+
 export const ATTRIBUTION_FACTOR_ORDER: readonly AttributionFactor[] = [
   'market',
   'sector',
@@ -178,95 +224,149 @@ export function divergingWidth(value: number, scale: number): number {
   return Math.max((Math.abs(value) / scale) * 50, MIN_VISIBLE_WIDTH);
 }
 
-// ── 워터폴 ────────────────────────────────────────────────────────────────────
+// ── 해석 ────────────────────────────────────────────────────────────────────
 /**
- * 세 요인을 **누적 흐름**으로 놓는다 (FINCH-341).
+ * 이번 기간에 무슨 일이 있었는지 한 문장 (FINCH-345).
  *
- * ## 왜 필요했나
+ * ## 무엇을 대신하나
  *
- * 전에는 요인 셋이 각자 0 을 가운데 둔 막대였다. 세 막대의 길이는 서로 견줄 수
- * 있었지만 **셋을 더하면 기간 수익률이 된다는 사실은 화면에 없었다** — 사용자가
- * `+0.89`, `-0.18`, `+1.42` 를 보고 머릿속으로 더해야 `+2.13` 에 닿았다.
+ * `종목 선택의 영향이 가장 컸어요.` 가 목록 **아래** 캡션으로 있었다. argmax 를
+ * 말로 옮긴 것이라 틀리지는 않았지만 **세 값을 보면 이미 아는 사실**이었고,
+ * 가장 큰 축이 수익률을 올렸는지 깎았는지는 말하지 않았다(절댓값으로 고르니까).
  *
- * 워터폴은 각 막대를 **앞 요인이 끝난 자리에서 시작**시켜 그 덧셈을 그림으로
- * 만든다. 0 에서 출발해 시장이 밀고, 업종이 조금 당기고, 선택이 다시 밀어
- * 최종에 닿는 한 줄기다.
+ * 이 문장은 **방향이 다른 요인들이 서로 어떻게 됐는지**를 말한다. 그게 사용자가
+ * 실제로 묻는 것이다 — *"시장은 나빴는데 왜 내 수익률은 -0.04%밖에 안 되지?"*
  *
- * ## 값을 만들지 않는다 — 자리만 잡는다
+ * 자리도 아래에서 위로 옮긴다. 결론이 목록 뒤에 있으면 세 줄을 다 읽고 나서야
+ * 닿는데, 이 화면에 3~5초 머무는 사람은 거기까지 가지 않는다.
  *
- * `start`·`end` 는 `breakdown` 값을 순서대로 누적한 것이고, 새 수치가 아니다.
- * 화면에 글자로 나가는 것은 여전히 `value`(각 요인)와 호출부가 넘기는
- * `portfolioReturn`(최종)뿐이다. **누적 중간값은 막대의 왼쪽 끝을 정하는 데만
- * 쓰이고 숫자로 그려지지 않는다** — 엔진이 내지 않은 값을 화면에 적지 않는다.
+ * ## 여전히 AI 가 쓰지 않는다
  *
- * 마지막 `end` 는 항등식상 `portfolioReturn` 과 같지만(엔진이 §6.3 에서 검증한다)
- * **최종 줄에는 그 누적값이 아니라 응답의 `portfolioReturn` 을 적는다.** 부동소수
- * 덧셈으로 만든 값과 엔진이 준 값이 끝자리에서 갈릴 수 있고, 갈리면 화면이
- * 자기 자신과 어긋난다.
+ * 부호별로 묶고 두 쪽의 합을 견주는 것이 전부다. 같은 `breakdown` 이면 언제나
+ * 같은 문장이 나온다. AI 에게 맡기면 차트는 `selection` 을 가리키는데 문장은
+ * `market` 을 가리키는 어긋남이 언젠가 나오고, 화면에서는 어느 쪽이 맞는지 가릴
+ * 수 없다 — 이 파일이 존재하는 이유 그대로다.
  *
- * ## 범위에 0 을 반드시 넣는다
+ * **인과와 가치 판단을 말하지 않는다.** `만회했어요` 는 두 방향의 크기를 견준
+ * 산술이고, `잘 골랐어요`·`시장이 나빴어요` 는 아니다. 그쪽은 `요약` 탭의
+ * FINCH 카드 몫이다.
  *
- * `min`·`max` 후보에 `0` 을 끼운다. 세 요인이 모두 양수면 누적이 0 밑으로
- * 내려가지 않는데, 그때도 **0 기준선이 막대 영역 안에 서야** 어디가 출발점인지
- * 보인다. 0 이 범위 밖이면 기준선이 트랙 밖으로 나가 그려지지 않는다.
+ * ## `detail` 은 엔진이 내지 않은 값을 적는다 — 알고 적는다
+ *
+ * `resolveWaterfall` 주석이 *"엔진이 내지 않은 값을 화면에 적지 않는다"* 로
+ * 누적 중간값을 숫자로 그리지 않았다. 여기 `-0.46%p`(깎은 쪽의 합)는 그 선을
+ * 넘는다. 넘는 이유는 **그 묶음이 화면 어디에도 없는 사실**이기 때문이다 —
+ * 세 값을 따로 보면 "둘이 깎고 하나가 올렸다" 는 구도가 보이지 않는다.
+ *
+ * 대신 두 가지를 지킨다.
+ *
+ * 1. **원본 비율을 더하고 한 번만 반올림한다.** 화면에 보이는 `-0.40`·`-0.06` 을
+ *    더하지 않는다
+ * 2. 그래도 **표시값끼리는 끝자리가 1 어긋날 수 있다**(`-0.404 + -0.064` 는 각각
+ *    `-0.40`·`-0.06` 으로 보이지만 합은 `-0.47%p` 다). 이 사실을
+ *    `AttributionGuideSheet` 가 적는다. 반올림을 숨기지 않는다
  */
-export type WaterfallStep = {
-  factor: AttributionFactor;
-  value: number;
-  /** 이 요인 직전까지의 누적 */
-  start: number;
-  /** 이 요인까지의 누적 */
-  end: number;
+export type AttributionVerdict = {
+  /** 목록 위에 서는 해석 한 줄. 언제나 있다 */
+  headline: string;
+  /** 올린 쪽과 깎은 쪽의 크기. 한 방향뿐인 기간에는 `null` 이다 */
+  detail: string | null;
 };
 
-export type Waterfall = {
-  steps: readonly WaterfallStep[];
-  min: number;
-  max: number;
-};
-
-export function resolveWaterfall(
-  breakdown: Record<AttributionFactor, number>,
-): Waterfall {
-  let running = 0;
-  const steps = ATTRIBUTION_FACTOR_ORDER.map((factor) => {
-    const value = breakdown[factor];
-    const start = running;
-    running += value;
-    return { factor, value, start, end: running };
-  });
-
-  const points = [0, ...steps.flatMap((step) => [step.start, step.end])];
-  return { steps, min: Math.min(...points), max: Math.max(...points) };
-}
+/**
+ * `거의 만회` 와 `일부 만회` 를 가르는 선.
+ *
+ * 올린 쪽이 깎은 쪽의 80% 이상이면 `거의` 다. 이번 예(`0.42 / 0.46 = 0.91`)가
+ * 그 위다. **눈금이 아니라 말의 경계라 정확한 값이 있을 수 없다** — 화면에 두
+ * 숫자가 함께 서 있으므로 읽는 사람이 스스로 가늠할 수 있고, 이 말은 그 가늠을
+ * 거드는 것이지 대신하는 것이 아니다.
+ */
+const NEARLY_OFFSET_RATIO = 0.8;
 
 /**
- * 막대 한 칸의 왼쪽 끝과 폭(%). 트랙 전체가 `min ~ max` 를 덮는다.
+ * 라벨 여럿을 한 덩어리로. **조사 `과` 가 고정이다** — 라벨 셋이 모두 받침으로
+ * 끝난다(`ATTRIBUTION_FACTOR_LABEL` 주석).
  *
- * `divergingWidth` 와 같은 이유로 하한(`MIN_VISIBLE_WIDTH`)을 둔다 — 값이 0 이
- * 아닌데 막대가 보이지 않으면 "그 요인은 없었다" 로 읽힌다. 하한 때문에 막대가
- * 오른쪽 끝을 넘지 않도록 `left` 를 뒤에서 당긴다.
+ * 셋이 한꺼번에 들어오는 일은 없다. 한 방향에 셋이 다 모이면 반대쪽이 비어서
+ * 호출부가 `세 요인이 모두` 로 갈라지기 때문이다 — `시장 영향과 업종 배분과
+ * 종목 선택` 은 읽히지 않는다.
  */
-export function waterfallBar(
-  step: WaterfallStep,
-  { min, max }: Pick<Waterfall, 'min' | 'max'>,
-): { left: number; width: number } {
-  const span = max - min || 1;
-  const low = Math.min(step.start, step.end);
-  const high = Math.max(step.start, step.end);
-
-  const width = Math.max(((high - low) / span) * 100, MIN_VISIBLE_WIDTH);
-  const left = Math.min(((low - min) / span) * 100, 100 - width);
-  return { left: Math.max(left, 0), width };
+function joinFactorLabels(
+  items: readonly { factor: AttributionFactor }[],
+): string {
+  return items.map((item) => ATTRIBUTION_FACTOR_LABEL[item.factor]).join('과 ');
 }
 
-/** 0 기준선의 왼쪽 위치(%). */
-export function waterfallZero({
-  min,
-  max,
-}: Pick<Waterfall, 'min' | 'max'>): number {
-  const span = max - min || 1;
-  return ((0 - min) / span) * 100;
+export function resolveAttributionVerdict(
+  breakdown: AiAttributionContent['breakdown'],
+): AttributionVerdict {
+  const entries = ATTRIBUTION_FACTOR_ORDER.map((factor) => ({
+    factor,
+    value: breakdown[factor],
+  }));
+  const gains = entries.filter((entry) => entry.value > 0);
+  const losses = entries.filter((entry) => entry.value < 0);
+  const total = ATTRIBUTION_FACTOR_ORDER.length;
+
+  // 거래가 없던 날이 실제로 있다. "가장 컸다" 고 말할 것도, 견줄 두 쪽도 없다.
+  if (gains.length === 0 && losses.length === 0) {
+    return {
+      headline: '이번 기간에는 세 요인 모두 수익률을 움직이지 않았어요.',
+      detail: null,
+    };
+  }
+
+  // 한 방향뿐이면 견줄 것이 없으므로 `detail` 을 만들지 않는다 — 깎은 쪽의 합만
+  // 적어 두면 위 목록을 그대로 옮겨 적은 줄이 된다.
+  if (losses.length === 0) {
+    return {
+      headline:
+        gains.length === total
+          ? '세 요인이 모두 수익률을 밀어올렸어요.'
+          : `${joinFactorLabels(gains)}이 수익률을 밀어올렸어요.`,
+      detail: null,
+    };
+  }
+
+  if (gains.length === 0) {
+    return {
+      headline:
+        losses.length === total
+          ? '세 요인이 모두 수익률을 끌어내렸어요.'
+          : `${joinFactorLabels(losses)}이 수익률을 끌어내렸어요.`,
+      detail: null,
+    };
+  }
+
+  const up = gains.reduce((sum, entry) => sum + entry.value, 0);
+  const down = losses.reduce((sum, entry) => sum + entry.value, 0);
+  const gainLabels = joinFactorLabels(gains);
+  const lossLabels = joinFactorLabels(losses);
+  const detail = `수익률을 깎은 쪽이 ${formatSignedPercentPoint(down)}, 올린 쪽이 ${formatSignedPercentPoint(up)} 움직였어요.`;
+
+  // `up + down` 은 항등식상 `portfolioReturn` 이다. **그 값을 돌려주지는 않는다** —
+  // 화면에 적는 최종 수익률은 언제나 응답의 `portfolioReturn` 이고, 여기서는
+  // 어느 쪽이 이겼는지를 고르는 데만 쓴다.
+  const net = up + down;
+
+  if (net > 0) {
+    return { headline: `${gainLabels}이 ${lossLabels}을 넘어섰어요.`, detail };
+  }
+
+  if (net === 0) {
+    return {
+      headline: `${gainLabels}과 ${lossLabels}이 서로 상쇄됐어요.`,
+      detail,
+    };
+  }
+
+  return {
+    headline:
+      up / -down >= NEARLY_OFFSET_RATIO
+        ? `${gainLabels}이 ${lossLabels}을 거의 만회했어요.`
+        : `${gainLabels}이 ${lossLabels}을 일부 만회했어요.`,
+    detail,
+  };
 }
 
 // ── 종목 ──────────────────────────────────────────────────────────────────────

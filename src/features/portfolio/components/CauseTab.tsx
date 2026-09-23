@@ -47,8 +47,8 @@ import { StockContributionSection } from './StockContributionSection';
  * [세그먼트]        요약 | 기여 분석 | 종목별
  *   요약  [AI 카드]  ✦ FINCH 분석 → 관련 공시 N건 (없으면 분석 전문 보기)
  *         (면 없음) 시장과 비교 ─ 초과 성과는 어디서 왔나요? ─ 영향을 준 종목
- *   기여 분석 (면 없음) 수익률은 이렇게 만들어졌어요 ─ 누적 워터폴 ─ 최종 수익률
- *                      시장 움직임 / 업종 배분 / 종목 선택 + 인사이트
+ *   요인별  (면 없음) 수익률은 이렇게 만들어졌어요 ─ 해석 한 줄
+ *                      시장 영향 / 업종 배분 / 종목 선택 ─ 수익률 구성
  *   종목별   (면 없음) 영향이 큰 순 ─ 순위 · 종목 · 기여도 · 막대 · 수익률/비중
  * 안내 한 줄        09:12 기준 · 분석 기준 및 안내 ›
  * 피드백
@@ -71,7 +71,9 @@ import { StockContributionSection } from './StockContributionSection';
  *
  * 1. **두 차트를 비교하게 된다.** 요인 막대와 종목 막대는 `divergingScale` 을
  *    각자 잡으므로 길이를 서로 견주면 안 되는데(그 함수 주석), 나란히 서 있으면
- *    같은 축의 차트로 읽힌다. 이제 구조적으로 한 화면에 함께 서지 않는다
+ *    같은 축의 차트로 읽힌다. 이제 구조적으로 한 화면에 함께 서지 않는다.
+ *    **두 탭이 같은 부품(`ContributionRow`)으로 돌아온 뒤에도 그대로다**
+ *    (FINCH-345) — 모양이 같아진 것이지 축을 공유하게 된 것이 아니다
  * 2. **적색이 반복된다.** 한 화면의 등락색 요소가 열넷 안팎이었고 전부 같은
  *    채도였다. `요약` 은 넷(성과 둘 + 요약 둘)이다. **확정 토큰 값은 한 글자도
  *    바꾸지 않았다** — `--color-stock-up` 은 이슈 #32 회신으로 확정됐고 앱 전체가
@@ -303,8 +305,8 @@ export function CauseTab() {
           {view === 'factor' && (
             <ReturnAttributionSection
               breakdown={breakdown}
-              /* 워터폴의 도착점이다. 세 요인을 더한 값이 아니라 응답 값을 그대로
-               넘긴다 — 근거는 `AttributionWaterfall` 주석. */
+              /* `수익률 구성` 의 도착점이다. 세 요인을 더한 값이 아니라 응답 값을
+               그대로 넘긴다 — 근거는 `AttributionCalcSummary` 주석. */
               portfolioReturn={portfolioReturn}
             />
           )}
