@@ -6,6 +6,8 @@ import { AiCard } from '@/shared/ui/AiCard';
 import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
+import { AiAccentSentence } from './AiAccentSentence';
+
 /**
  * "FINCH 한줄 분석" — 숫자와 차트를 다 본 뒤에 오는 해석 (FINCH-308 · 327 ·
  * 333).
@@ -98,8 +100,8 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  *
  * ### 되돌아온 대가 둘
  *
- * - **등락색이 다시 금색 하나로 합쳐진다.** 아래 «`onDark`» 절 참고. 밝은 면에서
- *   오름 적색·내림 청색으로 갈리던 문장이 차콜에서는 전부 `--ai-accent` 다
+ * - **등락색이 금색으로 바뀐다.** 밝은 면에서 오름 적색·내림 청색으로 갈리던
+ *   문장이 차콜에서는 `--ai-accent` 다 (아래 «카드 본문과 시트» 절)
  * - **본문과 아래 시트의 색이 다시 갈린다.** 시트는 흰 면이라
  *   등락색 그대로다. 6번이 덤으로 얻었던 "두 면이 같은 색" 은 잃는다
  *
@@ -123,14 +125,18 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * 잘린 뒷부분은 시트 맨 위에 전문으로 있다. **자료를 버리는
  * 것이 아니라 접는 것이다.**
  *
- * ## `onDark` — 껐다가 7번에서 다시 켰다
+ * ## 카드 본문과 시트가 서로 다른 부품으로 문장을 칠한다
  *
- * 차콜 면에서는 등락색(`#C93B3B`·`#2258C9`)의 대비가 2.3·1.8 로 읽히지 않아
- * `--color-ai-accent` 로만 강조한다. 6번(밝은 면)에서는 그 우회가 필요 없어
- * 껐었고, **면이 다시 차콜이 됐으므로 다시 켠다.** 끄면 문장 속 수치가 읽히지
- * 않는다 — 고를 수 있는 값이 아니라 면색이 정하는 값이다.
+ * 차콜 면에서는 등락색(`#C93B3B`·`#2258C9`)의 대비가 2.3·1.8 로 읽히지 않는다.
+ * 그래서 **카드 본문은 `AiAccentSentence`** 로 금색 하나만 칠하고,
+ * **시트는 흰 면이라 `AiSegmentText`** 가 등락색 그대로 칠한다.
  *
- * 그 대가로 오름·내림이 색으로 갈리지 않고 전부 금색이 된다. 방향은 부호(`+`·`−`)가
+ * 한동안 카드도 `AiSegmentText onDark` 였다. 그러면 `direction` 이 있는 조각이
+ * **전부** 금색이 되는데, 수치가 셋 실린 문장에서 강조가 셋이 됐다 — 같은 검정
+ * 카드인 AI 진단 쪽은 하나만 칠하고 있어서 나란히 놓으면 규칙이 달라 보였다
+ * (FINCH-341 사용자 지적). 좁은 쪽으로 맞췄고 근거는 그 부품 주석에 있다.
+ *
+ * 그 대가로 카드에서는 오름·내림이 색으로 갈리지 않는다. 방향은 부호(`+`·`−`)가
  * 말한다 — 색만으로 등락을 말하지 않는다는 규약(`frontConvention` §11)이 원래
  * 요구하는 것이기도 하다.
  *
@@ -195,25 +201,29 @@ export function FinchReturnInsight({
        `h2` 들이 나란히 서 있어서, 이 카드만 제목이 없으면 훑어 읽는 순서에서
        빠진다 (`AiCard` 의 `labelAs` 주석이 "포트폴리오의 두 카드만 켠다" 로
        적어 둔 그 자리다). */
-    <AiCard label="FINCH 분석" labelAs="h2" className={className}>
-      {/* `mt` 를 주지 않는다 — `AiCard` 의 라벨 줄이 이미 `mb-3.5` 를 갖는다. */}
-      <p className="line-clamp-3 text-body-2 text-pretty break-keep text-ai-text-secondary">
-        {summary === null ? (
-          '수익률 원인 분석을 준비하지 못했어요.'
-        ) : (
-          <AiSegmentText
-            segments={summary.segments}
-            text={summary.text}
-            onDark
-          />
-        )}
-      </p>
-
+    <AiCard
+      label="FINCH 분석"
+      labelAs="h2"
+      /* 문장이 `children` 이 아니라 `headline` 이다 (FINCH-341). 전에는
+         본문 글자(15px/400/보조색)로 그려서, 같은 검정 카드인 AI 진단 쪽 문장
+         (16px/600/흰색)과 나란히 놓으면 다른 부품으로 보였다. 둘 다 "AI 가 쓴
+         결론 한 문장" 이라 `AiCard` 가 그 자리로 마련해 둔 슬롯을 쓴다. */
+      headline={
+        <span className="line-clamp-3">
+          {summary === null ? (
+            '수익률 원인 분석을 준비하지 못했어요.'
+          ) : (
+            <AiAccentSentence summary={summary} />
+          )}
+        </span>
+      }
+      className={className}
+    >
       {hasDetail && (
         <button
           type="button"
           onClick={() => setDetailOpen(true)}
-          className="mt-2.5 text-caption font-semibold text-ai-text-primary"
+          className="mt-3 text-caption font-semibold text-ai-text-primary"
         >
           {eventCount > 0 ? `관련 공시 ${eventCount}건 →` : '분석 전문 보기 →'}
         </button>
