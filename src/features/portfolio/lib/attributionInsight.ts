@@ -94,12 +94,16 @@ export const ATTRIBUTION_FACTOR_LABEL: Record<AttributionFactor, string> = {
  * 하는지가 사라진다.** 여기는 축이 무엇인지만 말한다.
  *
  * 셋이 어떻게 더해지는지는 글이 아니라 워터폴이 말한다(`resolveWaterfall`).
+ *
+ * **세 줄의 어미를 맞췄다** (FINCH-341). `~만큼이에요` 하나에 `~의 몫이에요`
+ * 둘이라 반쯤만 맞은 모양이었다. 나란히 서는 목록 문구는 **완전히 같은 꼴**이라야
+ * 다른 부분(앞쪽 설명)이 곧 세 요인의 차이로 읽힌다.
  */
 export const ATTRIBUTION_FACTOR_DESCRIPTION: Record<AttributionFactor, string> =
   {
-    market: '시장 전체가 움직인 만큼이에요.',
-    sector: '어떤 업종에 얼마나 담았는지의 몫이에요.',
-    selection: '업종 안에서 어떤 종목을 골랐는지의 몫이에요.',
+    market: '시장 전체가 움직여서 생긴 몫이에요.',
+    sector: '업종을 어떻게 나눠 담았는지로 생긴 몫이에요.',
+    selection: '업종 안에서 어떤 종목을 골랐는지로 생긴 몫이에요.',
   };
 
 /**
@@ -326,7 +330,16 @@ export type CauseView = 'summary' | 'factor' | 'stock';
 
 export const CAUSE_VIEWS: readonly { value: CauseView; label: string }[] = [
   { value: 'summary', label: '요약' },
-  { value: 'factor', label: '기여 분석' },
+  /* `기여 분석` 이었다 (FINCH-341 에서 고쳤다).
+
+     **옆 칸과 짝이 맞지 않았다** — 하나는 무엇을 *하는지*(분석), 하나는 무엇
+     *단위*인지(종목별)라 둘이 같은 층의 선택지로 읽히지 않았다. `요인별 / 종목별`
+     이면 같은 질문(수익률이 어디서 왔나)을 **쪼개는 두 가지 방식**이 된다.
+
+     `기여` 는 contribution 의 번역어다. 화면에서 처음 만나는 사람에게 와닿지
+     않는데, 탭을 누르면 `시장 움직임 · 업종 배분 · 종목 선택` 셋이 나와서
+     `요인` 이 무엇인지 그 자리에서 정의된다. */
+  { value: 'factor', label: '요인별' },
   { value: 'stock', label: '종목별' },
 ] as const;
 
