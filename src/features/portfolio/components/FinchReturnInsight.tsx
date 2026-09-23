@@ -2,135 +2,96 @@ import { useState } from 'react';
 
 import { type AiAttributionRow } from '@/shared/types/ai/attribution';
 import { type AiSection } from '@/shared/types/ai/envelope';
-import { AiCard } from '@/shared/ui/AiCard';
+import { AiGlyph } from '@/shared/ui/AiCard';
 import { AiSegmentText } from '@/shared/ui/AiSegmentText';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 /**
- * "FINCH가 분석했어요" — 숫자와 차트를 다 본 뒤에 오는 해석
- * (FINCH-308 에서 자리를 잡고 FINCH-327 에서 문단을 걷었다).
+ * "FINCH 한줄 분석" — 숫자와 차트를 다 본 뒤에 오는 해석 (FINCH-308 · 327 ·
+ * 333).
  *
- * ## 면이 세 번 바뀐 자리다
+ * ## 면이 다섯 번 바뀐 자리다
  *
- * 이 카드의 면은 `AiCard`(검정) → `--color-surface-soft` 상자 → 흰 `Card` →
- * 다시 `AiCard` 로 왔다. 같은 자리를 또 뒤집지 않도록 네 번의 이유를 남긴다.
+ * `AiCard`(검정) → `--color-surface-soft` 상자 → 흰 `Card` → 다시 `AiCard` →
+ * **연한 패널**(2026-09-23). 같은 자리를 또 뒤집지 않도록 이력을 남긴다.
  *
  * 1. **검정 `AiCard`, 화면 맨 위** — 흰 배경 위 검정 덩어리는 어떤 위계를 주더라도
- *    가장 먼저 눈에 들어와서, 사용자가 자기 수익률보다 AI 문장을 먼저 읽었다.
- *    읽기 순서가 뒤집혀 있었다
- * 2. **회색 상자, 맨 아래** — 자리를 내려 1번을 풀었다. 그런데 회색 상자는 페이지
- *    배경(#F7F8FA)과 차이가 6 단계밖에 안 나 "덜 중요한 안내문" 으로 읽혔다
- * 3. **흰 `Card`** — 경계는 생겼지만 옆의 일반 카드들과 같은 면이라 **이것이 AI 가
- *    쓴 글이라는 표시가 없어졌다.** 글리프 하나로는 모자랐다
- * 4. **다시 `AiCard`** (2026-09-22, QA 피드백) — AI 면을 앱 전체에서 하나로 모았다
+ *    가장 먼저 눈에 들어와서, 사용자가 자기 수익률보다 AI 문장을 먼저 읽었다
+ * 2. **회색 상자, 맨 아래** — 자리를 내려 1번을 풀었다. 그런데 페이지 배경과
+ *    차이가 6 단계밖에 안 나 "덜 중요한 안내문" 으로 읽혔다
+ * 3. **흰 `Card`** — 경계는 생겼지만 옆의 일반 카드들과 같은 면이라 이것이 AI 가
+ *    쓴 글이라는 표시가 없어졌다
+ * 4. **다시 `AiCard`** (2026-09-22 QA) — AI 면을 앱 전체에서 하나로 모았다
+ * 5. **연한 패널** (2026-09-23) — 아래 참고
  *
- * **1번의 이유는 아직 유효하고, 그것을 푼 것은 면색이 아니라 순서다.** 이 카드는
- * 2번에서 내려온 맨 아래 자리 그대로다. 되돌리지 마라. 면도 순검정이 아니라
- * `#343A42` 로 한 단계 밝아졌다 (`styles/index.css` 의 `--color-ai-surface` 주석).
+ * ## 5번으로 간 이유와 그 대가
  *
- * AI 진단 탭의 `FinchInsightCard` 와 같은 셸이다 — **면색과 셸은** 항상 같이
- * 움직인다. 본문 안쪽 여백은 슬롯마다 내용이 달라(이쪽은 문단, 그쪽은 지표 격자)
- * 따로 정한다.
+ * 검정 면이 `요약` 탭의 마지막에 있어도 **화면에서 가장 무거운 덩어리**였다.
+ * 위 넷(히어로·비교·요인·종목)이 전부 밝은 톤인데 끝에서 검정이 나오면 읽는
+ * 흐름이 거기서 끊긴다. 2026-09-23 지시 — *"과하게 강조하지 말 것 / 연한 패널 /
+ * 메인 데이터보다 덜 강조"*.
  *
- * ## 면은 그대로 차콜이다 (FINCH-333)
+ * **2번과 다른 점이 하나 있다.** 2번이 "안내문" 으로 읽힌 이유는 배경(#F7F8FA)과
+ * 면(#F1F3F6)의 차이가 없어서였는데, 지금 이 패널은 **흰 카드 아래**에 선다.
+ * 위가 흰색이라 회색 면이 배경이 아니라 별개의 덩어리로 갈린다.
  *
- * 2026-09-23 에 "라이트 톤 카드로 재설계하는 안" 을 검토했고 **하지 않기로 했다.**
- * 다시 올라올 제안이라 근거를 남긴다.
+ * **3번의 문제는 남는다** — 옆 카드와 다른 면색이지만 검정만큼 강한 표식은
+ * 아니다. 그래서 글리프와 `FINCH` 라는 이름을 라벨 줄에 함께 세운다.
  *
- * - **위 3번이 정확히 그 안이고 이미 한 번 버렸다.** 흰 `Card` 로 만들었더니
- *   옆의 일반 카드들과 같은 면이 되어 *이것이 AI 가 쓴 글이라는 표시가
- *   없어졌다.* 글리프 하나로는 모자랐다. 라이트로 가면 같은 자리로 돌아간다
- * - **`design.md` §1·§4·§15 가 "Dark Charcoal Surface + White" 로 못박았다.**
- *   화면 대부분이 White/Graphite 이고 AI 가 관여한 영역만 검정으로 갈라 보이는
- *   것이 이 앱의 체계다. 이 카드만 라이트로 바꾸면 체계가 깨지고, 전부 바꾸면
- *   채팅 말풍선·브리핑·진단까지 13곳 넘게 함께 움직인다
- * - **전면 동결 당일이다.** `shared/ui/AiCard` 는 앱에서 가장 넓게 쓰이는 셸이다
+ * ### 대가: AI 면이 앱에서 둘로 갈렸다
  *
- * 무게 문제 자체는 실재하고, 그것은 **면적으로 푼다** — 위 "카드 높이를 34px
- * 줄였다" 가 그 답이다. 라이트 전환을 정말 하려면 AI 면 체계 전체를 다루는
- * 별도 티켓이라야 하고 `design.md` §1·§4·§15 개정이 먼저다.
+ * `design.md` §1·§4·§15 가 "AI 가 관여한 영역은 Dark Charcoal Surface" 로 못박았고
+ * 다른 AI 슬롯(홈 브리핑 · AI 진단 · 종목 분석 · 채팅)은 전부 `AiCard` 차콜이다.
+ * **이 슬롯 하나만 밝다.** 알고 한 것이다.
  *
- * ## 큰 숫자를 새로 세우지 않는다
+ * - **`shared/ui/AiCard` 를 고치지 않았다.** 거기를 건드리면 13곳 넘는 AI 슬롯이
+ *   함께 뒤집힌다. 이 파일이 자기 셸을 직접 그린다
+ * - **`design.md` §1·§4·§15 개정이 따라와야 한다.** 문서가 말하는 규칙과 화면이
+ *   어긋난 상태이고, 이것은 이 MR 이 만든 부채다
+ * - 팀이 차콜을 유지하기로 하면 되돌리는 것은 `AiCard` 로 감싸는 일이라 어렵지
+ *   않다. **본문 구조는 4번과 같게 두었다**
  *
- * `가장 큰 기여 · 종목 선택 +1.42%p` 같은 KPI 줄을 이 카드에 두지 않는다. 그 값은
- * **엔진이 만든 값**이고 바로 위 `ReturnAttributionSection`·
- * `StockContributionSection` 에 이미 서 있다. 여기 한 번 더 적으면
- * `attributionInsight.ts` 가 못박은 선을 넘는다 — **AI 가 만든 값과 엔진이 만든
- * 값이 같은 사실을 두 번 말하게 두지 않는다.** 반올림이 갈리는 날 두 수치가 서로를
- * 반증하고, 화면에서는 어느 쪽이 맞는지 가릴 수 없다.
- *
- * **진단 탭의 metric anchor 추출도 여기서는 못 쓴다.** 그쪽(`FinchInsightCard`)은
- * `metric` 조각 앞 `text` 조각의 마지막 절을 라벨로 쓰는데, 이 응답에 돌려보면
- * `였고 그중 종목 선택` 같은 문장 토막이 라벨 자리에 앉는다 — 수익률 서술은
- * 지표명으로 시작하지 않고 수치가 문장 가운데 박히기 때문이다.
- *
- * ## 대신 문장 안에서 숫자를 올린다
- *
- * `summary.segments` 를 `AiSegmentText` 로 순회한다. `direction` 이 찬 조각에만
- * 강조·`tabular-nums` 가 붙어서, **수치를 새로 만들지 않고도** `+2.13%`·`+1.42%`·
- * `-0.31%` 가 문장에서 먼저 잡힌다. 조각을 이어 붙이면 `text` 와 정확히 일치한다는
- * 보장이 있어(contracts C55) 정규식으로 숫자를 찾지 않는다.
- *
- * **카드 안에서는 `onDark` 다.** 차콜 면 위에서 등락색(`#C93B3B`·`#2258C9`)은 대비가
- * 2.3·1.8 로 읽히지 않아 `--color-ai-accent` 로 강조만 한다(`AiSegmentText` 머리
- * 주석). 부호가 `value` 문자열에 들어 있어 색 없이도 방향은 남는다. **아래 시트는
- * 흰 면이라 `onDark` 를 켜지 않는다** — 같은 문장이 두 면에서 다르게 칠해진다.
- *
- * ## 본문은 두 줄에서 끊는다 (FINCH-333)
+ * ## 본문은 세 줄에서 끊는다
  *
  * `summary` 는 2~4문장이 이어진 하나다(`NARRATIVE_SCHEMA` 가 `{narrative: string}`
  * 필드 하나). 문장 수를 프론트가 고를 수 없으므로 **줄 수로 끊는다** —
  * `line-clamp` 은 짧은 응답에는 아무 일도 하지 않고 긴 응답에서만 접힌다.
- * 마침표로 자르지 않는 이유는 그대로다. 문장이 2개로 오는 날 자리가 빈다.
+ * 마침표로 자르면 문장이 2개로 오는 날 자리가 빈다.
+ *
+ * 밝은 면으로 오면서 두 줄에서 세 줄로 되돌렸다 — 검정 면일 때는 높이를 줄이는
+ * 것이 무게를 줄이는 유일한 수단이었는데, 지금은 면색이 그 일을 한다.
  *
  * 잘린 뒷부분은 `분석 자세히 보기` 시트 맨 위에 전문으로 있다. **자료를 버리는
  * 것이 아니라 접는 것이다.**
  *
- * ## 카드 높이를 34px 줄였다 (FINCH-333)
+ * ## `onDark` 를 껐다
  *
- * "FINCH 분석 카드가 너무 어둡고 무거워서 전체 화면 흐름을 끊는다" 는 지적의 답
- * 이다. **면색을 바꾸지 않고 면적을 줄였다** — 아래 "면은 그대로 차콜이다" 참고.
+ * 차콜 면에서는 등락색(`#C93B3B`·`#2258C9`)의 대비가 2.3·1.8 로 읽히지 않아
+ * `--color-ai-accent` 로만 강조했다. **밝은 면에서는 그 우회가 필요 없다** —
+ * `AiSegmentText` 가 기본 모드에서 쓰는 등락색이 그대로 맞는다. 덤으로 이 패널과
+ * 아래 시트가 같은 색으로 칠해진다(전에는 두 면에서 다르게 칠해졌다).
  *
- * - `line-clamp-3` → `line-clamp-2`. 22px. 이 카드는 이제 `요약` 탭의 **마지막**
- *   블록이라 위에서 이미 성과·요인 1위·종목 1위를 다 읽고 온다. 세 줄이 필요했던
- *   것은 이 카드가 화면의 유일한 설명이던 시절의 값이다
- * - 라벨과 본문 사이 이중 여백 12px. `AiCard` 의 라벨이 `mb-3.5`(14px)를 이미
- *   갖는데 여기서 `mt-3`(12px)을 또 얹어 26px 이었다. **둘 다 우리가 넣은 값이라
- *   어느 쪽도 실측 근거가 아니다.** 14px 하나만 남긴다
+ * ## 큰 숫자를 새로 세우지 않는다
  *
- * 184px → 150px 이다. `요약` 탭에서 성과 카드(125px)보다 컸던 것이 이제 작다 —
- * 화면에서 가장 큰 면이 AI 가 아니라 사용자의 수익률이어야 맞는다.
- *
- * **`AiCard` 셸은 고치지 않았다.** `mb-3.5` 는 13곳 넘는 AI 슬롯이 공유한다.
- * 고친 것은 이 슬롯이 자기 본문에 얹던 `mt-3` 하나다.
- *
- * ## CTA 를 한 단 밝혔다
- *
- * `분석 자세히 보기 ›` 가 `--color-ai-text-secondary`(72%)였다. 본문과 같은 색이라
- * **누를 수 있는 줄인지 표시가 `›` 하나뿐**이었다. `--color-ai-text-primary` 로
- * 올리면 차콜 면 대비 10.80 이 되어 본문(6.84)과 갈린다.
- *
- * 면이나 테두리를 주지 않는다 — `design.md` §8.1 이 `AiCard` 안의 Full-width
- * Button 을 막았고, 검정 면 위 채운 버튼은 카드 안에 또 하나의 덩어리를 만든다.
+ * `가장 큰 기여 · 종목 선택 +1.42%p` 같은 KPI 줄을 두지 않는다. 그 값은 **엔진이
+ * 만든 값**이고 바로 위 `PerformanceDriver` 에 이미 서 있다. 여기 한 번 더 적으면
+ * 반올림이 갈리는 날 두 수치가 서로를 반증하고, 화면에서는 어느 쪽이 맞는지 가릴
+ * 수 없다.
  *
  * ## 공시는 여기로 모인다
  *
- * 종목 행에서 뺀 공시 제목이 같은 시트에 있다. 근거 목록(`citations`)은 이 시트가
- * 아니라 본문 맨 아래 `분석 기준 및 안내` 로 갔다 — 그쪽은 "이 숫자를 어디서
- * 가져왔나" 를 모아 둔 자리고, 여기는 "FINCH 가 무엇을 읽고 그렇게 말했나" 다.
+ * 종목 행에서 뺀 공시 제목이 `분석 자세히 보기` 시트에 있다. 근거 목록
+ * (`citations`)은 본문 맨 아래 `분석 기준 및 안내` 로 갔다 — 그쪽은 "이 숫자를
+ * 어디서 가져왔나" 를 모아 둔 자리고, 여기는 "FINCH 가 무엇을 읽고 그렇게
+ * 말했나" 다.
  */
 
 type FinchReturnInsightProps = {
-  /** 생성이 막히면 `null` 이다. 그때도 카드는 서고 문구만 바뀐다 */
+  /** 생성이 막히면 `null` 이다. 그때도 패널은 서고 문구만 바뀐다 */
   summary: AiSection | null;
   /** 공시가 붙은 종목들. 바닥 시트에서만 쓴다 */
   rows: readonly AiAttributionRow[];
-  /**
-   * 위 여백은 이 컴포넌트가 갖지 않는다 — 호출부가 정한다 (FINCH-333).
-   * `AiFeedbackRow`·`AnalysisSourceSheet` 와 같은 규약이다. 전에는 `mt-8` 이
-   * 박혀 있었는데, 2차 탭이 생기며 이 카드가 `요약` 패널의 둘째 블록이 되어
-   * 섹션 간격(32px)이 아니라 블록 간격(16px)을 받아야 했다.
-   */
+  /** 위 여백은 이 컴포넌트가 갖지 않는다 — `AiFeedbackRow` 와 같은 규약이다 */
   className?: string;
 };
 
@@ -145,17 +106,22 @@ export function FinchReturnInsight({
   const hasDetail = summary !== null || evidenced.length > 0;
 
   return (
-    <AiCard label="FINCH가 분석했어요" labelAs="h2" className={className}>
-      <p className="line-clamp-2 text-body-2 text-pretty text-ai-text-secondary">
+    <section className={`rounded-ai bg-surface-soft px-4 py-3.5 ${className}`}>
+      {/* 글리프는 `bg-current` 마스크라 이 줄의 글자색을 물려받는다. 밝은 면이라
+          흰색이 아니라 `--color-text-secondary` 가 된다 — design.md §3 이
+          "검정 Surface 위에서는 White Symbol" 이라고 적은 것의 반대 경우다. */}
+      <h3 className="flex items-center gap-1.75 text-text-secondary">
+        <AiGlyph />
+        <span className="text-caption font-semibold tracking-[.02em]">
+          FINCH 한줄 분석
+        </span>
+      </h3>
+
+      <p className="mt-2.5 line-clamp-3 text-body-2 text-pretty break-keep text-text-secondary">
         {summary === null ? (
           '수익률 원인 분석을 준비하지 못했어요.'
         ) : (
-          /* 차콜 면 위라 등락색 대신 AI 강조색을 쓴다 — `AiSegmentText` 머리 주석. */
-          <AiSegmentText
-            segments={summary.segments}
-            text={summary.text}
-            onDark
-          />
+          <AiSegmentText segments={summary.segments} text={summary.text} />
         )}
       </p>
 
@@ -163,7 +129,7 @@ export function FinchReturnInsight({
         <button
           type="button"
           onClick={() => setDetailOpen(true)}
-          className="mt-3.5 text-body-2 font-medium text-ai-text-primary"
+          className="mt-3 text-caption font-semibold text-text-primary"
         >
           분석 자세히 보기 ›
         </button>
@@ -221,6 +187,6 @@ export function FinchReturnInsight({
           </div>
         </BottomSheet>
       )}
-    </AiCard>
+    </section>
   );
 }
