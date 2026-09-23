@@ -354,6 +354,17 @@
      같은 값이면 같은 화면에서 탭 트랙과 차트 트랙이 한 종류로 보인다. */
   --color-chart-track: #f4f5f8;
 
+  /* AI 진단 지표 3열에서 **가장 나쁜 칸 하나**를 가리키는 점 (FINCH-334).
+
+     상태 글자에는 색을 쓰지 않는다 — 빨강·파랑은 등락색이고(컨벤션 §11) 주황·
+     초록을 더하면 한 줄에 상태색 체계가 새로 생긴다. 셋 중 하나가 나쁘다는 사실은
+     **굵기(700)와 이 점**으로만 말한다.
+
+     값은 `lib/riskGrade` 의 `medium`(#E0912F)에서 한 단 어둡게 잡았다. 그쪽은
+     글자색이라 흰 면 대비가 필요했고 이쪽은 6px 원이라 같은 기준이 아니다 —
+     글자가 아니므로 WCAG 대비 기준 대상이 아니고, 옆의 700 글자가 뜻을 진다. */
+  --color-attention-dot: #d98a3d;
+
   /* 차트 툴팁 안에서만 쓰는 등락색 (프로토타입 `tipTone` — 스크럽한 봉의 종가를
      시가와 견줘 이 둘 중 하나로 칠한다).
 
@@ -711,6 +722,51 @@
  * 없으면 스켈레톤과 새 내용이 연달아 튀어 "번쩍" 으로 보인다. 짧은 페이드가
  * 그 두 번의 교체를 한 번의 전환으로 읽히게 한다.
  */
+/*
+ * AI 진단 탭 진입 애니메이션 (FINCH-334).
+ *
+ * **전부 한 번만 재생하고 끝난다.** `infinite` 를 쓰는 것이 이 파일에 하나 있는데
+ * (`chat-typing-bounce`) 그것은 "AI 가 지금 쓰고 있다" 는 상태 표시라 반복이
+ * 뜻이다. 진단 탭의 것들은 등장 연출이라 반복하면 화면이 계속 움직인다 —
+ * 반짝임·펄스·glow·shimmer 를 넣지 않는다.
+ *
+ * 되감기(재생 여부)는 CSS 가 아니라 `useDiagnosisIntro` 가 정한다. 탭을 오갈 때
+ * 컴포넌트가 다시 마운트되므로 CSS 만으로는 매번 다시 재생된다.
+ *
+ * `prefers-reduced-motion: reduce` 는 호출부가 `motion-reduce:animate-none` 으로
+ * 끄고, 최종값이 이미 요소의 정적 스타일이라 그대로 보인다.
+ */
+@keyframes diag-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes diag-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 막대는 왼쪽부터 채워진다. `width` 가 아니라 `transform` 이라 레이아웃을 다시
+   계산하지 않는다 — 호출부가 `transform-origin: left` 를 함께 준다. */
+@keyframes diag-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @keyframes tab-panel-fade-in {
   from {
     opacity: 0;
