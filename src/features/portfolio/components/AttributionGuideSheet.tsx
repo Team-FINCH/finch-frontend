@@ -26,6 +26,16 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * 그쪽에도 *"세 값을 더하면 기간 수익률과 같아요"* 한 줄이 있다. 지우지 않는다 —
  * `요약`·`종목별` 탭에서 들어온 사람은 이 시트를 볼 수 없다.
  *
+ * ## 본문에서 걷어낸 설명이 여기로 온다 (FINCH-345)
+ *
+ * 요인 셋의 정의를 본문에 한 줄씩 붙였다가 걷었다. **설명이 많아져서 오히려 안
+ * 보였다**(사용자 지적) — 세 행이 각자 같은 꼴의 문장을 달고 있으면 목록이
+ * 글 덩어리가 되고 막대와 숫자가 그 사이에 묻힌다.
+ *
+ * 지우지 않고 여기로 옮긴다. **시트는 묻는 사람만 읽고 본문은 모두가 읽는다** —
+ * 매번 읽을 글이 아닌 것을 본문에 두지 않는다는 `AnalysisInfoSheet` 의 판단과
+ * 같다. 본문에서 방향과 단위는 축 라벨이, 크기는 값이 말한다.
+ *
  * ## 예시 숫자를 적지 않는다
  *
  * `-0.40%p 는 …라는 뜻이에요` 처럼 쓰면 읽기는 쉬워지지만 **화면의 실제 값과
@@ -65,6 +75,36 @@ export function AttributionGuideSheet() {
           내 포트폴리오의 최종 수익률을 시장 · 업종 배분 · 종목 선택의 영향으로
           나누어 보여주는 분석이에요. 세 요인을 모두 더하면 최종 수익률이 돼요.
         </p>
+
+        <h3 className="mt-6 text-body-1 font-semibold text-text-primary">
+          세 요인이 각각 뭔가요?
+        </h3>
+        <dl className="mt-3 flex flex-col gap-3">
+          <div>
+            <dt className="text-body-2 font-semibold text-text-primary">
+              시장 영향
+            </dt>
+            <dd className="mt-0.5 text-body-2 text-pretty break-keep text-text-secondary">
+              전체 시장이 움직여서 내 수익률이 밀리거나 당겨진 만큼이에요.
+            </dd>
+          </div>
+          <div>
+            <dt className="text-body-2 font-semibold text-text-primary">
+              업종 배분
+            </dt>
+            <dd className="mt-0.5 text-body-2 text-pretty break-keep text-text-secondary">
+              어떤 업종을 얼마나 담았는지로 생긴 만큼이에요.
+            </dd>
+          </div>
+          <div>
+            <dt className="text-body-2 font-semibold text-text-primary">
+              종목 선택
+            </dt>
+            <dd className="mt-0.5 text-body-2 text-pretty break-keep text-text-secondary">
+              업종 안에서 어떤 종목을 골랐는지로 생긴 만큼이에요.
+            </dd>
+          </div>
+        </dl>
 
         <h3 className="mt-6 text-body-1 font-semibold text-text-primary">
           %와 %p가 어떻게 다른가요?

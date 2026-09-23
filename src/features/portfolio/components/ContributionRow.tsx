@@ -38,7 +38,7 @@ import { DivergingBar } from './DivergingBar';
  * | 라벨 | 요인명 | 순위 + 종목명 |
  * | 값 | 기여도 `%p` | 기여도 `%p` |
  * | 막대 | 0 기준 발산 | 0 기준 발산 |
- * | 보조 줄 | 설명 문장 | `기간 수익률 · 비중` |
+ * | 보조 줄 | 없음 | `기간 수익률 · 비중` |
  *
  * 스케일(`divergingScale`)은 **탭마다 따로 잡는다.** 요인 셋과 종목 여덟은 값의
  * 범위가 달라서, 축을 공유하면 종목 막대가 실오라기로 눌린다. 그래서 두 탭의
@@ -105,15 +105,15 @@ type ContributionRowProps = {
   scale: number;
   emphasis?: ContributionEmphasis;
   /**
-   * 막대 아래 보조 한 줄. 두 탭이 서로 다른 것을 넣는다.
+   * 막대 아래 보조 한 줄. 종목 목록의 `기간 수익률 +9.12% · 비중 22.1%` 가
+   * 여기 온다.
    *
-   * - 종목 — `기간 수익률 +9.12% · 비중 22.1%`. 그 종목 자신의 **값**이다
-   * - 요인 — `전체 시장의 움직임이 내 수익률을 0.40%p 낮췄어요.`
-   *   (`describeFactor`). **값이 아니라 문장이다**
+   * **요인 목록은 넘기지 않는다.** 요인에는 "그 요인 자신의 수익률" 같은 값이
+   * 없다 — `breakdown` 은 기여도 하나뿐이다.
    *
-   * 요인 쪽이 값이 아닌 이유는 전에 *"요인 목록은 넘기지 않는다"* 로 적어 둔
-   * 그대로다 — `breakdown` 에는 기여도 하나뿐이라 "그 요인 자신의 수익률" 이
-   * 없다. 자리를 쓰는 쪽이 바뀐 것이지 그 사실이 바뀐 것은 아니다.
+   * 한때 요인마다 설명 문장을 여기 넣었다가 걷었다 (FINCH-345). 세 행이
+   * 같은 말을 세 번 하느라 글이 차트를 덮었고, 그 일은 목록 위 축 라벨 한 줄이
+   * 대신한다.
    */
   sub?: ReactNode;
   /**
@@ -163,10 +163,8 @@ export function ContributionRow({
 
       <DivergingBar value={value} scale={scale} className="mt-1.5" />
 
-      {/* `text-pretty break-keep` 은 요인 쪽 설명 문장을 위한 것이다
-          (FINCH-345). 종목 쪽 한 줄짜리 값에는 영향이 없다. */}
       {sub !== undefined && (
-        <p className="mt-1.5 text-caption text-pretty break-keep text-text-muted tabular-nums">
+        <p className="mt-1.5 text-caption text-text-muted tabular-nums">
           {sub}
         </p>
       )}
