@@ -82,7 +82,7 @@ export function DivergingBar({
   return (
     <span
       aria-hidden="true"
-      className={`relative block h-2.5 w-full rounded-[3px] bg-chart-track ${className}`}
+      className={`relative block h-1.5 w-full rounded-full bg-chart-track ${className}`}
     >
       {/* 0 축. 위아래로 3px 씩 나와 트랙에 얹힌다 — 위 주석 3번. */}
       <span className="absolute -top-[3px] -bottom-[3px] left-1/2 w-px -translate-x-1/2 bg-border-strong" />

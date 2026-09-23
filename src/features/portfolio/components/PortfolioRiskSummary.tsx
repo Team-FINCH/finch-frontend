@@ -92,6 +92,11 @@ type PortfolioRiskSummaryProps = {
   top1Percent: number | null;
   /** 지표를 누르면 계산 기준·근거 시트를 연다 */
   onOpenDetail: () => void;
+  /**
+   * 머리줄 오른쪽 링크의 근거 개수 (FINCH-341). `0` 이면 `계산 기준 ›` 이다 —
+   * 근거가 없어도 계산 기준은 늘 있으므로 링크를 감추지 않는다.
+   */
+  citationCount: number;
   intro: boolean;
 };
 
@@ -103,6 +108,7 @@ export function PortfolioRiskSummary({
   indicators,
   top1Percent,
   onOpenDetail,
+  citationCount,
   intro,
 }: PortfolioRiskSummaryProps) {
   const levelLabel = riskLevel === null ? null : RISK_LEVEL_LABEL[riskLevel];
@@ -147,7 +153,37 @@ export function PortfolioRiskSummary({
           : ''
       }`}
     >
-      <p className="text-label text-text-muted">내 포트폴리오 위험도</p>
+      {/* 머리줄 오른쪽이 근거·계산 기준 진입이다 (FINCH-341).
+
+          전에는 이 탭 맨 아래에 `근거 2개 · 계산 기준 보기 ›` 한 줄로 따로 있었다.
+          읽는 순서(결론 → 근거 → 상세)로는 맞는 자리였지만, 목록이 끝난 뒤
+          한참 아래라 **닿으려면 화면 하나를 더 내려야 했다.** 위험도 지표 3열이
+          이미 같은 시트를 여는 만큼(`onOpenDetail`) 그 블록의 머리에 두는 편이
+          가깝다.
+
+          **문구를 줄였다.** 원래 `근거 N개 · 계산 기준 보기` 였는데 머리줄은
+          왼쪽 라벨과 폭을 나눠 쓰는 자리다 — 최소 지원 320px 에서 둘을 합치면
+          넘친다(라벨 14px 9자 ≈ 130px + 원래 문구 13px ≈ 160px + 셰브런·간격).
+          `보기` 와 `계산 기준` 은 셰브런과 시트 제목이 대신 말해 준다.
+
+          높이를 키우지 않고 누를 자리만 넓힌다 — `before:` 로 위아래를 14px 씩
+          늘려 46px 을 만든다(design.md §12 최소 터치 영역 44px). `py` 를 주면
+          머리줄이 두꺼워져 점수와의 간격이 어긋난다. */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-label text-text-muted">
+          내 포트폴리오 위험도
+        </p>
+        <button
+          type="button"
+          onClick={onOpenDetail}
+          className="relative flex flex-none items-center gap-1 text-caption text-text-secondary before:absolute before:inset-x-0 before:-inset-y-3.5 before:content-['']"
+        >
+          {citationCount > 0 ? `근거 ${citationCount}개` : '계산 기준'}
+          <span aria-hidden="true" className="text-text-muted">
+            ›
+          </span>
+        </button>
+      </div>
 
       {riskScore === null ? (
         // 판정 보류. 점수 자리를 0 으로 채우지 않는다 — 없는 값이 최상위 점수로 읽힌다.

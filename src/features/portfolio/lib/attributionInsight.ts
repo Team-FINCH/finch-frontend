@@ -69,11 +69,42 @@ export const DEFAULT_ATTRIBUTION_PERIOD: AiAttributionPeriod = '1d';
 // ── 요인 ──────────────────────────────────────────────────────────────────────
 export type AttributionFactor = 'market' | 'sector' | 'selection';
 
+/**
+ * 요인 이름 (FINCH-341 에서 둘을 고쳤다).
+ *
+ * `시장 영향`·`업종 영향` 이었다. 프로토타입 원문이라 그대로 두고 있었는데,
+ * **`영향` 이 셋 중 둘에만 붙어 있어 세 축이 같은 계열로 읽히지 않았다** —
+ * `시장 영향`·`업종 영향`·`종목 선택` 은 앞의 둘이 결과, 뒤의 하나가 행동처럼
+ * 보인다. 셋 다 "내가 무엇을 해서 생긴 몫" 이라 행동 쪽으로 맞췄다.
+ *
+ * `ATTRIBUTION_FACTOR_NOTE` 가 이미 `시장 흐름`·`업종 배분` 이라고 쓰고 있어서
+ * 라벨과 문장이 서로 다른 말을 하던 것도 이번에 닫힌다.
+ */
 export const ATTRIBUTION_FACTOR_LABEL: Record<AttributionFactor, string> = {
-  market: '시장 영향',
-  sector: '업종 영향',
+  market: '시장 움직임',
+  sector: '업종 배분',
   selection: '종목 선택',
 };
+
+/**
+ * 요인이 무엇인지 한 줄로 푼 것. **기간마다 바뀌지 않는 정의다.**
+ *
+ * 부호·크기를 말하지 않는 이유가 있다 — 그것은 `ATTRIBUTION_FACTOR_NOTE` 한 줄이
+ * 이미 하고 있고, 세 줄이 각자 "높였어요/낮췄어요" 를 말하면 **무엇을 먼저 읽어야
+ * 하는지가 사라진다.** 여기는 축이 무엇인지만 말한다.
+ *
+ * 셋이 어떻게 더해지는지는 글이 아니라 워터폴이 말한다(`resolveWaterfall`).
+ *
+ * **세 줄의 어미를 맞췄다** (FINCH-341). `~만큼이에요` 하나에 `~의 몫이에요`
+ * 둘이라 반쯤만 맞은 모양이었다. 나란히 서는 목록 문구는 **완전히 같은 꼴**이라야
+ * 다른 부분(앞쪽 설명)이 곧 세 요인의 차이로 읽힌다.
+ */
+export const ATTRIBUTION_FACTOR_DESCRIPTION: Record<AttributionFactor, string> =
+  {
+    market: '시장 전체가 움직여서 생긴 몫이에요.',
+    sector: '업종을 어떻게 나눠 담았는지로 생긴 몫이에요.',
+    selection: '업종 안에서 어떤 종목을 골랐는지로 생긴 몫이에요.',
+  };
 
 /**
  * 가장 큰 요인 한 줄. **argmax 를 말로 옮긴 것뿐이고 인과를 말하지 않는다.**
@@ -147,6 +178,97 @@ export function divergingWidth(value: number, scale: number): number {
   return Math.max((Math.abs(value) / scale) * 50, MIN_VISIBLE_WIDTH);
 }
 
+// ── 워터폴 ────────────────────────────────────────────────────────────────────
+/**
+ * 세 요인을 **누적 흐름**으로 놓는다 (FINCH-341).
+ *
+ * ## 왜 필요했나
+ *
+ * 전에는 요인 셋이 각자 0 을 가운데 둔 막대였다. 세 막대의 길이는 서로 견줄 수
+ * 있었지만 **셋을 더하면 기간 수익률이 된다는 사실은 화면에 없었다** — 사용자가
+ * `+0.89`, `-0.18`, `+1.42` 를 보고 머릿속으로 더해야 `+2.13` 에 닿았다.
+ *
+ * 워터폴은 각 막대를 **앞 요인이 끝난 자리에서 시작**시켜 그 덧셈을 그림으로
+ * 만든다. 0 에서 출발해 시장이 밀고, 업종이 조금 당기고, 선택이 다시 밀어
+ * 최종에 닿는 한 줄기다.
+ *
+ * ## 값을 만들지 않는다 — 자리만 잡는다
+ *
+ * `start`·`end` 는 `breakdown` 값을 순서대로 누적한 것이고, 새 수치가 아니다.
+ * 화면에 글자로 나가는 것은 여전히 `value`(각 요인)와 호출부가 넘기는
+ * `portfolioReturn`(최종)뿐이다. **누적 중간값은 막대의 왼쪽 끝을 정하는 데만
+ * 쓰이고 숫자로 그려지지 않는다** — 엔진이 내지 않은 값을 화면에 적지 않는다.
+ *
+ * 마지막 `end` 는 항등식상 `portfolioReturn` 과 같지만(엔진이 §6.3 에서 검증한다)
+ * **최종 줄에는 그 누적값이 아니라 응답의 `portfolioReturn` 을 적는다.** 부동소수
+ * 덧셈으로 만든 값과 엔진이 준 값이 끝자리에서 갈릴 수 있고, 갈리면 화면이
+ * 자기 자신과 어긋난다.
+ *
+ * ## 범위에 0 을 반드시 넣는다
+ *
+ * `min`·`max` 후보에 `0` 을 끼운다. 세 요인이 모두 양수면 누적이 0 밑으로
+ * 내려가지 않는데, 그때도 **0 기준선이 막대 영역 안에 서야** 어디가 출발점인지
+ * 보인다. 0 이 범위 밖이면 기준선이 트랙 밖으로 나가 그려지지 않는다.
+ */
+export type WaterfallStep = {
+  factor: AttributionFactor;
+  value: number;
+  /** 이 요인 직전까지의 누적 */
+  start: number;
+  /** 이 요인까지의 누적 */
+  end: number;
+};
+
+export type Waterfall = {
+  steps: readonly WaterfallStep[];
+  min: number;
+  max: number;
+};
+
+export function resolveWaterfall(
+  breakdown: Record<AttributionFactor, number>,
+): Waterfall {
+  let running = 0;
+  const steps = ATTRIBUTION_FACTOR_ORDER.map((factor) => {
+    const value = breakdown[factor];
+    const start = running;
+    running += value;
+    return { factor, value, start, end: running };
+  });
+
+  const points = [0, ...steps.flatMap((step) => [step.start, step.end])];
+  return { steps, min: Math.min(...points), max: Math.max(...points) };
+}
+
+/**
+ * 막대 한 칸의 왼쪽 끝과 폭(%). 트랙 전체가 `min ~ max` 를 덮는다.
+ *
+ * `divergingWidth` 와 같은 이유로 하한(`MIN_VISIBLE_WIDTH`)을 둔다 — 값이 0 이
+ * 아닌데 막대가 보이지 않으면 "그 요인은 없었다" 로 읽힌다. 하한 때문에 막대가
+ * 오른쪽 끝을 넘지 않도록 `left` 를 뒤에서 당긴다.
+ */
+export function waterfallBar(
+  step: WaterfallStep,
+  { min, max }: Pick<Waterfall, 'min' | 'max'>,
+): { left: number; width: number } {
+  const span = max - min || 1;
+  const low = Math.min(step.start, step.end);
+  const high = Math.max(step.start, step.end);
+
+  const width = Math.max(((high - low) / span) * 100, MIN_VISIBLE_WIDTH);
+  const left = Math.min(((low - min) / span) * 100, 100 - width);
+  return { left: Math.max(left, 0), width };
+}
+
+/** 0 기준선의 왼쪽 위치(%). */
+export function waterfallZero({
+  min,
+  max,
+}: Pick<Waterfall, 'min' | 'max'>): number {
+  const span = max - min || 1;
+  return ((0 - min) / span) * 100;
+}
+
 // ── 종목 ──────────────────────────────────────────────────────────────────────
 /**
  * 기여가 큰 순으로 종목을 늘어놓는다. **절댓값 기준이다.**
@@ -208,7 +330,16 @@ export type CauseView = 'summary' | 'factor' | 'stock';
 
 export const CAUSE_VIEWS: readonly { value: CauseView; label: string }[] = [
   { value: 'summary', label: '요약' },
-  { value: 'factor', label: '기여 분석' },
+  /* `기여 분석` 이었다 (FINCH-341 에서 고쳤다).
+
+     **옆 칸과 짝이 맞지 않았다** — 하나는 무엇을 *하는지*(분석), 하나는 무엇
+     *단위*인지(종목별)라 둘이 같은 층의 선택지로 읽히지 않았다. `요인별 / 종목별`
+     이면 같은 질문(수익률이 어디서 왔나)을 **쪼개는 두 가지 방식**이 된다.
+
+     `기여` 는 contribution 의 번역어다. 화면에서 처음 만나는 사람에게 와닿지
+     않는데, 탭을 누르면 `시장 움직임 · 업종 배분 · 종목 선택` 셋이 나와서
+     `요인` 이 무엇인지 그 자리에서 정의된다. */
+  { value: 'factor', label: '요인별' },
   { value: 'stock', label: '종목별' },
 ] as const;
 

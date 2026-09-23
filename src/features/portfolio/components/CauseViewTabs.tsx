@@ -55,8 +55,16 @@ import {
  *
  * | | 면 | 굵기 | 글자색 | 그림자 |
  * | --- | --- | --- | --- | --- |
- * | 선택 | 흰색 | 700 | `--color-text-primary` (15.80) | 0 1px 3px .10 |
+ * | 선택 | `--color-primary` | 700 | `--color-surface` (흰색) | 없음 |
  * | 비선택 | (트랙) | 500 | `--color-text-secondary` (6.3) | 없음 |
+ *
+ * **선택 칸을 흰 면에서 어두운 면으로 바꿨다** (FINCH-341). 흰 칸 + 그림자로는
+ * 페이지 안에서 선택 상태가 약했다 — 회색 트랙 위 흰 칸이 *골라진 칸* 이 아니라
+ * *비어 있는 칸* 으로 읽혔고, 그림자 .10 은 실기기에서 거의 보이지 않았다.
+ *
+ * 어두운 면은 이 화면에서 CTA 버튼(`--color-primary`)만 쓰는 값이라 **눌러서 고른
+ * 상태**라는 뜻이 이미 서 있다. 그림자는 뺐다 — 면이 대비를 다 내므로 띄울 필요가
+ * 없고, 그림자는 흰 칸이 트랙 위에 떠 보이게 하려던 장치였다.
  *
  * 비선택 글자색을 `--color-text-muted`(#78828E)에서 올렸다. 트랙(#F1F3F6) 위
  * 대비가 3.7 로 **AA 미달이었고**, 그래서 고르지 않은 두 칸이 비활성 버튼처럼
@@ -107,7 +115,7 @@ export function CauseViewTabs({
             onClick={() => onChange(item.value)}
             className={`flex-1 rounded-[7px] text-caption transition-all duration-(--motion-normal) ease-standard ${
               selected
-                ? 'bg-surface font-bold text-text-primary shadow-[0_1px_2px_rgba(31,35,40,0.08)]'
+                ? 'bg-primary font-bold text-surface'
                 : 'font-medium text-text-secondary'
             }`}
           >
