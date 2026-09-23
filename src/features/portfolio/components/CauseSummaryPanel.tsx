@@ -5,172 +5,134 @@ import {
 import { Card } from '@/shared/ui/Card';
 
 import {
-  ATTRIBUTION_FACTOR_LABEL,
   ATTRIBUTION_FACTOR_ORDER,
-  formatSignedPercentPoint,
-  resolveExcessNote,
-  resolveMainFactor,
+  resolveTopContributors,
   type CauseView,
 } from '../lib/attributionInsight';
 
+import { MarketComparison } from './MarketComparison';
+import { PerformanceDriver } from './PerformanceDriver';
+import { TopContributors } from './TopContributors';
+
 /**
- * `요약` 탭의 본문 — 세 탭의 결론을 한 장에 모은 자리 (FINCH-333).
+ * `요약` 탭의 분석 본문 — 질문 2·3·4 를 한 장에 순서대로 담는다
+ * (FINCH-333).
  *
- * ## 탭을 가르면 첫 화면이 비는 문제
+ * ## 이 화면은 네 질문에 차례로 답한다
  *
- * `기여 분석`·`종목별` 을 탭 뒤로 보내면 처음 들어온 사람은 성과 카드 하나만 보고
- * **아래 두 탭에 무엇이 있는지 모른 채** 화면을 닫을 수 있다. 세로로 이어져 있을
- * 때는 스크롤이 그 역할을 했다.
+ * | | 질문 | 어디서 |
+ * | --- | --- | --- |
+ * | 1 | 이번 기간 성과가 어땠나 | `PerformanceHero` (탭 밖, 카드 없음) |
+ * | 2 | 시장보다 잘했나 | `MarketComparison` |
+ * | 3 | 왜 그런 결과가 나왔나 | `PerformanceDriver` |
+ * | 4 | 어떤 종목이 영향을 줬나 | `TopContributors` |
+ * | 5 | (해설) | `FinchReturnInsight` (이 카드 밖, 연한 패널) |
  *
- * 그래서 이 탭이 두 탭의 **1위 한 줄씩**을 들고 있고, 누르면 그 탭이 열린다.
- * 요약이 목차를 겸한다.
+ * ## 셋을 한 카드에 넣은 이유
+ *
+ * 전 판은 **상자 넷**이었다 — 히어로 카드 · 요약 카드 · FINCH 검정 카드에 탭 트랙
+ * 까지. *"카드가 많고 모두 비슷한 무게라서 시선의 우선순위가 없다"* 는 지적의
+ * 실체가 이것이다. 상자마다 테두리와 20px 여백이 붙으면 **내용이 아니라 상자가
+ * 리듬을 만든다.**
+ *
+ * 질문 2·3·4 는 *하나의 분석*이 세 걸음으로 나뉜 것이지 별개의 세 가지가 아니다.
+ * 그래서 면은 하나로 두고 **안에서 제목과 구분선으로** 걸음을 나눈다.
  *
  * ```
- * 시장보다 앞선 기간이에요.
- * ─────────────────────────────────────
- * 가장 큰 요인
- * 종목 선택                  +1.42%p  ›   → 기여 분석 탭
- * ─────────────────────────────────────
- * 가장 크게 움직인 종목
- * 한빛반도체                 +2.02%p  ›   → 종목별 탭
+ * [배경]  이번 기간 수익률 / +2.13% / 시장 +0.89% · 시장 대비 +1.24%p
+ * [탭]    요약 | 기여 분석 | 종목별
+ * ┌─ 흰 카드 ────────────────────────┐
+ * │ 시장과 비교                        │
+ * │   막대 둘 + 차이 한 줄              │
+ * │ ─────────────────────────────    │
+ * │ 초과 성과는 어디서 왔나요?           │
+ * │   종목 선택 +1.42%p + 비중 막대     │
+ * │ ─────────────────────────────    │
+ * │ 성과에 가장 큰 영향을 준 종목        │
+ * │   SK하이닉스 / 카카오               │
+ * └──────────────────────────────────┘
+ * [연한 패널] ✦ FINCH 한줄 분석
  * ```
+ *
+ * 화면의 면은 셋이고 **무게가 다 다르다** — 배경(히어로) · 흰 카드(분석) ·
+ * 연한 회색(해설). 전에는 넷이 전부 비슷했다.
+ *
+ * ## 섹션 제목이 위계를 만든다
+ *
+ * 세 제목은 `text-body-2 font-bold`(15px/700)다. 히어로 숫자(36px) → 요인 1위
+ * (18px) → 섹션 제목(15px) → 본문(15px/400) → 캡션(13px) 으로 계단이 선다.
+ * **제목을 본문보다 작게 두지 않되 크게도 두지 않는다** — 카드 안의 소제목이라
+ * `--text-section-title`(18px/700)을 쓰면 그 안의 `종목 선택 +1.42%p` 와 같은
+ * 무게가 되어 무엇이 답이고 무엇이 항목 이름인지 흐려진다.
+ *
+ * ## 구분선은 섹션 사이에만 있다
+ *
+ * 섹션 **안**에는 선을 긋지 않는다. 한 걸음이 여러 줄이어도 그것은 한 덩어리이고,
+ * 선이 안팎에 다 있으면 다시 "상자 구조" 로 돌아간다. 값은
+ * `--color-divider` — 카드 안에서 내용 덩어리를 가르라고 만든 토큰이다.
  *
  * ## 값을 새로 만들지 않는다
  *
- * 세 줄 모두 이미 화면에 있던 값이다 — `resolveExcessNote` 는 `excessReturn` 의
- * 부호, 요인 줄은 `resolveMainFactor`(기여 분석 탭이 굵게 칠하는 그 요인),
- * 종목 줄은 `sortByImpact` 가 이미 맨 앞에 세운 행이다. **정렬과 argmax 말고는
- * 계산이 없다**는 `attributionInsight.ts` 의 선을 그대로 지킨다.
- *
- * 그래서 같은 값이 두 탭에 나타나는데, 이것은 "AI 가 만든 값과 엔진이 만든 값을
- * 두 번 말하지 않는다" 가 막는 중복이 아니다. 그 금지는 **출처가 다른 두 값이
- * 서로를 반증하는 것**을 막는 것이고, 여기 둘은 같은 함수의 같은 호출 결과라
- * 갈라질 수 없다.
- *
- * ## 화면에서 채도가 가장 높은 빨강은 하나뿐이다
- *
- * 이 패널의 두 수치는 `--color-stock-*-muted` 다. 확정값(`--color-stock-up`)을
- * 쓰는 자리는 바로 위 성과 카드의 큰 수익률 **하나**뿐이라, 그 하나가 화면에서
- * 가장 먼저 읽힌다.
- *
- * 전에는 한 화면에 등락색 요소가 열넷 안팎이었고 전부 같은 채도였다 — "어느
- * 숫자가 핵심인지 표시가 없다" 는 지적의 실체가 이것이다. **자리 수(탭 분할)와
- * 채도(muted 짝) 둘로 답했고, 확정 토큰 값은 건드리지 않았다.**
- *
- * 맨 위 한 줄에는 색을 넣지 않는다. 부호를 말로 옮긴 문장이라 색이 더할 뜻이 없고,
- * 칠하면 아래 두 값과 같은 층으로 올라온다.
- *
- * ## FINCH 해석은 이 탭에만 둔다
- *
- * 호출부(`CauseTab`)가 이 패널 **뒤에** 붙인다. 셋 중 하나에만 두는 이유는 그
- * 문장이 화면 전체에 대한 해석이라 요약의 일부이기 때문이고, 세 탭에 모두 두면
- * 탭을 옮길 때마다 같은 검정 카드가 따라와 탭이 바뀌지 않은 것처럼 보인다.
- *
- * **여전히 숫자와 차트 뒤다.** 검정 면이 맨 위로 올라가면 사용자가 자기 수익률보다
- * AI 문장을 먼저 읽는다는 FINCH-308 의 판단은 그대로 유효하다.
+ * 세 섹션 모두 엔진 값이다 — `benchmarkReturn`·`excessReturn`(비교),
+ * `breakdown`(요인), `contributors`/`detractors`(종목). 프론트가 하는 계산은
+ * 정렬·argmax·막대 폭뿐이고, 요청·응답·쿼리 키는 이 티켓에서 한 줄도 바뀌지
+ * 않았다 (`attributionInsight.ts` 가 못박은 선).
  */
 
 type CauseSummaryPanelProps = {
   breakdown: AiAttributionContent['breakdown'];
   /** `sortByImpact()` 가 절댓값 내림차순으로 정렬해 넘긴 목록 */
   rows: readonly AiAttributionRow[];
+  portfolioReturn: number;
+  benchmarkReturn: number;
   excessReturn: number;
   onNavigate: (view: CauseView) => void;
 };
 
+/** 섹션 사이 구분선. 첫 섹션만 뺀다 — `ContributionRow` 와 같은 처리다. */
+const SECTION_CLASS =
+  'mt-5 border-t border-divider pt-5 first:mt-0 first:border-t-0 first:pt-0';
+
 export function CauseSummaryPanel({
   breakdown,
   rows,
+  portfolioReturn,
+  benchmarkReturn,
   excessReturn,
   onNavigate,
 }: CauseSummaryPanelProps) {
-  const mainFactor = resolveMainFactor(breakdown);
-  const factorValue = breakdown[mainFactor];
-  const allZero = ATTRIBUTION_FACTOR_ORDER.every(
-    (factor) => breakdown[factor] === 0,
+  const { best, worst } = resolveTopContributors(rows);
+  // 셋이 다 0 인 기간에는 "어디서 왔나" 에 답할 것이 없다.
+  const hasBreakdown = ATTRIBUTION_FACTOR_ORDER.some(
+    (factor) => breakdown[factor] !== 0,
   );
-  const topRow = rows[0];
+  const hasContributors = best !== undefined || worst !== undefined;
 
   return (
     <Card className="mt-4">
-      <p className="text-body-1 font-semibold text-pretty text-text-primary">
-        {resolveExcessNote(excessReturn)}
-      </p>
-
-      {/* 셋이 모두 0 인 기간에는 "가장 컸다" 고 말할 것이 없다 —
-          `ReturnAttributionSection` 의 같은 갈래다. */}
-      {!allZero && (
-        <SummaryJumpRow
-          label="가장 큰 요인"
-          name={ATTRIBUTION_FACTOR_LABEL[mainFactor]}
-          value={factorValue}
-          onClick={() => onNavigate('factor')}
+      <div className={SECTION_CLASS}>
+        <MarketComparison
+          portfolioReturn={portfolioReturn}
+          benchmarkReturn={benchmarkReturn}
+          excessReturn={excessReturn}
         />
+      </div>
+
+      {hasBreakdown && (
+        <div className={SECTION_CLASS}>
+          <PerformanceDriver breakdown={breakdown} />
+        </div>
       )}
 
-      {topRow !== undefined && (
-        <SummaryJumpRow
-          label="가장 크게 움직인 종목"
-          name={topRow.name}
-          value={topRow.contribution}
-          onClick={() => onNavigate('stock')}
-        />
+      {hasContributors && (
+        <div className={SECTION_CLASS}>
+          <TopContributors
+            best={best}
+            worst={worst}
+            onSeeAll={() => onNavigate('stock')}
+          />
+        </div>
       )}
     </Card>
-  );
-}
-
-/**
- * 요약 한 줄. 누르면 그 값이 사는 탭으로 간다.
- *
- * **`button` 이지 링크가 아니다.** 같은 화면 안의 상태 전환이라 주소가 바뀌지
- * 않는다 — 2차 탭 상태를 URL 에 싣지 않는다는 `CauseView` 주석의 결정을 따른다.
- *
- * 라벨(13px 회색) → 이름(16px 600) → 값(16px 700 등락색) 세 단으로 무게가
- * 올라간다. 눌리는 줄이지만 화살표 하나 말고는 버튼처럼 꾸미지 않는다 —
- * 면이나 테두리를 주면 카드 안에 카드가 생긴다.
- */
-function SummaryJumpRow({
-  label,
-  name,
-  value,
-  onClick,
-}: {
-  label: string;
-  name: string;
-  value: number;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="mt-4 flex w-full flex-col border-t border-divider pt-4 text-left"
-    >
-      <span className="text-caption text-text-muted">{label}</span>
-
-      <span className="mt-1 flex w-full items-baseline justify-between gap-3">
-        <span className="min-w-0 truncate text-body-1 font-semibold text-text-primary">
-          {name}
-        </span>
-
-        <span className="flex flex-none items-baseline gap-1.5">
-          <span
-            className={`text-body-1 font-bold whitespace-nowrap tabular-nums ${
-              value === 0
-                ? 'text-stock-neutral'
-                : value > 0
-                  ? 'text-stock-up-muted'
-                  : 'text-stock-down-muted'
-            }`}
-          >
-            {formatSignedPercentPoint(value)}
-          </span>
-          <span aria-hidden="true" className="text-body-2 text-text-muted">
-            ›
-          </span>
-        </span>
-      </span>
-    </button>
   );
 }
