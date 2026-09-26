@@ -133,7 +133,10 @@ export function ThesisEditSheet({
       placeholder={
         isNew
           ? '매수 이유를 직접 적어주세요'
-          : '이 종목을 담은 이유를 적어 두면 AI가 이 기록을 근거로 더 맞는 추천을 해줘요.'
+          : // `더 맞는 추천을 해줘요` 였다 (FINCH-351). FINCH 는 사거나
+            // 팔라고 추천하는 서비스가 아니다 — 하는 일(기록을 근거로 설명)을
+            // 그대로 적는다.
+            '이 종목을 담은 이유를 적어 두면 FINCH가 이 기록을 보고 더 맞는 설명을 해줘요.'
       }
       showReasonOptions={isNew}
       submitLabel={isNew ? '매수 이유 저장하기' : '수정 저장하기'}

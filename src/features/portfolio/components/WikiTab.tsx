@@ -109,7 +109,7 @@ export function WikiTab() {
         description="투자하며 남긴 기록이 조금씩 여기에 쌓여요."
         action={
           <LinkButton to={ROUTES.chat} className="w-auto px-6.5">
-            AI와 대화 시작하기
+            FINCH와 이야기해보기
           </LinkButton>
         }
       />
@@ -154,9 +154,9 @@ export function WikiTab() {
         {infoOpen && (
           <div className="absolute top-full right-0 left-0 z-10 mt-2 flex items-start gap-2.5 rounded-12 bg-text-primary px-3.5 py-[13px] text-surface shadow-float">
             <span className="flex-1 text-caption text-pretty text-surface/86">
-              대화에서 직접 말한 내용은 바로 확정하고, 투자 기록에서 읽어낸
-              성향은 확인을 받은 뒤에만 확정해요. 확정된 기준만 분석과 답변에
-              씁니다.
+              대화에서 직접 말한 내용은 바로 기준이 돼요. 투자 기록에서 읽어낸
+              건 맞다고 확인해 주신 뒤에 기준이 되고요. 분석과 답변에는 확정된
+              기준만 써요.
             </span>
             <button
               type="button"
@@ -223,8 +223,11 @@ export function WikiTab() {
               확인 필요 {guessFacts.length}개
             </span>
           </div>
+          {/* 개수는 오른쪽 `확인 필요 N개` 가 이미 말한다 (FINCH-351).
+              전에는 이 줄도 `아직 확인하지 않은 기준이 있어요.` 로 같은 사실을
+              한 번 더 적었다. 남은 자리는 **그래서 뭘 하면 되는지**다. */}
           <p className="mb-3.5 text-caption text-text-secondary">
-            아직 확인하지 않은 기준이 있어요.
+            맞는지 알려주시면 분석에 반영할게요.
           </p>
           <WikiGuessCarousel
             facts={guessFacts}
@@ -287,10 +290,14 @@ export function WikiTab() {
             setDeleteTarget(null);
           }
         }}
-        title="사실 삭제 확인"
+        title="이 기준을 삭제할까요?"
       >
+        {/* 제목이 묻고 본문이 결과를 말한다 (FINCH-351, `design.md` §13
+            Confirmation). 전에는 제목이 `사실 삭제 확인` 이었다 — `사실` 은
+            응답 필드(`profile[]`)의 이름이지 화면의 말이 아니고, 물음과 결과가
+            본문 한 줄에 붙어 있어 무엇을 묻는지가 늦게 나왔다. */}
         <p className="pb-1 text-body-1 leading-6 text-pretty text-text-primary">
-          이 기록을 삭제할까요? 삭제하면 이후 모든 분석과 답변에서 제외돼요.
+          삭제하면 FINCH가 이후 분석과 답변에서 이 기준을 참고하지 않아요.
         </p>
         {deleteTarget !== null && (
           <p className="mt-3 rounded-sm bg-surface-soft p-3.5 text-body-2 text-text-secondary">
