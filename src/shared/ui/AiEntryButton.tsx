@@ -56,8 +56,15 @@ const AI_ICON_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3.2c-4.9 0-8.8 3.2-8.8 7.2 0 2.3 1.3 4.4 3.4 5.7-.2 1-.7 2.1-1.5 3.2-.2.3.1.7.5.5 1.6-.7 2.9-1.6 3.7-2.2.9.2 1.8.3 2.7.3 4.9 0 8.8-3.2 8.8-7.5S16.9 3.2 12 3.2Z"/></svg>';
 const AI_ICON_MASK = `url("data:image/svg+xml,${encodeURIComponent(AI_ICON_SVG)}")`;
 
-/** 프로토타입 `tabaiLabel`/`fabLabel`의 기본값("AI에게 묻기"). */
-const DEFAULT_LABEL = 'AI에게 묻기';
+/**
+ * 프로토타입 `tabaiLabel`/`fabLabel`의 기본값("AI에게 묻기").
+ *
+ * 비서를 부르는 이름은 `FINCH` 하나로 맞췄다 (FINCH-351). 라벨이 접힌
+ * 화면에서는 이 문자열이 원형 버튼의 이름(`aria-label`)이 되는데, 화면에 글자로
+ * 나오는 다른 진입점들(`이 종목 물어보기`·`브리핑 물어보기`)과 부르는 대상이
+ * 갈려 있었다.
+ */
+const DEFAULT_LABEL = 'FINCH에게 묻기';
 
 /**
  * 프로토타입의 `.peek` 전환 지연(40ms) — 화면이 바뀐 뒤 라벨이 펼쳐지기 전에

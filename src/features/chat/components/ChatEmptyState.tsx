@@ -18,8 +18,17 @@
  *   있다 — `sc-for` 가 행과 구분선을 한 쌍으로 반복한다)
  *
  * 로고는 `public/brand/finch-logo.png` 다. 히어로 화면(FINCH-230)이 넣어 둔
- * 것을 그대로 쓴다. `alt` 를 비운 이유 — 바로 아래 헤드라인이 `FINCH AI` 를 글자로
+ * 것을 그대로 쓴다. `alt` 를 비운 이유 — 바로 아래 헤드라인이 `FINCH` 를 글자로
  * 읽어 주므로 같은 이름을 두 번 읽히지 않는다.
+ *
+ * ## 헤드라인 (FINCH-351)
+ *
+ * `내 투자 맥락을 아는 / FINCH AI와 이야기해보세요` 였다. 둘을 고쳤다.
+ *
+ * - `맥락` 은 우리끼리 쓰는 말이다. 바로 아래 보조 문구가 같은 것을 이미
+ *   `내 보유 종목과 거래 내역을 보고 답해요.` 로 풀어 놓았으므로, 헤드라인은
+ *   결론만 말하고 근거는 그 줄에 맡긴다
+ * - `FINCH AI` 는 같은 것을 두 번 부르는 이름이다. FINCH 가 곧 그 비서다
  */
 type ChatEmptyStateProps = {
   /** `\n` 이 들어 있다 (`features/chat/lib/chatEmptyCopy.ts`). */
@@ -46,9 +55,9 @@ export function ChatEmptyState({
           className="mx-auto h-auto w-35 opacity-[0.18]"
         />
         <p className="mt-5 text-title-2 text-text-primary">
-          내 투자 맥락을 아는
+          내 투자를 아는
           <br />
-          FINCH AI와 이야기해보세요
+          FINCH와 이야기해보세요
         </p>
         <p className="mt-2.5 text-body-2 leading-[23px] whitespace-pre-line text-text-secondary">
           {subCopy}

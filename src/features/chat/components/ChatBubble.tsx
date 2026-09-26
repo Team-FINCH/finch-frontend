@@ -146,7 +146,9 @@ export function ChatBubble({
           <>
             <AiCitationList
               citations={message.citations}
-              title="참고 뉴스 및 자료"
+              // 근거 목록의 제목은 앱 전체에서 `근거` 하나다 (FINCH-351,
+              // `design.md` §9). 여기만 `참고 뉴스 및 자료` 였다.
+              title="근거"
               showPublisher
               // 상위 1건만 펼치고 나머지는 `더 보기` 뒤로 접는다 — 채팅 말풍선의
               // 근거 목록이 본문보다 길어지는 문제 (2026-09-17 사용자 결정,

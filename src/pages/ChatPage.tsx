@@ -623,9 +623,9 @@ export function ChatPage() {
     // 기다리던 job 도 함께 버린다 (FINCH-290). 초기화는 이 대화를 비우겠다는
     // 분명한 뜻이라, 비운 대화 위에 그 대화의 답이 뒤늦게 얹히면 안 된다.
     setPendingJob(null);
-    // 말풍선이 사라지는 것만으로는 초기화가 된 것인지 화면이 비어 버린 것인지
+    // 말풍선이 사라지는 것만으로는 비운 것인지 화면이 비어 버린 것인지
     // 구분되지 않는다. 서버를 부르지 않는 로컬 초기화라 성공 콜백이 따로 없다.
-    showToast('대화를 초기화했어요.');
+    showToast('대화를 새로 시작했어요.');
   }
 
   /**
@@ -730,7 +730,11 @@ export function ChatPage() {
           맨 위로 튀므로 안쪽 스크롤 위치를 되돌린다 (FINCH-297). */}
       {/* 앱 셸 — 본문만 이 안에서 굴러간다 (FINCH-297, `shared/ui/PageMain` 주석). */}
       <SubPageHeader
-        title="FINCH AI"
+        /* 비서의 이름은 `FINCH` 하나다 (FINCH-351). `FINCH AI` 는 같은
+           것을 두 번 부르는 이름이라, 빈 상태 헤드라인과 함께 줄였다.
+           AI 카드의 `AI 진단` 같은 라벨은 그대로 둔다 — 그쪽은 이름이 아니라
+           "이 문장은 AI 가 썼다" 는 표시다 (`design.md` §8.4 · §13). */
+        title="FINCH"
         action={
           messages.length > 0 ? (
             <button
@@ -738,7 +742,9 @@ export function ChatPage() {
               onClick={resetConversation}
               className="flex h-11 items-center rounded-12 px-2.5 text-body-2 font-medium text-text-muted transition-colors duration-(--motion-fast) ease-standard active:bg-primary-soft"
             >
-              초기화
+              {/* `초기화` 였다 (FINCH-351). 시스템의 말이고, 무엇이
+                  초기화되는지도 말하지 않는다. 누르면 일어나는 일을 적는다. */}
+              새로 시작
             </button>
           ) : undefined
         }
