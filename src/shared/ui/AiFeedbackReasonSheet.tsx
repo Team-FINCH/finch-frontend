@@ -83,7 +83,7 @@ export function AiFeedbackReasonSheet({
         어떤 점이 아쉬웠나요?
       </p>
       <p className="mb-4.5 text-body-2 text-text-secondary">
-        해당하는 것을 골라주세요. 여러 개도 괜찮아요.
+        아쉬웠던 것을 골라주세요. 여러 개도 괜찮아요.
       </p>
 
       <div className="mb-4.5 flex flex-wrap gap-2">

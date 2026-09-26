@@ -16,10 +16,10 @@ export function NotFoundPage() {
       {/* 껍데기가 높이를 주고 나서야 `justify-center` 가 실제로 세로 가운데로 온다. */}
       <PageMain className="flex flex-col justify-center pt-6">
         <h1 className="text-lg font-semibold text-text-primary">
-          찾을 수 없는 화면입니다
+          찾을 수 없는 화면이에요
         </h1>
         <p className="mt-2 text-sm text-text-secondary">
-          주소가 바뀌었거나 잘못 입력된 경로입니다
+          주소가 바뀌었거나 잘못 입력됐어요.
         </p>
         <div className="mt-6">
           <LinkButton to={ROUTES.home} replace>

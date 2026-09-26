@@ -125,8 +125,11 @@ export function OnboardingPage() {
             {picks.length}개 선택
           </span>
         </div>
+        {/* 바로 위 안내가 이미 "고른 종목의 소식을 모아드린다" 를 말했다
+            (FINCH-351). 이 줄까지 소식을 한 번 더 말하면 같은 사실이 두
+            줄이 된다 — 여기서 남길 것은 **여러 개 골라도 된다**는 허락 하나다. */}
         <p className="text-caption text-text-secondary">
-          여러 종목을 고르면 더 다양한 소식을 받아볼 수 있어요.
+          여러 개 골라도 괜찮아요.
         </p>
 
         {/* 검색창은 펼친 상태에서만 나온다 (design.md §7.16) */}
@@ -220,7 +223,7 @@ export function OnboardingPage() {
           onClick={handleDone}
         >
           {picks.length === 0
-            ? '관심 종목을 선택해주세요'
+            ? '종목을 골라주세요'
             : complete.isPending
               ? '담는 중…'
               : 'FINCH 시작하기'}

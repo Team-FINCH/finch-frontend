@@ -57,10 +57,10 @@ export function RouteErrorPage() {
           바깥 색(--color-page-surround, "앱 아님") 위에 떠서 앱이 사라진 것처럼 보인다. */}
       <PageMain className="flex flex-col justify-center pt-6">
         <h1 className="text-lg font-semibold text-text-primary">
-          화면을 열지 못했습니다
+          화면을 열지 못했어요
         </h1>
         <p className="mt-2 text-sm text-text-secondary">
-          앱이 업데이트되는 중일 수 있습니다. 다시 시도해 주세요
+          앱이 업데이트되는 중일 수 있어요. 다시 시도해 주세요.
         </p>
         <div className="mt-6 flex flex-col gap-3">
           <Button onClick={() => window.location.reload()}>다시 시도</Button>
