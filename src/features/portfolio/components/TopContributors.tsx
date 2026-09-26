@@ -13,15 +13,15 @@ import { formatSignedPercentPoint } from '../lib/attributionInsight';
  * 따로 고른다 — 그래야 두 줄이 한 쌍으로 읽힌다.
  *
  * ```
- * 성과에 영향을 준 종목                      전체
+ * 가장 크게 움직인 종목                  전체 보기
  *
  * SK하이닉스                        +2.02%p
  * ████████████████████
- * 가장 크게 기여 · 기간 수익률 +9.12%
+ * 가장 많이 끌어올렸어요 · 기간 수익률 +9.12%
  * ────────────────────────────────────────
  * 카카오                            -0.31%p
  * ███
- * 성과를 일부 낮춤 · 기간 수익률 -1.40%
+ * 가장 많이 끌어내렸어요 · 기간 수익률 -1.40%
  * ```
  *
  * 전 종목이 같은 방향인 기간에는 한 줄만 선다. **자리를 `--` 로 채우지 않는다** —
@@ -34,7 +34,7 @@ import { formatSignedPercentPoint } from '../lib/attributionInsight';
  *
  * ## 방향을 색 말고도 표시한다
  *
- * 막대 색·부호·`가장 크게 기여`/`성과를 일부 낮춤` 셋이 같은 말을 한다. 색만으로
+ * 막대 색·부호·`끌어올렸어요`/`끌어내렸어요` 셋이 같은 말을 한다. 색만으로
  * 가르면 **색각 이상 사용자에게 적청 구분 자체가 어렵다**(컨벤션 §11).
  * **삼각형(▲▼)은 쓰지 않는다** — 디자인 파트 회신(GitLab 이슈 #29).
  *
@@ -53,8 +53,21 @@ import { formatSignedPercentPoint } from '../lib/attributionInsight';
  *
  * ## 둘까지만 보여 준다
  *
- * 전체 목록은 `종목별` 탭에 있다. 제목 오른쪽 `전체` 가 그리로 보낸다 —
+ * 전체 목록은 `종목별` 탭에 있다. 제목 오른쪽 `전체 보기` 가 그리로 보낸다 —
  * 셰브런 없이 글자만 두어 위 요인 섹션과 무게를 맞췄다.
+ *
+ * ## 문구 (FINCH-351)
+ *
+ * 제목은 `성과에 영향을 준 종목` 이었다. 보유 종목은 전부 성과에 영향을 주므로
+ * **무엇으로 추린 둘인지를 말하지 않는 제목**이었다. 추린 기준(가장 크게 움직인
+ * 둘)을 그대로 적는다. 글자 수는 전과 같아 320px 머리줄이 넓어지지 않는다.
+ *
+ * 행 아래 캡션은 `가장 크게 기여`·`성과를 일부 낮춤` 이라는 명사형이었다.
+ * `기여` 는 contribution 의 번역어라 화면에서 처음 만나면 와닿지 않고, 명사로
+ * 끊은 말은 소리 내어 읽히지 않는다. 사람이 말하는 동사로 바꿨다.
+ *
+ * 오른쪽 버튼은 `전체` 한 낱말이었다 — 누르면 무엇이 열리는지가 없었다. 홈의
+ * 보유·관심 미리보기가 같은 일에 이미 `전체 보기` 를 쓰고 있어 그 말을 맞춘다.
  */
 
 type TopContributorsProps = {
@@ -86,17 +99,20 @@ export function TopContributors({
   return (
     <section>
       <div className="flex items-baseline justify-between gap-3">
-        {/* `h3` 다 — `h2` 는 이 패널 밖 `수익률 상세 분석` 이 갖는다
-            (FINCH-341). */}
-        <h3 className="min-w-0 text-section-title text-text-primary">
-          성과에 영향을 준 종목
+        {/* `h3` 다 — `h2` 는 이 패널 밖 `이 수익률은 어디에서 왔을까요?` 가
+            갖는다 (FINCH-341). */}
+        {/* 320px 에서는 제목과 `전체 보기` 가 한 줄에 다 들어가지 않는다 —
+            `break-keep` 이 낱말 가운데가 아니라 낱말 사이에서 접게 한다.
+            375px 기준 화면에서는 한 줄이다. */}
+        <h3 className="min-w-0 text-section-title break-keep text-text-primary">
+          가장 크게 움직인 종목
         </h3>
         <button
           type="button"
           onClick={onSeeAll}
           className="-my-1 flex-none py-1 text-body-2 font-medium whitespace-nowrap text-text-secondary"
         >
-          전체
+          전체 보기
         </button>
       </div>
 
@@ -154,8 +170,8 @@ function ContributorRow({
       </span>
 
       <p className="mt-2 text-caption text-text-muted tabular-nums">
-        {positive ? '성과를 가장 크게 올림' : '성과를 일부 낮춤'} · 기간 수익률{' '}
-        {formatSignedPercent(row.return)}
+        {positive ? '가장 많이 끌어올렸어요' : '가장 많이 끌어내렸어요'} · 기간
+        수익률 {formatSignedPercent(row.return)}
       </p>
     </div>
   );

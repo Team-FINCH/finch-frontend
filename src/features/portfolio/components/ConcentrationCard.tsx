@@ -78,6 +78,27 @@ import { RISK_GRADE } from '../lib/riskGrade';
 /** 접었을 때 보여 줄 종목 수. 나머지는 `그 외 N종목` 한 줄로 합친다. */
 const VISIBLE_SLICE_COUNT = 3;
 
+/**
+ * 등급 한 낱말을 사람 말로 옮긴 줄 (FINCH-351).
+ *
+ * 머리줄 오른쪽의 `높음` 은 **무엇이 높다는 것인지, 그래서 어떻다는 것인지를
+ * 말하지 않는다.** 등급 이름은 계산 결과의 이름이지 사용자가 알아야 할 사실이
+ * 아니다. 그 한 낱말을 아래 한 줄이 옮긴다 — 용어를 지우지 않고 옆에 번역을
+ * 둔다(`design.md` §13 "전문용어는 번역해서 함께 둔다").
+ *
+ * **숫자를 다시 적지 않는다.** 1위 비중은 바로 아래 목록에 `38%` 로 있고, 스택
+ * 바가 그 길이를 이미 보여 준다. 이 줄이 맡는 것은 그 숫자에서 읽히지 않는 것
+ * — 이 정도면 몰린 것인지 아닌지 — 하나다.
+ *
+ * 판정은 규칙 엔진의 `severity` 를 그대로 옮기기만 한다. 프론트가 임계값을
+ * 다시 세우지 않는다(`riskGrade.ts` 머리 주석).
+ */
+const CONCENTRATION_NOTE: Record<AiFinding['severity'], string> = {
+  info: '한쪽으로 크게 쏠리진 않았어요.',
+  medium: '한 종목 비중이 조금 큰 편이에요.',
+  high: '한 종목에 많이 몰려 있어요.',
+};
+
 type ConcentrationCardProps = {
   slices: readonly ConcentrationSlice[];
   findings: AiFinding[];
@@ -138,6 +159,12 @@ export function ConcentrationCard({
           )}
         </span>
       </div>
+
+      {finding !== undefined && (
+        <p className="mt-2 text-caption text-text-secondary">
+          {CONCENTRATION_NOTE[finding.severity]}
+        </p>
+      )}
 
       {/* 스택 바. `gap` 이 조각 사이 3px 을 내고, 양 끝 라운드는 바깥 span 이
           `overflow-hidden` 으로 만든다 — 조각마다 반경을 주면 가운데 칸들도 둥글어진다. */}

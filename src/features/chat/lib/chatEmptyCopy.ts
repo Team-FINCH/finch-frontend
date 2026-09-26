@@ -77,13 +77,24 @@ export function chatEmptyCopy(stockLabel: string | null): ChatEmptyCopy {
     return NO_CONTEXT_COPY;
   }
 
+  /*
+    추천 넷은 **사용자가 자기 말로 던지는 질문**이라 말투가 한 벌이어야 한다
+    (FINCH-351). 전에는 셋이 반말인데 `내 포트폴리오 좀 봐주세요` 하나만
+    존댓말이라, 한 줄에 나란히 선 칩 넷의 화자가 둘로 갈려 보였다.
+
+    겹치던 축도 갈랐다 — `위험 요인이 뭐야?` 와 `확인해야 할 위험이 있어?` 가
+    같은 것을 두 번 물었다. 맥락 없는 갈래(`NO_CONTEXT_COPY`)가 일어난 일 ·
+    이유 · 위험 · 구성 넷으로 나뉜 것과 같은 방식으로 나눈다.
+
+    `위험 요인` 은 뗐다. 사용자가 입으로 하는 말이 아니다.
+  */
   return {
     subCopy: `${withObjectParticle(stockLabel)} 보다가 들어오셨네요.\n궁금한 것부터 물어보세요.`,
     suggestions: [
       `${stockLabel} 최근 뉴스 뭐 있어?`,
-      `${stockLabel} 위험 요인이 뭐야?`,
-      '내 포트폴리오 좀 봐주세요',
-      '확인해야 할 위험이 있어?',
+      `${stockLabel} 왜 이렇게 움직였어?`,
+      `${stockLabel} 뭘 눈여겨봐야 해?`,
+      '내 포트폴리오는 어때?',
     ],
   };
 }

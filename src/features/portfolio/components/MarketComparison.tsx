@@ -1,6 +1,6 @@
 import { formatSignedPercent } from '@/shared/lib/formatNumber';
 
-import { formatSignedPercentPoint } from '../lib/attributionInsight';
+import { formatPercentPointSize } from '../lib/attributionInsight';
 
 /**
  * 질문 2의 그림 — "시장보다 잘했나 못했나" (FINCH-333).
@@ -39,7 +39,20 @@ import { formatSignedPercentPoint } from '../lib/attributionInsight';
  * 두 막대 사이 간격을 괄호로 묶는 그림도 생각했지만, 1px 선 둘과 캡션이 더해지면
  * **막대 둘보다 장식이 많아진다.** 차이값은 이 카드가 답하는 것 자체라 그냥
  * 한 줄로 크게 적는 편이 빠르다. 막대는 "얼마나 차이 나는지" 를 어림잡게 하고,
- * 정확한 값은 그 아래 글자가 말한다.
+ * 정확한 값은 글자가 말한다.
+ *
+ * ## 그 글자가 제목이다 (FINCH-351)
+ *
+ * 전에는 제목이 `시장과 비교` 고, 답(`시장보다 +1.24%p 앞섰어요`)은 막대 **아래**
+ * 12px 회색 캡션이었다. **이 섹션에서 가장 중요한 한 문장이 가장 작고 가장 늦게
+ * 나왔다.** 제목은 분류 이름이라 읽어도 새로 아는 것이 없었다.
+ *
+ * 지금은 결론이 제목 자리에 선다. 막대는 그 결론의 근거가 되고, 같은 문장을
+ * 아래에서 한 번 더 적지 않는다 — 한 섹션에 메시지는 하나다.
+ *
+ * 부호는 동사가 말한다(`앞섰어요`·`뒤졌어요`). `시장보다 -1.24%p 뒤졌어요` 처럼
+ * 빼기 부호와 `뒤졌어요` 가 겹치면 두 번 부정하는 문장이 되므로 크기만 적는다.
+ * 부호가 붙은 값은 바로 위 히어로(`시장보다 +1.24%p`)에 그대로 있다.
  */
 
 type MarketComparisonProps = {
@@ -71,7 +84,19 @@ export function MarketComparison({
       {/* 형제 섹션(`TopContributors`)과 같은 계단이다 (FINCH-341).
           혼자 `text-body-2 font-bold`(15px) 라 요약 탭의 제목 중 이것만 한 단
           작았는데, 근거가 적혀 있지 않은 차이였다. */}
-      <h3 className="text-section-title text-text-primary">시장과 비교</h3>
+      <h3 className="text-section-title text-pretty break-keep text-text-primary">
+        {excessReturn === 0 ? (
+          '시장과 거의 같았어요'
+        ) : (
+          <>
+            시장보다{' '}
+            <span className="tabular-nums">
+              {formatPercentPointSize(excessReturn)}
+            </span>{' '}
+            {excessReturn > 0 ? '앞섰어요' : '뒤졌어요'}
+          </>
+        )}
+      </h3>
 
       <div className="mt-3.5 flex flex-col gap-2.5">
         <ComparisonBar
@@ -87,14 +112,6 @@ export function MarketComparison({
           tone="neutral"
         />
       </div>
-
-      <p className="mt-3.5 text-caption text-text-secondary">
-        시장보다{' '}
-        <strong className="font-bold text-text-primary tabular-nums">
-          {formatSignedPercentPoint(excessReturn)}
-        </strong>{' '}
-        {excessReturn >= 0 ? '앞섰어요' : '뒤졌어요'}
-      </p>
     </section>
   );
 }

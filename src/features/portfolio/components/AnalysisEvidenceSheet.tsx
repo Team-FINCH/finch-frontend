@@ -57,30 +57,41 @@ import { BottomSheet } from '@/shared/ui/BottomSheet';
  * 점수에 들어가는 다섯 (`engine-formulas.md` §3.6). **배열 순서가 가중 순서다** —
  * 종목 집중도 30 · 섹터 집중도 25 · 변동성 20 · 분산 실패 15 · 현금 완충 10.
  *
- * `note` 는 **지표의 정의**다. "얼마나 쏠렸는지" 같은 구어체를 쓰지 않는다 —
- * 지표명은 정확하게 두고 설명은 한 줄로 끝낸다.
+ * `note` 는 **지표 이름을 사람 말로 옮긴 한 줄**이다 (FINCH-351).
+ *
+ * 지표명(`종목 집중도`·`변동성`)은 정확하게 두고, 그 뜻을 바로 아래에서 한 문장
+ * 으로 푼다 — `design.md` §13 "전문용어는 없애지 말고 번역한다".
+ *
+ * 전에는 `특정 종목에 자산이 집중된 정도` 처럼 **용어집 문장**이었다. 뜻은
+ * 맞지만 이 시트를 여는 사람은 이미 용어를 모르는 사람이라, 모르는 말을 다른
+ * 모르는 말로 받는 셈이었다(`자산이 집중된 정도`). 이 자리에서만큼은 숫자가
+ * 무엇을 세는지를 말한다.
  */
 const SCORE_COMPONENTS = [
-  { key: 'hhi', label: '종목 집중도', note: '특정 종목에 자산이 집중된 정도' },
+  {
+    key: 'hhi',
+    label: '종목 집중도',
+    note: '한 종목에 돈이 얼마나 몰려 있는지예요.',
+  },
   {
     key: 'sectorHhi',
     label: '업종 집중도',
-    note: '특정 업종에 자산이 집중된 정도',
+    note: '한 업종에 돈이 얼마나 몰려 있는지예요.',
   },
   {
     key: 'annualizedVolatility',
     label: '변동성',
-    note: '최근 1년간 수익률의 변동 수준',
+    note: '최근 1년 동안 가격이 얼마나 크게 움직였는지예요.',
   },
   {
     key: 'diversificationRatio',
     label: '분산 효과',
-    note: '자산 간 분산으로 위험이 완화된 정도',
+    note: '나눠 담은 덕분에 위험이 얼마나 줄었는지예요.',
   },
   {
     key: 'cashRatio',
     label: '현금 비중',
-    note: '전체 자산 중 현금성 자산의 비중',
+    note: '전체 자산에서 현금이 차지하는 몫이에요.',
   },
 ] as const;
 
@@ -107,9 +118,14 @@ export function AnalysisEvidenceSheet({
       title="위험 점수는 이렇게 계산해요"
     >
       <div className="scroll-touch -mx-0.5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5">
+        {/*
+          다섯을 여기서 나열하지 않는다 (FINCH-351). 바로 아래 `위험 점수
+          구성` 이 같은 다섯을 뜻풀이와 함께 한 번 더 적고 있어서, 열거하면 한
+          화면에서 같은 목록을 두 번 읽게 된다. 이 줄은 "무엇을 보는 점수인가"
+          하나만 말하고 목록은 목록에 맡긴다.
+        */}
         <p className="text-body-2 text-pretty text-text-secondary">
-          포트폴리오의 집중도, 업종 분산, 변동성, 분산 효과, 현금 비중을 종합해
-          위험 수준을 계산해요.
+          아래 다섯 가지를 함께 봐서 위험 점수를 매겨요.
         </p>
         {/*
           반영 크기를 말하는 문장. **실제 가중이 있어서 남긴다** — 위 파일 머리 주석
@@ -169,11 +185,10 @@ export function AnalysisEvidenceSheet({
         </dl>
 
         {/* 같은 문서의 청크를 한 줄로 묶는 로직이 이 컴포넌트 안에 이미 있다. */}
-        <AiCitationList
-          citations={citations}
-          title="참고한 자료"
-          className="mt-7"
-        />
+        {/* 제목은 앱 전체에서 `근거` 하나다 (FINCH-351, `design.md` §9).
+            같은 시트 안에 `참고 지표` 가 따로 있어 `참고한 자료` 와 나란히 서면
+            둘이 같은 갈래로 읽혔다. */}
+        <AiCitationList citations={citations} title="근거" className="mt-7" />
 
         <p className="mt-7 text-caption text-pretty text-text-muted">
           {disclaimer}

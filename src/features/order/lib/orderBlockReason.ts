@@ -13,9 +13,13 @@ import { ORDER_ERROR_CODES } from '@/shared/types/errorCodes';
  * 준다. 여기서 `undefined` 를 돌려주면 버튼만 잠기고 이유가 안 보인다.
  *
  * **문구를 화면이 짓지는 않는다.** 코드에 문자열을 맞추는 자리만 여기고, 값은
- * `design.md` §7.7 "주문할 수 없는 상태" 표에서 그대로 가져온다(L554~L556). 프로토타입
- * `app-logic.js` 의 `BLOCK` 도 같은 두 문자열이다. 끝에 마침표가 없는 것과 시세 수신
- * 실패만 하다체인 것까지 문서 그대로다 — 다듬으면 문서와 어긋난다.
+ * `design.md` §7.7 "주문할 수 없는 상태" 표에서 그대로 가져온다. 프로토타입
+ * `app-logic.js` 의 `BLOCK` 도 같은 자리의 문자열이다 — 고칠 일이 있으면 표를 먼저
+ * 고치고 여기를 맞춘다.
+ *
+ * 시세 수신 실패만 `시세를 불러올 수 없어 주문이 제한됩니다` 로 혼자 하다체였다
+ * (FINCH-351). 한 화면 안에서 장외 시간·거래정지는 해요체로 말하는데 이 줄만
+ * 공지문이라, 표와 함께 해요체로 맞췄다.
  *
  * **`STOCK_SUSPENDED` 문구는 손대지 않았다.** design.md L275 는 탭바 캡슐을 `거래정지`
  * 한 줄로 적었고 프로토타입은 `거래정지된 종목이에요` 로 갈려 디자이너 회신 대기
@@ -28,9 +32,8 @@ const REASON_MESSAGE: Record<string, string> = {
   // 이유이기도 하다(고칠 곳은 상수 하나였다).
   [ORDER_ERROR_CODES.MARKET_CLOSED]: `지금은 주문할 수 없어요 (거래 시간 ${MARKET_HOURS_LABEL_KST})`,
   [ORDER_ERROR_CODES.STOCK_SUSPENDED]: '거래정지 종목이라 주문할 수 없어요.',
-  // design.md L555 그대로다.
-  [ORDER_ERROR_CODES.PRICE_UNAVAILABLE]:
-    '시세를 불러올 수 없어 주문이 제한됩니다',
+  // design.md §7.7 표 그대로다.
+  [ORDER_ERROR_CODES.PRICE_UNAVAILABLE]: '시세를 받지 못해 주문할 수 없어요.',
   [ORDER_ERROR_CODES.INSUFFICIENT_CASH]: '주문할 수 있는 금액이 부족해요.',
   [ORDER_ERROR_CODES.INSUFFICIENT_QUANTITY]: '보유한 수량이 부족해요.',
 };

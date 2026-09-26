@@ -255,7 +255,9 @@ export function DepositPage() {
            * 있어(`depAmt:500000` · `depMethod:"kakao"`) 빈 자리가 없다.
            */}
           <section>
-            <h2 className={SECTION_TITLE_CLASS}>확인</h2>
+            {/* 제목이 `확인` 이었다 (FINCH-351). 무엇을 확인하라는 것인지
+                없는 한 낱말이라, 이 카드가 보여 주는 것을 그대로 적는다. */}
+            <h2 className={SECTION_TITLE_CLASS}>이렇게 입금할게요</h2>
             {/*
              * **`입금 후 예수금` 만 크다** (프로토타입 L2704 — 19px/700/-.01em ·
              * baseline 정렬 · 위 12px 구분선). 앞 두 줄은 `.b1`/500 이고 구분선이

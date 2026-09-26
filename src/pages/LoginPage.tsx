@@ -57,7 +57,7 @@ export function LoginPage() {
           <span className="text-text-secondary underline underline-offset-2">
             개인정보 처리방침
           </span>
-          에 동의하게 됩니다.
+          에 동의하게 돼요.
         </p>
       </div>
     </div>

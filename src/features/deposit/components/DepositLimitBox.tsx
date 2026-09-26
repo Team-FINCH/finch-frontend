@@ -5,7 +5,7 @@ import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
 
 /**
  * 입금 한도 박스 (`GET /deposits/limit`). 세 줄이다 — `1회 한도` · `누적 한도` ·
- * `잔여 한도`. 라벨과 순서는 프로토타입(`isDeposit` L2643-2645)과 `design.md:946` ·
+ * `남은 한도`. 라벨과 순서는 프로토타입(`isDeposit` L2643-2645)과 `design.md` §7.18 ·
  * `ia.md:87` 이 같은 것을 말한다. 어느 필드가 어느 줄인지는 계약이 정한다 —
  * `perRequestLimit`(1회) · `cumulativeLimit`(계정 전체 누적 한도) ·
  * `remainingAmount`(남은 몫). **`depositedAmount`(누적 입금액)는 이 박스에 없다** —
@@ -13,10 +13,10 @@ import { SoftBox, SoftBoxRow } from '@/shared/ui/SoftBox';
  *
  * 값은 서버가 준 것을 그대로 그린다. 화면이 계산하지 않는다(`ia.md:87`).
  *
- * 구분선은 마지막 `잔여 한도` 줄 위에 온다 — 앞 두 줄이 고정 한도이고 마지막 줄만
+ * 구분선은 마지막 `남은 한도` 줄 위에 온다 — 앞 두 줄이 고정 한도이고 마지막 줄만
  * 쓴 만큼에 따라 움직이는 값이라 묶음이 갈린다(프로토타입 L2645).
  *
- * **회색 Soft Box 다.** 아래 `확인` 은 흰 카드라 둘이 면색으로 갈린다
+ * **회색 Soft Box 다.** 아래 확인 카드는 흰 면이라 둘이 면색으로 갈린다
  * (프로토타입 L2641 `.soft` vs L2663 `.card`).
  *
  * 조회 중·실패도 이 컴포넌트가 받는다. `DepositPage` 가 상태별로 다른 자리를
@@ -136,8 +136,11 @@ export function DepositLimitBox({
     <SoftBox>
       <SoftBoxRow label="1회 한도" value={formatKrw(limit.perRequestLimit)} />
       <SoftBoxRow label="누적 한도" value={formatKrw(limit.cumulativeLimit)} />
+      {/* `잔여 한도` 였다 (FINCH-351). 같은 값을 입금 화면의 초과 안내는
+          `남은 한도는 …이에요.` 로 부르고 있어, 한 흐름 안에서 같은 숫자가 두
+          이름을 가졌다. 쉬운 쪽으로 맞춘다. */}
       <SoftBoxRow
-        label="잔여 한도"
+        label="남은 한도"
         value={formatKrw(limit.remainingAmount)}
         divided
       />

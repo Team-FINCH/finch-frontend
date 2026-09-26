@@ -197,11 +197,16 @@ function DetailRow({ sectionKey, section, caption }: AnalysisDetailEntry) {
 }
 
 /**
- * `자세히 보기` 묶음.
+ * 분석 상세 묶음.
  *
  * **이 제목은 화면이 지었다.** ia.md:447 이 막은 것은 *분석 섹션의* 제목을 화면이
  * 짓는 것이고(그 자리는 응답 `title` 이 진다), 이것은 목록 묶음의 이름이라
  * 화면이 이미 짓고 있는 `분석 기준 및 안내`(`AnalysisSourceSheet`)와 같은 갈래다.
+ *
+ * 제목은 `자세히 보기` 였다 (FINCH-351). 위 검정 카드가 결론 한 문장을
+ * 말하고 이 목록이 그 근거를 펼치는 자리인데, `자세히 보기` 는 **무엇이 펼쳐지는지
+ * 말하지 않고 동작만 말했다.** 바로 아래 줄들이 이미 `최근 변화`·`확인해볼 위험`
+ * 으로 이름을 갖고 있어 묶음 제목이 한 번 더 분류를 셀 이유도 없다.
  *
  * 위 여백 36px 은 이 탭의 섹션 간격이다 (design.md §7.6 간격 체계 표).
  */
@@ -212,7 +217,9 @@ export function AnalysisDetailList({
 }) {
   return (
     <section className="mt-9">
-      <h2 className="text-section-title text-text-primary">자세히 보기</h2>
+      <h2 className="text-section-title text-text-primary">
+        하나씩 짚어볼게요
+      </h2>
       <ul className="mt-1.5">
         {entries.map((entry) => (
           <DetailRow

@@ -152,8 +152,8 @@ const NOTICE_ITEMS = [
     body: '평일 09:00~15:30, 16:00~20:00에는 실시간 시세가 반영돼요. 그 밖의 시간에는 마지막 시세를 보여드려요.',
   },
   {
-    title: '30개 종목의 실시간 시세를 제공해요',
-    body: 'FINCH에서 지원하는 주요 종목의 시세를 실시간으로 확인하고 분석할 수 있어요.',
+    title: '실시간 시세는 30개 종목에서 볼 수 있어요',
+    body: 'FINCH가 고른 주요 종목이에요. 시세를 보면서 종목 분석도 함께 볼 수 있어요.',
   },
   {
     title: '브리핑은 하루 한 번 새로 정리해드려요',
@@ -206,8 +206,11 @@ export function UpdateNoticeModal() {
       title="FINCH 이용 전에 알려드릴게요"
       titleClassName="text-title-2 text-pretty break-keep text-text-primary"
     >
+      {/* 제목이 "알려드릴게요" 라고 했으니 이 줄은 **무엇을** 알려주는지만
+          말하면 된다 (FINCH-351). 전에는 `시세와 브리핑이 제공되는 기준을
+          확인해보세요.` 라, 알려주겠다고 해 놓고 확인하라고 시켰다. */}
       <p className="mt-2.5 text-body-2 text-pretty break-keep text-text-secondary">
-        시세와 브리핑이 제공되는 기준을 확인해보세요.
+        시세와 브리핑, 이렇게 움직여요.
       </p>
 
       {/* `divide-y` 는 항목 사이에만 선을 넣는다. 머리글과 첫 항목 사이, 마지막
@@ -228,7 +231,9 @@ export function UpdateNoticeModal() {
       </ul>
 
       <div className="mt-7">
-        <Button onClick={() => setOpen(false)}>확인</Button>
+        {/* `확인` 이었다 (FINCH-351). 무엇을 확인한다는 것인지 없는 말이라
+            읽고 닫는 이 모달의 동작을 그대로 적는다. */}
+        <Button onClick={() => setOpen(false)}>알겠어요</Button>
         {/* `Button` 의 secondary 를 쓰지 않는다. 두 버튼이 같은 무게로 서면
             "오늘 하루 보지 않기" 가 기본 동작처럼 읽히는데, 이 모달의 기본은
             읽고 닫는 것이다.

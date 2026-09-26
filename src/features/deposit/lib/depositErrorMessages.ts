@@ -93,7 +93,7 @@ export function depositLimitExceededMessage(error: unknown): string | null {
   if (remainingAmount === undefined) {
     return '입금할 수 있는 금액을 넘었어요.';
   }
-  return `입금할 수 있는 금액을 넘었어요. (잔여 한도: ${formatKrw(remainingAmount)})`;
+  return `입금할 수 있는 금액을 넘었어요. (남은 한도: ${formatKrw(remainingAmount)})`;
 }
 
 /**

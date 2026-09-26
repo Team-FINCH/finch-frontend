@@ -19,12 +19,12 @@ function describeFailure(failure: CallbackFailure): string {
   switch (failure.kind) {
     case 'kakaoRejected':
       return failure.isCancelled
-        ? '카카오 로그인을 취소했습니다'
-        : '카카오 인가에 실패했습니다';
+        ? '카카오 로그인을 취소했어요'
+        : '카카오 로그인을 마치지 못했어요';
     case 'missingCode':
-      return '인가 코드가 없습니다. 로그인 화면에서 다시 시작해 주세요';
+      return '카카오에서 로그인 정보가 오지 않았어요. 처음부터 다시 시도해 주세요.';
     case 'stateMismatch':
-      return '로그인 요청을 확인하지 못했습니다. 처음부터 다시 시도해 주세요';
+      return '로그인 요청을 확인하지 못했어요. 처음부터 다시 시도해 주세요.';
     case 'exchangeFailed':
       return failure.message;
   }
@@ -121,7 +121,7 @@ export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
           kind: 'exchangeFailed',
           message: isHttpError(caught)
             ? caught.message
-            : '로그인을 완료하지 못했습니다',
+            : '로그인을 마치지 못했어요',
         });
       });
   }
@@ -150,7 +150,7 @@ export function KakaoCallback({ resolveDestination }: KakaoCallbackProps = {}) {
   if (failure === null) {
     return (
       <Card aria-busy="true">
-        <p className="text-sm text-text-secondary">로그인 중입니다</p>
+        <p className="text-sm text-text-secondary">로그인하고 있어요</p>
         <Skeleton className="mt-3 h-4 w-40" />
         <Skeleton className="mt-2 h-4 w-24" />
       </Card>

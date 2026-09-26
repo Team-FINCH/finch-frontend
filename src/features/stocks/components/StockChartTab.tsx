@@ -223,7 +223,7 @@ export function StockChartTab({
                     className={`flex ${CHART_HEIGHT_CLASS} items-center justify-center`}
                   >
                     <p className="text-body-2 text-text-secondary">
-                      표시할 시세 기록이 없어요
+                      보여드릴 시세 기록이 없어요
                     </p>
                   </div>
                 ) : (

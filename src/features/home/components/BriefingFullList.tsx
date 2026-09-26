@@ -148,8 +148,12 @@ export function BriefingFullList() {
           자산을 쓰지만, 그러면 홈 카드(17px 마스크 글리프)와 다른 아이콘이 된다. */}
       <div className="mb-3.5 flex items-center gap-2 text-text-secondary">
         <AiGlyph />
+        {/* 홈 카드(`BriefingSection`)와 같은 `AI 브리핑` 이다
+            (FINCH-351). 같은 슬롯인데 이 화면만 `AI 데일리 브리핑` 이라
+            홈에서 눌러 들어온 사람에게 다른 기능처럼 보였다. `데일리` 는 바로
+            위 화면 제목이 이미 말한다 (`design.md` §8.4 라벨 목록). */}
         <span className="text-[12px] font-bold tracking-[.06em]">
-          AI 데일리 브리핑
+          AI 브리핑
         </span>
       </div>
       <p className="text-title-2 tracking-[-.02em] text-text-primary">

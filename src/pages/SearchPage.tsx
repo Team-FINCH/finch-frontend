@@ -234,9 +234,13 @@ export function SearchPage() {
                 이상을 요구하고 유니버스 밖 종목은 `STOCK_NOT_FOUND` 인데
                 (FINCH-300) 경계선을 볼 자리가 없었다. 숫자를 코드에 박지 않고
                 목록 길이에서 읽는다(ia.md §7). */}
+            {/* 머리 라벨이 `서비스 종목` 이었다 (FINCH-351). 우리가 카탈로그를
+                부르는 이름이지 사용자의 말이 아니고, 그래서 바로 아래에 `이 앱에서
+                거래할 수 있는 종목이에요.` 한 줄이 그 이름을 다시 풀고 있었다.
+                라벨이 직접 말하면 푸는 줄이 필요 없다 — 한 자리에 같은 말 하나. */}
             <section className="mt-9 pb-5">
               <SearchSectionHeader
-                label="서비스 종목"
+                label="거래할 수 있는 종목"
                 className="mb-1.5"
                 action={
                   <span className="text-caption text-text-muted">
@@ -244,9 +248,6 @@ export function SearchPage() {
                   </span>
                 }
               />
-              <p className="mb-1.5 text-body-2 text-text-secondary">
-                이 앱에서 거래할 수 있는 종목이에요.
-              </p>
               <ServiceStockList />
             </section>
           </>

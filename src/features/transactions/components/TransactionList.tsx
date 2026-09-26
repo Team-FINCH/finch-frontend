@@ -193,12 +193,16 @@ export function TransactionList({
 
   if (items.length === 0) {
     return (
+      /* 필터가 걸린 빈 상태는 **무엇이 없는지 이름을 부른다** (FINCH-351).
+         전에는 `해당 유형의 내역이 없어요.` 였는데, `해당` 은 `design.md` §13 이
+         피하는 표현으로 적어 둔 말이고 지금 켜진 칩이 바로 위에 있는데도 그것을
+         가리키지 못했다. 배지에 쓰는 이름(`KIND_LABEL`)을 그대로 쓴다. */
       <EmptyState
         className="pt-6"
         title={
           type === 'ALL'
             ? '아직 매매 내역이 없어요.'
-            : '해당 유형의 내역이 없어요.'
+            : `아직 ${KIND_LABEL[type]} 내역이 없어요.`
         }
         description={
           type === 'ALL' ? '첫 거래를 시작하면 여기에 기록돼요.' : undefined

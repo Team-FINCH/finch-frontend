@@ -287,8 +287,10 @@ function PreviewSkeleton() {
 function PreviewError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="pt-2">
+      {/* 무엇을 못 불러왔는지 적는다 (FINCH-351). 두 탭이 함께 쓰는
+          자리라 `목록` 으로 받는다 — 탭 이름은 바로 위에 켜져 있다. */}
       <p className="text-body-2 font-medium text-text-secondary">
-        불러오지 못했어요
+        목록을 불러오지 못했어요
       </p>
       <button
         type="button"

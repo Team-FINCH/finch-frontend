@@ -28,7 +28,11 @@ export function DepositFailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const code = searchParams.get('code');
-  const message = depositFailMessage(code) ?? '입금을 진행하지 못했어요.';
+  // 제목이 이미 `입금하지 못했어요` 라, 모르는 코드로 떨어졌을 때도 같은 말을
+  // 두 번 하지 않는다 (FINCH-351). 이 줄은 아는 만큼의 이유를 말한다.
+  const message =
+    depositFailMessage(code) ??
+    '결제 중에 문제가 생겼어요. 다시 시도해 주세요.';
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -46,8 +50,11 @@ export function DepositFailPage() {
           >
             !
           </span>
+          {/* `입금이 완료되지 않았어요` 였다 (FINCH-351). `완료되지 않았다`
+              는 일이 저절로 되고 안 되는 말이고, `design.md` §13 이 `완료되었습니다`
+              를 피하는 표현으로 적어 둔 그 짝이다. */}
           <b className="text-ai-status-title tracking-[-.01em] text-text-primary">
-            입금이 완료되지 않았어요
+            입금하지 못했어요
           </b>
           <p className="mt-2 text-label text-pretty text-text-secondary">
             {message}

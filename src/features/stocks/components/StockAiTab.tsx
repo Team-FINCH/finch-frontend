@@ -388,6 +388,9 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
     // 이 탭도 따른다 (2026-09-17 사용자 결정). 전에 `mt-1`(4px)이었던 이유는
     // 남아 있지 않다. 아래 24px 은 프로토타입 실측이다 (새 디코드 L1994).
     <div className="mt-4.5 pb-6">
+      {/* 본문이 비었을 때의 문장은 `이 종목의 분석 내용은 아직 연결되지
+          않았어요` 였다 (FINCH-351). `연결` 은 우리가 응답 섹션을 두고 쓰는
+          말이지 사용자의 말이 아니다. */}
       <AiCard
         label="AI 종목 분석"
         headline={
@@ -398,8 +401,7 @@ export function StockAiTab({ stockCode, isActive }: StockAiTabProps) {
       >
         {present.length === 0 ? (
           <span className="mt-3 block text-body-2 text-ai-text-secondary">
-            이 종목의 분석 내용은 아직 연결되지 않았어요. 근거와 기준 시각은
-            아래 안내에서 확인할 수 있어요.
+            아직 정리된 내용이 없어요. 근거와 기준 시각은 아래에서 볼 수 있어요.
           </span>
         ) : current === null ? null : (
           <CurrentSummary section={current} />

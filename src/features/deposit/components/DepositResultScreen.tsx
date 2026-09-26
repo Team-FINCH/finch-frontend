@@ -37,10 +37,21 @@ type DepositResultScreenProps = {
   onSecondaryAction?: () => void;
 };
 
+/**
+ * 제목을 `입금이 완료됐어요` 에서 바꿨다 (FINCH-351).
+ *
+ * `완료됐어요` 는 일이 저절로 된 것처럼 말하고(`design.md` §13 이 `완료되었습니다`
+ * 를 피하는 표현으로 적어 둔 그 짝이다), 실패 쪽 제목(`입금하지 못했어요`)과
+ * 짝이 맞지 않았다. 성공과 실패를 같은 동사의 두 꼴로 둔다.
+ *
+ * 보조 줄도 `예수금에 반영됐어요.` 에서 바꿨다 — 아래 카드가 `입금 후 예수금` 을
+ * 숫자로 보여 주므로, 이 줄은 **숫자가 말하지 못하는 것**(지금 바로 쓸 수 있다)을
+ * 맡는다.
+ */
 const SUCCESS_CONTENT = {
   glyph: '✓',
-  title: '입금이 완료됐어요',
-  description: '예수금에 반영됐어요.',
+  title: '입금했어요',
+  description: '바로 매매에 쓸 수 있어요.',
 };
 
 export function DepositResultScreen({
@@ -71,7 +82,9 @@ export function DepositResultScreen({
     variant === 'error'
       ? {
           glyph: '!',
-          title: '입금을 확정하지 못했어요',
+          // `확정` 은 우리 쪽 단계 이름(`confirm`)이다. 사용자에게는 입금이 됐냐
+          // 안 됐냐 하나다 (FINCH-351).
+          title: '입금하지 못했어요',
           description: errorMessage ?? '잠시 후 다시 시도해 주세요.',
         }
       : SUCCESS_CONTENT;

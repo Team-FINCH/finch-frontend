@@ -99,7 +99,7 @@ export function LoginHero() {
         쏟아지는 공시와 뉴스에서
         <br />내 종목에 필요한 정보만 골라내고,
         <br />
-        계좌 전체의 흐름까지 함께 정리합니다.
+        계좌 전체의 흐름까지 함께 정리해요.
       </p>
 
       <div className="mt-10">
