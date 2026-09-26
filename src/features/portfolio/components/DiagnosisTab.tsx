@@ -143,7 +143,7 @@ export function DiagnosisTab() {
     return (
       <EmptyState
         title="아직 진단할 정보가 없어요."
-        description="한 종목만 담아도 집중도와 분산을 알려드릴게요."
+        description="한 종목만 담아도 어디에 얼마나 몰렸는지 알려드릴게요."
       />
     );
   }

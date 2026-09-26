@@ -186,8 +186,13 @@ export function PortfolioRiskSummary({
       </div>
 
       {riskScore === null ? (
-        // 판정 보류. 점수 자리를 0 으로 채우지 않는다 — 없는 값이 최상위 점수로 읽힌다.
-        <p className="mt-2 text-title-2 text-text-secondary">판정 보류</p>
+        // 점수 자리를 0 으로 채우지 않는다 — 없는 값이 최상위 점수로 읽힌다.
+        //
+        // 문구는 `판정 보류` 였다 (FINCH-351). 채점표의 말이지 사용자의 말이
+        // 아니고, 무엇이 어떻게 보류됐는지도 알 수 없다. 지금 상태를 그대로 적는다.
+        <p className="mt-2 text-title-2 text-text-secondary">
+          아직 점수를 매기기 어려워요
+        </p>
       ) : (
         <p className="mt-2 flex items-baseline gap-1.5">
           <span className="text-[44px] leading-[52px] font-bold text-text-primary tabular-nums">
