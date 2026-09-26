@@ -76,10 +76,12 @@ export function AnalysisInfoSheet({
         onClick={() => setOpen(true)}
         className="mt-8 flex w-full items-center justify-between gap-3 py-2 text-left"
       >
+        {/* 종목 분석의 같은 자리(`AnalysisSourceSheet`)와 한 문구다
+            (FINCH-351). `및` 을 쓰지 않고, 시트 안에 실제로 있는 것을 적는다. */}
         <span className="min-w-0 truncate text-body-2 text-text-secondary tabular-nums">
           {asOf === null
-            ? '분석 기준 및 안내'
-            : `${formatKstShortTime(asOf)} 기준 · 분석 기준 및 안내`}
+            ? '근거와 안내 보기'
+            : `${formatKstShortTime(asOf)} 기준 · 근거와 안내 보기`}
         </span>
         <span
           aria-hidden="true"
@@ -89,7 +91,11 @@ export function AnalysisInfoSheet({
         </span>
       </button>
 
-      <BottomSheet open={open} onOpenChange={setOpen} title="분석 기준 및 안내">
+      <BottomSheet
+        open={open}
+        onOpenChange={setOpen}
+        title="이 분석은 이렇게 만들어요"
+      >
         <div className="scroll-touch -mx-0.5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-0.5">
           <p className="text-body-2 text-pretty text-text-secondary">
             기간 수익률을 시장 흐름 · 업종 배분 · 종목 선택 셋으로 나눠 각

@@ -44,6 +44,17 @@ export function formatSignedPercentPoint(ratio: number, digits = 2): string {
   return `${sign}${Math.abs(points).toFixed(digits)}%p`;
 }
 
+/**
+ * 부호 없이 크기만 적는다 (FINCH-351).
+ *
+ * 방향을 **문장의 동사가 말하는 자리**에서 쓴다 — `시장보다 1.24%p 뒤졌어요`.
+ * 여기에 부호까지 붙이면 `-1.24%p 뒤졌어요` 가 되어 같은 방향을 두 번 말한다.
+ * 부호가 필요한 자리(표·막대 옆 값·히어로)는 `formatSignedPercentPoint` 를 그대로 쓴다.
+ */
+export function formatPercentPointSize(ratio: number, digits = 2): string {
+  return `${Math.abs(ratio * 100).toFixed(digits)}%p`;
+}
+
 // ── 기간 ──────────────────────────────────────────────────────────────────────
 /**
  * 기간 선택지. **AI 서버가 실제로 처리하는 다섯 개만 둔다** —

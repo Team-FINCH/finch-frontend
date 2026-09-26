@@ -201,7 +201,7 @@ export function FinchReturnInsight({
     /* 셸은 공용 `AiCard` 다 — 라벨 줄(글리프 + `FINCH 분석`)·면색·반경·여백이
        전부 그 안에 있다. 자기 셸을 그리지 않는 이유는 아래 "7. 다시 차콜" 참고.
 
-       `labelAs="h2"` 를 켠다. 이 탭에는 `시장과 비교`·`수익률 기여` 같은 형제
+       `labelAs="h2"` 를 켠다. 이 탭에는 시장 비교·종목 기여 같은 형제
        `h2` 들이 나란히 서 있어서, 이 카드만 제목이 없으면 훑어 읽는 순서에서
        빠진다 (`AiCard` 의 `labelAs` 주석이 "포트폴리오의 두 카드만 켠다" 로
        적어 둔 그 자리다). */
@@ -229,7 +229,9 @@ export function FinchReturnInsight({
           onClick={() => setDetailOpen(true)}
           className="mt-3 text-caption font-semibold text-ai-text-primary"
         >
-          {eventCount > 0 ? `관련 공시 ${eventCount}건 →` : '분석 전문 보기 →'}
+          {eventCount > 0
+            ? `관련 공시 ${eventCount}건 →`
+            : '이유 자세히 보기 →'}
         </button>
       )}
 

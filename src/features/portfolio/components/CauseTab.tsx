@@ -274,9 +274,14 @@ export function CauseTab() {
         <div className="mt-8 border-t border-border pt-8">
           {/* 설명 줄은 **탭을 가리킨다**. 전에는 `수익률이 어디에서 만들어졌는지
             확인해 보세요.` 였는데 세 줄 아래 패널 제목이 `수익률은 이렇게
-            만들어졌어요` 라 같은 말이 붙어 나왔다 (FINCH-341). */}
+            만들어졌어요` 라 같은 말이 붙어 나왔다 (FINCH-341).
+
+            제목은 `수익률 상세 분석` 이었다 (FINCH-351). 분류 이름이라
+            **무엇을 알게 되는지 말하지 않는다.** 위 히어로가 이번 기간 수익률을
+            이미 숫자로 보여줬으니, 이 아래가 답하는 것은 "그래서 그 숫자가 어디서
+            왔나" 하나다. 질문으로 적으면 아래 세 탭이 전부 그 질문의 답이 된다. */}
           <h2 className="text-section-title text-text-primary">
-            수익률 상세 분석
+            이 수익률은 어디에서 왔을까요?
           </h2>
           <p className="mt-1 text-label text-pretty break-keep text-text-secondary">
             요인별로도, 종목별로도 볼 수 있어요.
