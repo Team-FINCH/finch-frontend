@@ -34,13 +34,24 @@ type RatioIndicatorKey =
  * 여섯 개는 `DiagnosisTab`(AI 슬롯 5번)이 쓰는 이름을 그대로 옮겼다 — 같은 지표가
  * 화면마다 다른 이름으로 나오면 같은 값인지 알 수 없다. 나머지 셋(`hhi`·
  * `largeCapWeight`·`topSectorWeight`)은 그 화면에 없어서 같은 말투로 이어 붙였다.
+ *
+ * ## 세 이름을 진단 쪽에 맞췄다 (FINCH-351)
+ *
+ * | 전 | 후 | 이유 |
+ * | --- | --- | --- |
+ * | `종목 집중도(HHI)` | `종목 집중도` | 계산식 이름을 화면에 내지 않는다. 괄호를 붙인 자리는 앱에서 여기뿐이었다 |
+ * | `섹터 집중도(HHI)` | `업종 집중도` | 같은 지표를 진단 탭·계산 기준 시트는 `업종` 으로 부른다. 한 앱에 `섹터` 와 `업종` 이 같이 있었다 |
+ * | `연환산 변동성` | `변동성` | 계산 기준 시트의 이름과 맞춘다 (`AnalysisEvidenceSheet`) |
+ *
+ * 전문용어를 지우는 것이 아니라 **한 앱에서 한 이름으로 부르는 것**이 목적이다.
+ * 뜻풀이는 계산 기준 시트가 한 줄씩 달고 있다.
  */
 const INDICATOR_LABEL: Record<RatioIndicatorKey, string> = {
-  hhi: '종목 집중도(HHI)',
+  hhi: '종목 집중도',
   top1Weight: '1위 종목 비중',
   top3Weight: '상위 3종목 비중',
-  sectorHhi: '섹터 집중도(HHI)',
-  annualizedVolatility: '연환산 변동성',
+  sectorHhi: '업종 집중도',
+  annualizedVolatility: '변동성',
   maxDrawdown1y: '최근 1년 최대 낙폭',
   cashRatio: '현금 비중',
   largeCapWeight: '대형주 비중',
@@ -162,7 +173,10 @@ export function selectOrderPreviewHeadline(
     return `현금이 ${formatKrw(shortfall)} 부족해요`;
   }
   if (warnings.length > 0) {
-    return `${warnings.length}개 지표가 기준을 넘었어요`;
+    // `N개 지표가 기준을 넘었어요` 였다 (FINCH-351). `지표` 는 계기판의
+    // 말이라 뺐다 — 무엇이 넘었는지는 바로 아래 `확인해볼 점` 목록이 이름과
+    // 숫자로 한 줄씩 적고, 이 줄은 개수와 시점만 말한다.
+    return `이 주문 뒤에 ${warnings.length}가지가 기준을 넘어요`;
   }
   return '새로 높아진 위험은 없어요';
 }

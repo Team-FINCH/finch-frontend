@@ -77,8 +77,10 @@ export function OrderResultSheet({ result, onClose }: OrderResultSheetProps) {
             )}
           </SoftBox>
 
+          {/* `확인` 이었다 (FINCH-351). 체결은 이미 끝났고 이 버튼이 하는
+              일은 시트를 닫는 것 하나라, 진단 모달(`닫기`)과 같은 말을 쓴다. */}
           <Button className="mt-5" onClick={onClose}>
-            확인
+            닫기
           </Button>
         </div>
       )}
