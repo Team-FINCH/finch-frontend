@@ -10,7 +10,6 @@ import { type AiAttributionPeriod } from '@/shared/types/ai/attribution';
 import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 import { AiStatus } from '@/shared/ui/AiStatus';
 import { EmptyState } from '@/shared/ui/EmptyState';
-import { Skeleton } from '@/shared/ui/Skeleton';
 
 import { usePortfolioAttribution } from '../api/usePortfolioAttribution';
 import {
@@ -21,8 +20,10 @@ import {
   sortByImpact,
   type CauseView,
 } from '../lib/attributionInsight';
+import { useAnalysisHandoff } from '../lib/useAnalysisHandoff';
 
 import { AnalysisInfoSheet } from './AnalysisInfoSheet';
+import { AttributionPendingState } from './AttributionPendingState';
 import { AttributionPeriodTabs } from './AttributionPeriodTabs';
 import { CauseSummaryPanel } from './CauseSummaryPanel';
 import { CauseViewTabs } from './CauseViewTabs';
@@ -159,6 +160,9 @@ export function CauseTab() {
     period,
     true,
   );
+  // 값이 도착한 뒤에도 잠깐 대기 화면을 붙들어 둔다 — 결과가 툭 갈리지 않고
+  // 넘겨받는 것처럼 보이게 하는 값이다 (`useAnalysisHandoff`).
+  const settling = useAnalysisHandoff(isPending, !isError);
 
   // 기간 줄은 상태와 무관하게 언제나 서 있다. 로딩·오류일 때 사라지면 다른 기간으로
   // 빠져나갈 길이 없어진다 — 고른 기간에 거래일이 없어 409 가 나는 경우가 실제로 있다.
@@ -169,14 +173,20 @@ export function CauseTab() {
     <AttributionPeriodTabs value={period} onChange={setPeriod} />
   );
 
-  if (isPending) {
+  if (isPending || settling) {
     return (
       <div className="pt-4">
         {periodTabs}
-        <div className="flex flex-col gap-3 pt-6">
-          <Skeleton className="h-28 w-full" />
-          <Skeleton className="h-9 w-full" />
-          <Skeleton className="h-40 w-full" />
+        {/* 래퍼는 두 상태에서 모두 그려진다. 조건부로 감싸면 노드가 갈려서
+            대기 화면이 다시 마운트되고 자국이 처음부터 다시 돈다. */}
+        <div
+          className={
+            settling
+              ? 'animate-[analysis-handoff-out_180ms_var(--ease-standard)_both] motion-reduce:animate-none'
+              : ''
+          }
+        >
+          <AttributionPendingState period={period} />
         </div>
       </div>
     );
@@ -241,14 +251,17 @@ export function CauseTab() {
     <div className="pt-4">
       {periodTabs}
 
-      <PerformanceHero
-        portfolioReturn={portfolioReturn}
-        benchmarkReturn={benchmarkReturn}
-        excessReturn={excessReturn}
-        tradingDays={tradingDays}
-      />
+      {/* 결과는 아래에서 떠오르며 들어온다. 바로 앞 180ms 동안 대기 화면이
+          작아지며 빠져서 둘이 겹친다 (`useAnalysisHandoff`). */}
+      <div className="animate-[analysis-result-in_360ms_var(--ease-standard)_both] motion-reduce:animate-none">
+        <PerformanceHero
+          portfolioReturn={portfolioReturn}
+          benchmarkReturn={benchmarkReturn}
+          excessReturn={excessReturn}
+          tradingDays={tradingDays}
+        />
 
-      {/* 화면을 둘로 가른다 (FINCH-341).
+        {/* 화면을 둘로 가른다 (FINCH-341).
 
           위는 **이번 기간 성과**(기간 · 수익률 · 시장 대비), 아래는 **상세 분석**
           이다. 전에는 히어로 다음에 세그먼티드 트랙이 곧장 나와서, 트랙이 성과
@@ -258,20 +271,20 @@ export function CauseTab() {
           선 하나와 위아래 32px 이 그 경계다. 요약 전체를 카드로 감싸지 않는다 —
           히어로가 배경 위 36px 숫자로 서 있는 것이 이 화면에서 가장 무거워야 하고,
           상자를 씌우면 그 무게가 상자로 옮겨 간다. */}
-      <div className="mt-8 border-t border-border pt-8">
-        {/* 설명 줄은 **탭을 가리킨다**. 전에는 `수익률이 어디에서 만들어졌는지
+        <div className="mt-8 border-t border-border pt-8">
+          {/* 설명 줄은 **탭을 가리킨다**. 전에는 `수익률이 어디에서 만들어졌는지
             확인해 보세요.` 였는데 세 줄 아래 패널 제목이 `수익률은 이렇게
             만들어졌어요` 라 같은 말이 붙어 나왔다 (FINCH-341). */}
-        <h2 className="text-section-title text-text-primary">
-          수익률 상세 분석
-        </h2>
-        <p className="mt-1 text-label text-pretty break-keep text-text-secondary">
-          요인별로도, 종목별로도 볼 수 있어요.
-        </p>
+          <h2 className="text-section-title text-text-primary">
+            수익률 상세 분석
+          </h2>
+          <p className="mt-1 text-label text-pretty break-keep text-text-secondary">
+            요인별로도, 종목별로도 볼 수 있어요.
+          </p>
 
-        <CauseViewTabs value={view} onChange={setView} className="mt-4" />
+          <CauseViewTabs value={view} onChange={setView} className="mt-4" />
 
-        {/*
+          {/*
         `key` 로 탭마다 새 노드를 만들어 페이드를 다시 태운다 — `PortfolioPage` 가
         4탭에 쓰는 것과 같은 애니메이션이고, 여기는 `--motion-normal`(180ms)이다.
         4탭보다 짧은 전환이라 같은 화면 안에서 두 겹의 페이드가 겹쳐 보이지 않는다.
@@ -279,41 +292,42 @@ export function CauseTab() {
         `min-h` 를 주지 않았다. 2차 탭 줄이 화면 위쪽에 있어서 누르려면 이미 위로
         올라와 있어야 하고, 그 자리에서는 패널 높이가 줄어도 스크롤이 튈 여지가 없다.
       */}
-        <div
-          key={view}
-          role="tabpanel"
-          id={CAUSE_VIEW_PANEL_ID}
-          aria-labelledby={causeViewTabId(view)}
-          className="mt-5 animate-[tab-panel-fade-in_var(--motion-normal)_var(--ease-standard)_both]"
-        >
-          {view === 'summary' && (
-            <>
-              {/*
+          <div
+            key={view}
+            role="tabpanel"
+            id={CAUSE_VIEW_PANEL_ID}
+            aria-labelledby={causeViewTabId(view)}
+            className="mt-5 animate-[tab-panel-fade-in_var(--motion-normal)_var(--ease-standard)_both]"
+          >
+            {view === 'summary' && (
+              <>
+                {/*
               FINCH 가 근거보다 **위**에 있다 (2026-09-23). 맨 아래에 있을 때는
               시장 비교·요인·종목을 다 지나야 닿아서 실기기에서 보이지 않았다.
               자세한 사유는 `FinchReturnInsight` 주석.
             */}
-              <FinchReturnInsight summary={summary} rows={rows} />
-              <CauseSummaryPanel
-                rows={rows}
-                portfolioReturn={portfolioReturn}
-                benchmarkReturn={benchmarkReturn}
-                excessReturn={excessReturn}
-                onNavigate={setView}
-              />
-            </>
-          )}
+                <FinchReturnInsight summary={summary} rows={rows} />
+                <CauseSummaryPanel
+                  rows={rows}
+                  portfolioReturn={portfolioReturn}
+                  benchmarkReturn={benchmarkReturn}
+                  excessReturn={excessReturn}
+                  onNavigate={setView}
+                />
+              </>
+            )}
 
-          {view === 'factor' && (
-            <ReturnAttributionSection
-              breakdown={breakdown}
-              /* 차트 마지막 행의 도착점이다. 세 요인을 더한 값이 아니라 응답
+            {view === 'factor' && (
+              <ReturnAttributionSection
+                breakdown={breakdown}
+                /* 차트 마지막 행의 도착점이다. 세 요인을 더한 값이 아니라 응답
                값을 그대로 넘긴다 — 근거는 `ReturnAttributionSection` 주석. */
-              portfolioReturn={portfolioReturn}
-            />
-          )}
+                portfolioReturn={portfolioReturn}
+              />
+            )}
 
-          {view === 'stock' && <StockContributionSection rows={rows} />}
+            {view === 'stock' && <StockContributionSection rows={rows} />}
+          </div>
         </div>
       </div>
 
