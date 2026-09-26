@@ -91,10 +91,13 @@ export function AnalysisSourceSheet({
         onClick={() => setOpen(true)}
         className={`flex w-full items-center justify-between gap-3 py-2 text-left ${className}`}
       >
+        {/* `분석 기준 및 안내` 였다 (FINCH-351). `및` 은 공문의 접속사고,
+            `기준` 은 바로 앞 `{시각} 기준` 과 같은 낱말이 다른 뜻으로 한 줄에 두
+            번 서는 자리였다. 열리는 시트 안에 실제로 있는 것(근거 · 안내)을 적는다. */}
         <span className="min-w-0 truncate text-body-2 text-text-secondary">
           {asOfText === null
-            ? '분석 기준 및 안내'
-            : `${asOfText} 기준 · 분석 기준 및 안내`}
+            ? '근거와 안내 보기'
+            : `${asOfText} 기준 · 근거와 안내 보기`}
         </span>
         <span
           aria-hidden="true"
@@ -104,7 +107,11 @@ export function AnalysisSourceSheet({
         </span>
       </button>
 
-      <BottomSheet open={open} onOpenChange={setOpen} title="분석 기준 및 안내">
+      <BottomSheet
+        open={open}
+        onOpenChange={setOpen}
+        title="이 분석은 이렇게 만들어요"
+      >
         <p className="text-body-2 text-pretty text-text-secondary">
           공시와 뉴스에서 이 종목에 관련된 내용만 골라 정리한 분석이에요.
         </p>
