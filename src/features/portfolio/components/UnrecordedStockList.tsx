@@ -40,7 +40,7 @@ export function UnrecordedStockList({
       (proto L2462-2464). 구분선 없이 48px 을 띄우던 것을 맞췄다.
     */
     <section className="mt-0.5 border-t border-border/40 pt-4.5 pb-1">
-      <div className="flex items-baseline gap-2">
+      <div className="flex items-baseline justify-between">
         <span className="text-[15px] font-semibold text-text-primary">
           아직 적지 않은 종목
         </span>
