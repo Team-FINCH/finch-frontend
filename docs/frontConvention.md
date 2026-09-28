@@ -1,14 +1,14 @@
 # 프론트엔드 내부 규약
 
 이 문서는 `frontend/` 이하 코드에만 적용되는 규약을 정한다.
-**다른 파트가 알아야 하는 크로스파트 계약은 [`docs/convention/frontConvention.md`](../../docs/convention/frontConvention.md)에 있다.**
+**다른 파트가 알아야 하는 크로스파트 계약은 [`docs/convention/frontConvention.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/convention/frontConvention.md)에 있다.**
 확정·미확정 계약의 현재 상태는 [`contracts.md`](./contracts.md)에서 본다.
 
 - 적용 범위: `frontend/` 이하 전체
 - 작성일: 2026-08-19 / 최종 개정: 2026-09-10 (§10 스크롤 복원 담당을 창·안쪽 둘로 가름) / 2026-09-05 (§5 멱등성 키의 적용 대상을 apiSpec v0.8 로 정정) / 2026-09-04 (§10 에 탭 전환·화면 이동 히스토리 규약 추가) / 2026-09-03 (§11 디자인 토큰 추가, §8 기준 뷰포트 390px로 정정)
 - 이 문서는 결론만 담는다. 검토 과정과 기각 이유의 상세는 작성자 개인 기록에 있다
 
-브랜치 이름·커밋 메시지·이슈와 MR 절차는 [`gitConvention.md`](../../docs/convention/gitConvention.md)를 따르고
+브랜치 이름·커밋 메시지·이슈와 MR 절차는 [`gitConvention.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/convention/gitConvention.md)를 따르고
 이 문서에서 다시 설명하지 않는다.
 
 규약을 바꿔야 할 이유가 생기면 코드보다 이 문서를 먼저 고친다.
@@ -384,7 +384,7 @@ AI 호출도 다른 쿼리·뮤테이션과 똑같이 다룬다. 별도 전송 �
 색은 값이 아니라 **의미 토큰**으로 참조한다. `text-red-500`이 아니라 등락 방향을 나타내는 토큰을 쓴다.
 관례가 바뀌거나 색맹 대응이 필요해지면 토큰 한 곳만 고친다.
 
-표기 규약의 내용 자체는 크로스파트 계약이다. [`docs/convention/frontConvention.md`](../../docs/convention/frontConvention.md) §1을 본다.
+표기 규약의 내용 자체는 크로스파트 계약이다. [`docs/convention/frontConvention.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/convention/frontConvention.md) §1을 본다.
 
 ### 로딩과 빈 상태
 

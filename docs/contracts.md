@@ -31,14 +31,14 @@
 - 이전 기준일 2026-09-03 (**apiSpec v0.7 — 투자 회차·계좌 리셋 제거**. 우리 요청(이슈 #27)에 대한 백엔드 회신이고 **기존 계약을 깨는 변경이다**. 엔드포인트 2개(`POST /account/reset`·`GET /rounds`) 삭제 · `roundId`·`currentRoundId` 필드와 `roundId` 쿼리 전부 삭제 · `ROUND_READ_ONLY` 삭제 · 원장 유형 6종→4종 · 충전 누적 한도 기준이 회차→계정 전체로 바뀌고 `GET /deposits/limit` 응답 필드명도 함께 바뀜(→ C26·C47·C49 갱신, C48 폐기, P22 신규). 근거 MR !78 은 `master` 에 머지됐다(커밋 `c15caee`). 이전 기준일 2026-09-02)
 - 이전 기준일 2026-09-02 (백엔드가 열려 있던 이슈 5건 — #10·#11·#12·#19·#22 — 에 한꺼번에 회신. AI 재포장 후 `content` 컨테이너 유지 확정(이슈 #22, 프론트가 반대 가정으로 구현했던 것이 뒤집힘) · 웹소켓 CONNECT 인증 실패·토큰 만료·SockJS 여부 확정(이슈 #10) · AI 응답 본문의 `ticker` 필드 이름 유지 확정(이슈 #11) · AI 중계 요청 본문 camelCase 확정(이슈 #12) · 전량 매도·상장폐지 종목 노출 규칙 확정(이슈 #19) · 이슈 #13 11:02 회신으로 `wiki`·`feedback` 전용 pydantic 모델 반영 확인 · 새 이슈 #23(최근 검색어) 발행 · GitLab 이슈 상태 재확인. 이슈 #23 회신과 apiSpec v0.6 §6.2 로 최근 검색어 응답 본문 확정(→ C81) · `profileImageUrl` 이 `null` 일 수 있다는 계약을 apiSpec v0.6 §2.1·§2.4 와 MR !69 근거로 신규 등재(→ C82). 이전 기준일 2026-09-01)
 - 참조 원본
-  - [`docs/api/apiSpec.md`](../../docs/api/apiSpec.md) — 백엔드 API 명세 **v0.8.20 (확정판).**
+  - [`docs/api/apiSpec.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/api/apiSpec.md) — 백엔드 API 명세 **v0.8.20 (확정판).**
     이 문서가 **단일 기준**이다. 절 번호 표기 `§`는 별도 표시가 없으면 이 문서를 가리킨다
-  - [`docs/spec/featureSpec.md`](../../docs/spec/featureSpec.md) — 기능 명세서 v2.4
+  - [`docs/spec/featureSpec.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/spec/featureSpec.md) — 기능 명세서 v2.4
   - [`ai/docs/api-spec.md`](../../ai/docs/api-spec.md) — AI 파트 인터페이스 계약. **AI 계열은 이 파일이 기준이다**
   - [`ai/docs/openapi.json`](../../ai/docs/openapi.json) — AI 서버의 실제 구현 스키마.
     AI 파트 문서와 어긋나면 구현이 맞고 문서가 틀린 것이다
   - GitLab 이슈 [#1](issue #1) 회신 (19문항, 닫힘)
-- 관련 규약: [`docs/convention/frontConvention.md`](../../docs/convention/frontConvention.md) (크로스파트) ·
+- 관련 규약: [`docs/convention/frontConvention.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/convention/frontConvention.md) (크로스파트) ·
   [`frontConvention.md`](./frontConvention.md) (프론트 내부) · [`ia.md`](./ia.md) (화면 목록)
 
 > v0.8 의 근거 MR !93 은 `master` 에 머지됐다(커밋 `87fa023`).
@@ -343,7 +343,7 @@
 
 | #   | 항목                   | 어느 문서가 뭐라고 하나                                                                                                                                                                                                         | 따르기로 한 것                                                                                                                                                                                                                                                                                                                                                                 |
 | --- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| X1  | AI 명세 파일이 두 개다 | [`docs/api/aiApiSpec.md`](../../docs/api/aiApiSpec.md) — 8/20 시점 사본(커밋 `5693aea`). [`ai/docs/api-spec.md`](../../ai/docs/api-spec.md) — AI 파트 원본이고 8/21에 갱신됐다(커밋 `ff1c29c`, MR !21). 두 파일의 내용이 다르다 | **`ai/docs/api-spec.md`를 따른다.** 갱신이 이쪽에만 반영됐다 — 봉투의 `macro` 키, `thesis_conflicts` 이름 변경, Segment 6키 서술이 글로벌 사본에는 없다. **문제는 `apiSpec.md` §10.4와 §11이 AI 에러 코드 전체 목록의 소유를 글로벌 사본으로 지목한다는 것이다.** 낡은 쪽을 가리키고 있다. 두 파일 중 하나는 정리돼야 하지만 둘 다 프론트 소유가 아니므로 고치지 않고 보고한다 |
+| X1  | AI 명세 파일이 두 개다 | [`docs/api/aiApiSpec.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/api/aiApiSpec.md) — 8/20 시점 사본(커밋 `5693aea`). [`ai/docs/api-spec.md`](../../ai/docs/api-spec.md) — AI 파트 원본이고 8/21에 갱신됐다(커밋 `ff1c29c`, MR !21). 두 파일의 내용이 다르다 | **`ai/docs/api-spec.md`를 따른다.** 갱신이 이쪽에만 반영됐다 — 봉투의 `macro` 키, `thesis_conflicts` 이름 변경, Segment 6키 서술이 글로벌 사본에는 없다. **문제는 `apiSpec.md` §10.4와 §11이 AI 에러 코드 전체 목록의 소유를 글로벌 사본으로 지목한다는 것이다.** 낡은 쪽을 가리키고 있다. 두 파일 중 하나는 정리돼야 하지만 둘 다 프론트 소유가 아니므로 고치지 않고 보고한다 |
 
 충돌 **1건**.
 

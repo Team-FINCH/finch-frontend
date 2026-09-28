@@ -5,8 +5,8 @@
 
 - 작성일: 2026-08-19 / 최종 개정: 2026-09-05 (apiSpec v0.8 · 기능명세 v2.4 반영 — 충전을 4단계로 교체, 출금 화면 신설, 결제 복귀·모의 이체 화면 잠정 등재. 화면 16개→19개) / 2026-09-04 (위키 라우트 통합 — `/my/wiki` 독립 화면 폐지, 포트폴리오 4번째 탭으로 흡수. 화면 17개→16개) / 2026-09-04 (프로토타입 `f9e4bb4` 재대조 — 포트폴리오 4중 탭·위키 진입 경로·바텀시트 목록 정정) / 2026-09-03 (PRD v1.0·프로토타입 기준 화면 구성 전면 개정)
 - UI 레퍼런스: 토스증권 / 플랫폼: 모바일 웹(반응형, 모바일 우선)
-- 관련 문서: [`../../docs/convention/frontConvention.md`](../../docs/convention/frontConvention.md) ·
-  [`contracts.md`](./contracts.md) · [`../../docs/api/apiSpec.md`](../../docs/api/apiSpec.md) ·
+- 관련 문서: [`../../docs/convention/frontConvention.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/convention/frontConvention.md) ·
+  [`contracts.md`](./contracts.md) · [`../../docs/api/apiSpec.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/api/apiSpec.md) ·
   `prototype/screen/finch-prototype.html` (프로토타입 원본, MR !89 수정본. 낡은 `finch-screens.dc.html`은 참고하지 않는다) ·
   `_inbox/2026-09-02-받음-finch-prd.추출.txt` (PRD v1.0)
 
@@ -503,7 +503,7 @@ AI 명세는 "화면에서 AI 응답이 들어갈 빈 슬롯"만 요구한다. �
 ### 중계 경로는 확정됐다 — `(잠정)`을 걷어낸 이유
 
 **호출 경로는 프런트 → 백엔드 → AI다.** 프론트는 `/api/v1` 하나만 쓰고 AI 서버(`/api/ai/v1`)를 직접 부르지 않는다.
-이전 판이 `(잠정)`으로 남겨 둔 것은 **백엔드가 중계할 때 붙일 경로 문자열**이었다. 그것이 [`apiSpec.md`](../../docs/api/apiSpec.md) §10.1 표에 등재됐다 — 위 6종에 `POST /api/v1/ai/feedback`을 더한 7개다.
+이전 판이 `(잠정)`으로 남겨 둔 것은 **백엔드가 중계할 때 붙일 경로 문자열**이었다. 그것이 [`apiSpec.md`](https://github.com/Team-FINCH/finch-docs/blob/master/docs/api/apiSpec.md) §10.1 표에 등재됐다 — 위 6종에 `POST /api/v1/ai/feedback`을 더한 7개다.
 
 가정으로 적어 뒀던 값과 결과가 같지만 **맞힌 것과 확정된 것은 다르다.** 이제 지목할 문서가 있으므로 표기를 걷었다.
 
