@@ -1,5 +1,10 @@
 import { ChatMarkdown } from '@/features/chat/components/ChatMarkdown';
 import { useTypewriter } from '@/features/chat/hooks/useTypewriter';
+import {
+  CHAT_METRIC_ACCENT_CLASS,
+  findFirstMetricRange,
+  type MetricAccentRange,
+} from '@/features/chat/lib/chatMetricAccent';
 import { type ChatMessage } from '@/features/chat/model/chatMessages';
 import { AiCitationList } from '@/shared/ui/AiCitationList';
 import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
@@ -7,10 +12,19 @@ import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
 /**
  * 말풍선 하나.
  *
- * **`segments` 를 순회해 색칠하지 않는다.** `section.text` 만 출력해도 정상 동작하는
- * 기본 렌더링 경로다(`shared/types/ai/envelope.ts` `AiSectionSchema` 주석). 등락
- * 적색·청색은 등락 표시(가격·수익률) 밖에서 쓰지 않으므로 포트폴리오 비중 같은
- * 일반 수치까지 색칠하면 안 된다.
+ * **`segments` 를 순회해 등락 적색·청색을 칠하지 않는다.** `direction` 기반 색칠은
+ * `shared/ui/AiSegmentText` 가 하는 일이고, 등락 표시(가격·수익률) 밖에서는 쓰지
+ * 않는다 — 포트폴리오 비중 같은 일반 수치까지 등락색을 입히면 안 된다는 뜻이다
+ * (design.md §4, 대비 부족으로 검정 면에서 금지).
+ *
+ * **다른 축이 하나 더 있다.** 첫 `metric` 조각 하나를 볼드로 강조하는 것
+ * (FINCH-358, `CHAT_METRIC_ACCENT_CLASS`)은 `direction` 과 무관하다 —
+ * `type === 'metric'` 인 조각을 고르는 것이라 등락 여부를 묻지 않는다. 같은 검정
+ * 면(`bg-ai-surface`)을 쓰는 `features/portfolio/components/AiAccentSentence` 가
+ * 이미 이 규칙이고(design.md §15 "AI Accent = 검정 위 핵심 하나"), 채팅 말풍선만
+ * 빠져 있던 것을 이 티켓이 채운다. 타자 경로와 완료 경로가 입력이 달라(원본
+ * 문자열 vs 파싱된 hast 트리) 강조 계산은 `features/chat/lib/chatMetricAccent.ts`
+ * 하나로 모으고 각 경로는 그것을 받아 쓰기만 한다.
  *
  * 꼬리 모서리 6px 는 프로토타입 실측값이다(`styles/index.css` `--radius-xs` 주석 —
  * "AI 챗 버블도 왼쪽 위 꼬리 모서리에 6px 을 쓴다"). 사용자 말풍선은 좌우를 뒤집어
@@ -61,6 +75,39 @@ import { AiFeedbackRow } from '@/shared/ui/AiFeedbackRow';
  * 원문 길이로 타자 속도를 계산하므로 늦게 지우면 타자가 도는 동안 각주가 그대로
  * 보였다가 사라진다.
  */
+
+/**
+ * 타자 경로(평문)의 첫 `metric` 강조 (FINCH-358).
+ *
+ * `visibleText` 는 `useTypewriter` 가 돌려주는, `section.text` 의 순수한 접두사다.
+ * `metricRange` 의 오프셋이 `section.text` 기준이므로 그대로 잘라 쓸 수 있다.
+ *
+ * **부분적으로 드러난 동안에는 드러난 만큼만 칠한다.** `visibleText.length` 가
+ * `start` 에 못 미치면 강조를 아예 내지 않고(`accented` 문자열이 빈 채로 끝난다),
+ * `end` 를 넘지 못했으면 `slice` 가 `visibleText` 끝에서 멈춰 드러난 부분까지만
+ * 금색이 된다 — 별도 분기 없이 `slice` 의 동작만으로 해결된다.
+ */
+function renderAccentedText(
+  visibleText: string,
+  metricRange: MetricAccentRange | null,
+) {
+  if (metricRange === null || visibleText.length <= metricRange.start) {
+    return visibleText;
+  }
+
+  const before = visibleText.slice(0, metricRange.start);
+  const accented = visibleText.slice(metricRange.start, metricRange.end);
+  const after = visibleText.slice(metricRange.end);
+
+  return (
+    <>
+      {before}
+      <span className={CHAT_METRIC_ACCENT_CLASS}>{accented}</span>
+      {after}
+    </>
+  );
+}
+
 type ChatBubbleProps = {
   message: ChatMessage;
   /**
@@ -125,6 +172,10 @@ export function ChatBubble({
     );
   }
 
+  // 첫 `metric` 조각의 오프셋/값. 복원된 이력은 `segments: []` 라 자연히 `null` —
+  // 강조가 붙지 않는 것이 맞다(`chatMessages.ts` `toRestoredMessage`).
+  const metricRange = findFirstMetricRange(message.section.segments);
+
   return (
     <div className="flex flex-col">
       <div className="min-w-0 rounded-[6px_18px_18px_18px] bg-ai-surface px-4 py-3">
@@ -135,11 +186,14 @@ export function ChatBubble({
           // 을 유지하고, `isDone` 이 된 순간에만 전문을 한 번에 Markdown 으로
           // 바꿔 그린다.
           <div className="text-body-2 text-pretty text-ai-text-primary [&_a]:text-ai-text-primary">
-            <ChatMarkdown text={visibleText} />
+            <ChatMarkdown
+              text={visibleText}
+              accentValue={metricRange?.value ?? null}
+            />
           </div>
         ) : (
           <p className="text-body-2 text-pretty whitespace-pre-line text-ai-text-primary">
-            {visibleText}
+            {renderAccentedText(visibleText, metricRange)}
           </p>
         )}
         {isDone && (

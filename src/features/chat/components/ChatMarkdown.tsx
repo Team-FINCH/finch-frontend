@@ -1,5 +1,8 @@
+import type { Element, ElementContent, Root, RootContent, Text } from 'hast';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+import { CHAT_METRIC_ACCENT_CLASS } from '@/features/chat/lib/chatMetricAccent';
 
 /**
  * AI 답변 본문의 Markdown 렌더러 (GitLab #85).
@@ -66,8 +69,106 @@ const components: Components = {
   },
 };
 
+type HastContent = RootContent | ElementContent;
+
+/**
+ * `child.type === 'text'` 형태의 직접 비교가 `RootContentMap`/`ElementContentMap`
+ * 유래 유니언에서 판별 유니언으로 좁혀지지 않아(타입 단언 없이) 명시적 타입가드로
+ * 대신한다.
+ */
+function isHastText(node: HastContent): node is Text {
+  return node.type === 'text';
+}
+
+function isHastElement(node: HastContent): node is Element {
+  return node.type === 'element';
+}
+
+/**
+ * `accentValue` 를 담은 첫 텍스트 노드를 찾아 앞·중간·뒤로 쪼갠 뒤 가운데를 강조
+ * `<span>` 으로 감싼다 (FINCH-358).
+ *
+ * **오프셋으로는 못 맞춘다.** `ChatBubble` 의 타자 경로는 `segments` 의 `value`
+ * 길이 합으로 `section.text` 안의 오프셋을 구해 그대로 자르지만, 여기 들어오는
+ * `text` 는 `react-markdown` 이 파싱하는 원문이라 `**`·`#` 같은 문법 문자가 파싱
+ * 과정에서 사라져 오프셋이 어긋난다. 그래서 오프셋 대신 값 자체로 찾는다.
+ *
+ * **첫 번째 일치에서 멈춘다.** `AiAccentSentence` 와 같은 "핵심 하나" 규칙이라
+ * 문서 전체에서 여러 번 감쌀 이유가 없다. `code`·`pre` 안은 건너뛴다 — 코드 값을
+ * 강조하면 코드와 서술의 경계가 흐려진다. 찾지 못하면 아무것도 하지 않는다.
+ *
+ * `unist-util-visit` 같은 순회 유틸을 새로 들이지 않고 직접 재귀한다 — 워크트리
+ * 안에서는 의존성을 추가할 수 없다(`npm install` 금지, AGENTS.local.md 계약 6번).
+ */
+function insertAccentSpan(
+  children: Array<HastContent>,
+  accentValue: string,
+): boolean {
+  for (let index = 0; index < children.length; index += 1) {
+    const child = children[index];
+    if (child === undefined) {
+      continue;
+    }
+
+    if (isHastText(child) && child.value.includes(accentValue)) {
+      const at = child.value.indexOf(accentValue);
+      const before = child.value.slice(0, at);
+      const middle = child.value.slice(at, at + accentValue.length);
+      const after = child.value.slice(at + accentValue.length);
+
+      const replacement: HastContent[] = [];
+      if (before !== '') {
+        replacement.push({ type: 'text', value: before });
+      }
+      replacement.push({
+        type: 'element',
+        tagName: 'span',
+        properties: { className: [CHAT_METRIC_ACCENT_CLASS] },
+        children: [{ type: 'text', value: middle }],
+      });
+      if (after !== '') {
+        replacement.push({ type: 'text', value: after });
+      }
+
+      children.splice(index, 1, ...replacement);
+      return true;
+    }
+
+    if (
+      isHastElement(child) &&
+      child.tagName !== 'code' &&
+      child.tagName !== 'pre' &&
+      insertAccentSpan(child.children, accentValue)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * `insertAccentSpan` 을 도는 rehype 플러그인을 만든다. `accentValue` 를 클로저로
+ * 받아 두므로 렌더마다 값이 바뀌어도(대화가 진행되며 `visibleText` 가 아니라
+ * `accentValue` 자체가 바뀌는 일은 없지만) 매번 새로 만든다 — `ChatMarkdown` 이
+ * `accentValue === null` 일 때는 아예 이 플러그인을 달지 않는다.
+ */
+function createAccentPlugin(accentValue: string) {
+  return function rehypeChatMetricAccent() {
+    return (tree: Root) => {
+      insertAccentSpan(tree.children, accentValue);
+    };
+  };
+}
+
 type ChatMarkdownProps = {
   text: string;
+  /**
+   * 강조할 첫 `metric` 조각의 값. `ChatBubble` 이 `message.section.segments` 에서
+   * 뽑아 넘긴다. `null`(기본값)이면 강조하지 않는다 — 복원된 이력은 `segments` 가
+   * 비어 있어(`chatMessages.ts` `toRestoredMessage`) 넘길 값이 없다.
+   */
+  accentValue?: string | null;
 };
 
 /**
@@ -75,10 +176,16 @@ type ChatMarkdownProps = {
  * `react-markdown` 이 최상위 블록(제목·목록·문단 …)을 형제로 그려서, 부모에
  * `space-y-*` 를 주면 태그 종류와 무관하게 `> * + *` 로 걸린다.
  */
-export function ChatMarkdown({ text }: ChatMarkdownProps) {
+export function ChatMarkdown({ text, accentValue = null }: ChatMarkdownProps) {
   return (
     <div className="space-y-3 break-words">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={
+          accentValue === null ? [] : [createAccentPlugin(accentValue)]
+        }
+        components={components}
+      >
         {text}
       </ReactMarkdown>
     </div>
