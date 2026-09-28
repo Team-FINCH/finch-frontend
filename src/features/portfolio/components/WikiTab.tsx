@@ -285,17 +285,22 @@ export function WikiTab() {
             onEditThesis={(thesis) => setSheetTarget({ thesis })}
           />
         )}
-
-        <UnrecordedStockList
-          holdings={unrecordedHoldings}
-          onRecord={(holding) =>
-            setSheetTarget({
-              stockCode: holding.stockCode,
-              stockName: holding.stockName,
-            })
-          }
-        />
       </section>
+
+      {/*
+        `종목별 매수 이유` 안에 중첩된 `<section>` 이었다 — 그 제목이 세는
+        개수(theses.length)에 잡히지 않는 행이 같은 제목 아래 더 보였다.
+        형제 섹션으로 뺐다.
+      */}
+      <UnrecordedStockList
+        holdings={unrecordedHoldings}
+        onRecord={(holding) =>
+          setSheetTarget({
+            stockCode: holding.stockCode,
+            stockName: holding.stockName,
+          })
+        }
+      />
 
       <BottomSheet
         open={deleteTarget !== null}
