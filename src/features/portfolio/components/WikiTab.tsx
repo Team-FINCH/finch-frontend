@@ -51,6 +51,10 @@ const HORIZON_LABEL: Record<NonNullable<WikiThesis['horizon']>, string> = {
  * 이유 — 은 `GET /wiki` 응답 하나(`profile[]`·`theses[]`)에서 `source`로 갈라 만든다.
  * `profile`·`theses`가 둘 다 비면 화면 전체를 빈 상태로 바꾸고 AI 채팅으로 보내는
  * 버튼만 둔다(ia.md §1 "빈 상태").
+ *
+ * **실제 백엔드에서는 `profile` 이 항상 빈 배열이다.** `wiki_facts` 를 채우는
+ * 경로가 없기 때문이고(GitLab #52, 2026-09-09 Phase 1 제외 결정), 이 화면은
+ * `profile.length === 0` 일 때 상단 요약 줄과 확정 섹션을 조건부로 접는다.
  */
 export function WikiTab() {
   const { data, isPending, isError, error, refetch } = useWiki();
@@ -129,86 +133,96 @@ export function WikiTab() {
 
   return (
     <div className="pt-3.5 pb-6">
-      <div className="relative mb-9 flex items-center gap-2.5">
-        <span className="flex-1 text-body-2 text-text-muted">
-          확정{' '}
-          <b className="font-semibold text-text-secondary">
-            {confirmedFacts.length}
-          </b>{' '}
-          · 확인 필요{' '}
-          {/* 확인이 필요한 것만 눈에 띄게 한다 — 추측 카드와 같은 강조색이다. */}
-          <b className="font-semibold" style={{ color: WIKI_ACCENT_COLOR }}>
-            {guessFacts.length}
-          </b>{' '}
-          · 매수 이유{' '}
-          <b className="font-semibold text-text-secondary">{theses.length}</b>
-        </span>
-        <button
-          type="button"
-          aria-label="선정 기준 보기"
-          onClick={() => setInfoOpen((prev) => !prev)}
-          className={INFO_BUTTON_CLASS}
-        >
-          ?
-        </button>
-        {infoOpen && (
-          <div className="absolute top-full right-0 left-0 z-10 mt-2 flex items-start gap-2.5 rounded-12 bg-text-primary px-3.5 py-[13px] text-surface shadow-float">
-            <span className="flex-1 text-caption text-pretty text-surface/86">
-              대화에서 직접 말한 내용은 바로 기준이 돼요. 투자 기록에서 읽어낸
-              건 맞다고 확인해 주신 뒤에 기준이 되고요. 분석과 답변에는 확정된
-              기준만 써요.
+      {profile.length > 0 && (
+        /*
+          `profile` 이 비면 상단 요약 줄과 확정 섹션을 통째로 접는다. 실제
+          백엔드는 `wiki_facts` 를 채우는 경로가 없다 — 행을 넣는 함수
+          (`ai/app/wiki/store.py:39` `add_fact`)의 호출부가 `ai/tests/` 뿐이고
+          `ai/app/` 안에는 없다. 사고가 아니라 GitLab 이슈 #52 에서 2026-09-09 에
+          세 파트가 Phase 1 밖으로 빼기로 합의하고 닫은 결정이다. 조건부로만
+          접어 두어, 생성기가 생기면 이 코드를 되돌릴 필요 없이 바로 채워진다.
+        */
+        <>
+          <div className="relative mb-9 flex items-center gap-2.5">
+            <span className="flex-1 text-body-2 text-text-muted">
+              확정{' '}
+              <b className="font-semibold text-text-secondary">
+                {confirmedFacts.length}
+              </b>{' '}
+              · 확인 필요{' '}
+              {/* 확인이 필요한 것만 눈에 띄게 한다 — 추측 카드와 같은 강조색이다. */}
+              <b className="font-semibold" style={{ color: WIKI_ACCENT_COLOR }}>
+                {guessFacts.length}
+              </b>
             </span>
             <button
               type="button"
-              aria-label="닫기"
-              onClick={() => setInfoOpen(false)}
-              className="flex-none text-caption text-surface/50"
+              aria-label="선정 기준 보기"
+              onClick={() => setInfoOpen((prev) => !prev)}
+              className={INFO_BUTTON_CLASS}
             >
-              ✕
+              ?
             </button>
-          </div>
-        )}
-      </div>
-
-      <section className="mb-12">
-        <div className="mb-1 flex items-baseline justify-between">
-          <span className="text-section-title text-text-primary">
-            확정된 투자 기준
-          </span>
-          <span className="text-caption text-text-secondary">
-            {confirmedFacts.length}개
-          </span>
-        </div>
-        {confirmedFacts.length === 0 ? (
-          <p className="py-3.5 text-body-1 leading-6 text-text-secondary">
-            아직 확정된 기준이 없어요.
-          </p>
-        ) : (
-          <div className="flex flex-col divide-y divide-border/40">
-            {confirmedFacts.map((fact) => (
-              <div key={fact.id} className="py-4">
-                <p className="text-body-1 leading-6 font-medium text-pretty whitespace-pre-line text-text-primary">
-                  {fact.text}
-                </p>
-                <div className="mt-2.25 flex items-center justify-between gap-3">
-                  <span className="text-caption text-text-secondary">
-                    {SOURCE_LABEL[fact.source]} · {formatKstDate(fact.asOf)}
-                  </span>
-                  {fact.editable && (
-                    <button
-                      type="button"
-                      onClick={() => setDeleteTarget(fact)}
-                      className="flex-none text-caption text-text-muted"
-                    >
-                      삭제
-                    </button>
-                  )}
-                </div>
+            {infoOpen && (
+              <div className="absolute top-full right-0 left-0 z-10 mt-2 flex items-start gap-2.5 rounded-12 bg-text-primary px-3.5 py-[13px] text-surface shadow-float">
+                <span className="flex-1 text-caption text-pretty text-surface/86">
+                  대화에서 직접 말한 내용은 바로 기준이 돼요. FINCH가 대화에서
+                  읽어낸 건 맞다고 확인해 주신 뒤에 기준이 되고요. 분석과
+                  답변에는 확정된 기준만 써요.
+                </span>
+                <button
+                  type="button"
+                  aria-label="닫기"
+                  onClick={() => setInfoOpen(false)}
+                  className="flex-none text-caption text-surface/50"
+                >
+                  ✕
+                </button>
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </section>
+
+          <section className="mb-12">
+            <div className="mb-1 flex items-baseline justify-between">
+              <span className="text-section-title text-text-primary">
+                확정된 투자 기준
+              </span>
+              <span className="text-caption text-text-secondary">
+                {confirmedFacts.length}개
+              </span>
+            </div>
+            {confirmedFacts.length === 0 ? (
+              <p className="py-3.5 text-body-1 leading-6 text-text-secondary">
+                아직 확정된 기준이 없어요.
+              </p>
+            ) : (
+              <div className="flex flex-col divide-y divide-border/40">
+                {confirmedFacts.map((fact) => (
+                  <div key={fact.id} className="py-4">
+                    <p className="text-body-1 leading-6 font-medium text-pretty whitespace-pre-line text-text-primary">
+                      {fact.text}
+                    </p>
+                    <div className="mt-2.25 flex items-center justify-between gap-3">
+                      <span className="text-caption text-text-secondary">
+                        {SOURCE_LABEL[fact.source]} · {formatKstDate(fact.asOf)}
+                      </span>
+                      {fact.editable && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(fact)}
+                          className="flex-none text-caption text-text-muted"
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
 
       {guessFacts.length > 0 && (
         <section className="mb-12">
