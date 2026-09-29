@@ -380,8 +380,19 @@ function chatAnswerContent(conversationId: string) {
  * 나갔고 완료된 뒤에 돌아왔다" 는 경우에 이력이 그 턴을 이미 들고 있는 상태가
  * 재현되고, 프론트가 답을 두 번 그리지 않는지 확인할 수 있다.
  */
-const CHAT_JOB_QUEUED_MS = 1_500;
-const CHAT_JOB_DURATION_MS = 6_000;
+/**
+ * 답이 만들어지기까지 걸리는 시간.
+ *
+ * **`ChatTypingIndicator` 의 `SLOW_RESPONSE_HINT_DELAY_MS`(10초)보다 길어야 한다.**
+ * 6초였을 때는 목이 그 전에 답을 줘서 `답을 만들고 있어요` 로 바뀌는 구간을 화면에서
+ * 한 번도 볼 수 없었다. 실제 운영은 11~29초가 걸려 늘 보이던 자리라, 목만 그 경험을
+ * 빠뜨리고 있었다.
+ *
+ * 운영의 하한(11초)보다 조금 길게 잡아 힌트가 뜨고 나서 답이 오게 한다. 기다림 자체가
+ * 이 슬롯의 성질이라 줄여서 감추지 않는다.
+ */
+const CHAT_JOB_QUEUED_MS = 2_000;
+const CHAT_JOB_DURATION_MS = 13_000;
 
 /**
  * 보존 기간. 지나면 조회가 `404` 다 (AI 명세 §4.2 · `app/chat_jobs.py` `RETENTION`).
@@ -960,6 +971,66 @@ export const aiHandlers = [
                 textSegment('예요.'),
               ],
               evidence: { sector: '반도체', value: 0.624, threshold: 0.4 },
+            },
+            /*
+             * 아래 셋은 실제 엔진이 내는 항목을 채운 것이다. 목이 둘만 내보내던
+             * 탓에 진단 탭이 실제보다 얕아 보였다. 제목은 AI 쪽 `_FINDING_TITLES`
+             * 를 그대로 옮겼다 — 화면이 서버가 준 `title` 을 그리므로 여기가
+             * 갈리면 목과 운영의 글자가 달라진다.
+             *
+             * 수치는 위 `indicators` 와 맞췄다. 항목이 지표와 어긋나면 같은 화면
+             * 안에서 두 숫자가 서로를 부정한다.
+             */
+            {
+              id: 'volatility',
+              category: 'volatility',
+              severity: 'medium',
+              title: '높은 변동성',
+              text: '연환산 변동성이 28.41%로 기준을 넘어요.',
+              segments: [
+                textSegment('연환산 변동성이 '),
+                metricSegment('28.41%', 0.2841, 'ratio', 'risk_engine', 'up'),
+                textSegment('로 기준을 넘어요.'),
+              ],
+              evidence: {
+                metric: 'annualized_volatility',
+                value: 0.2841,
+                threshold: 0.25,
+              },
+            },
+            {
+              id: 'correlation',
+              category: 'correlation',
+              severity: 'low',
+              title: '제한된 분산 효과',
+              text: '보유 종목이 함께 움직여 분산 효과가 1.08배에 그쳐요.',
+              segments: [
+                textSegment('보유 종목이 함께 움직여 분산 효과가 '),
+                metricSegment('1.08배', 1.08, 'multiple', 'risk_engine', null),
+                textSegment('에 그쳐요.'),
+              ],
+              evidence: {
+                metric: 'diversification_ratio',
+                value: 1.08,
+                threshold: 1.3,
+              },
+            },
+            {
+              id: 'macro_exposure',
+              category: 'macro',
+              severity: 'medium',
+              title: '금리 국면 노출',
+              text: '금리에 민감한 종목 비중이 74.21%예요.',
+              segments: [
+                textSegment('금리에 민감한 종목 비중이 '),
+                metricSegment('74.21%', 0.7421, 'ratio', 'risk_engine', 'up'),
+                textSegment('예요.'),
+              ],
+              evidence: {
+                metric: 'rate_sensitive_weight',
+                value: 0.7421,
+                threshold: 0.6,
+              },
             },
           ],
           // 여기 비율은 전부 0~1 소수다. 등락률 계열이 아니다 (contracts C18 대비).

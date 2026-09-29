@@ -14,8 +14,11 @@ import { CandlePeriodSchema } from '@/shared/types/stock';
 
 import {
   ACTIVE_MOCK_STOCKS,
+  changeAmountOf,
+  changeRateOf,
   findActiveStock,
   findStock,
+  livePriceOf,
   toStockQuote,
   toStockSummary,
 } from '../lib/catalog';
@@ -324,6 +327,8 @@ export const stockHandlers = [
         stockCode,
         period,
         interval,
+        /* 캔들만 기준가로 만든다. `livePriceOf` 를 넣으면 폴링마다 시리즈 전체가
+           다시 그려져 차트가 들썩인다 — 일봉은 그 자리에 있어야 한다. */
         candles: buildCandles(stockCode, interval, stock.currentPrice),
       });
     },
@@ -398,16 +403,10 @@ export const stockHandlers = [
         stockCode: stock.stockCode,
         stockName: stock.stockName,
         market: stock.market,
-        currentPrice: missing ? null : stock.currentPrice,
+        currentPrice: missing ? null : livePriceOf(stock),
         previousClose: stock.previousClose,
-        changeAmount: missing ? null : stock.currentPrice - stock.previousClose,
-        changeRate: missing
-          ? null
-          : Math.round(
-              ((stock.currentPrice - stock.previousClose) /
-                stock.previousClose) *
-                10000,
-            ) / 100,
+        changeAmount: missing ? null : changeAmountOf(stock),
+        changeRate: missing ? null : changeRateOf(stock),
         suspended: stock.suspended,
         suspendedReason: stock.suspendedReason,
         watched: store.watchlist.some((entry) => entry.stockCode === stockCode),
