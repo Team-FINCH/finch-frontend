@@ -28,3 +28,27 @@ export function nowKstIso(): string {
 export function kstDateStringDaysAgo(days: number): string {
   return toKstDateString(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
 }
+
+/**
+ * 가장 최근에 마감한 거래일의 15:30 을 KST 표기로 준다. AI 가 `dataAsOf.price` 에
+ * 보내는 값이다(`ai/app/api/routes/portfolio.py` `_as_datetime` — 스냅샷 기준일 + 15:30).
+ *
+ * 오늘 15:30 전이면 오늘은 아직 종가가 없어 하루 전에서 시작하고, 주말이면 금요일로
+ * 물린다. 공휴일은 따지지 않는다 — 목이라 그 정확도는 필요 없다.
+ *
+ * **`nowKstIso()` 를 쓰지 않는 이유.** 서버가 종가로 확정해 보내는 자리에 지금 시각을 넣으면
+ * 목이 계약보다 관대해져, `09.29 14:37 종가 기준` 처럼 어색한 모습이 dev 에서는 나오지 않고
+ * 운영에 붙인 뒤에야 드러난다. 화면이 깨지는 문제가 아니라 볼 수 없는 것이 문제라 목을
+ * 서버에 맞춘다(입금 목 `checkoutUrl` 과 같은 판단).
+ */
+export function lastCloseKstIso(): string {
+  const kstNow = new Date(Date.now() + KST_OFFSET_MS);
+  const minutes = kstNow.getUTCHours() * 60 + kstNow.getUTCMinutes();
+  const day = new Date(kstNow);
+  day.setUTCHours(0, 0, 0, 0);
+  if (minutes < 15 * 60 + 30) day.setUTCDate(day.getUTCDate() - 1);
+  while (day.getUTCDay() === 0 || day.getUTCDay() === 6) {
+    day.setUTCDate(day.getUTCDate() - 1);
+  }
+  return `${day.toISOString().slice(0, 10)}T15:30:00+09:00`;
+}

@@ -29,7 +29,12 @@ import {
 import { checkIdempotency } from '../lib/idempotency';
 import { requireAuth } from '../lib/session';
 import { appendChatHistory, findHolding, store } from '../lib/store';
-import { nowKstIso, toKstDateString, toKstIsoString } from '../lib/time';
+import {
+  lastCloseKstIso,
+  nowKstIso,
+  toKstDateString,
+  toKstIsoString,
+} from '../lib/time';
 
 /**
  * AI 중계 6종 (apiSpec §10 · AI 명세 §3~§8). **`briefing` 만 GET 이다** (contracts C3).
@@ -976,7 +981,8 @@ export const aiHandlers = [
           },
         },
         requestId,
-        { portfolio: nowKstIso(), price: nowKstIso() },
+        // 종가 시각이다. 왜 `nowKstIso` 가 아닌지는 `lastCloseKstIso` 주석.
+        { portfolio: lastCloseKstIso(), price: lastCloseKstIso() },
       ),
     );
   }),
@@ -1080,7 +1086,12 @@ export const aiHandlers = [
           segments: summary.segments,
         },
         requestId,
-        { portfolio: nowKstIso(), price: nowKstIso(), news: nowKstIso() },
+        // 종가 시각이다. 왜 `nowKstIso` 가 아닌지는 `lastCloseKstIso` 주석.
+        {
+          portfolio: lastCloseKstIso(),
+          price: lastCloseKstIso(),
+          news: nowKstIso(),
+        },
       ),
     );
   }),
@@ -1224,7 +1235,8 @@ export const aiHandlers = [
           summary: null,
         },
         requestId,
-        { portfolio: nowKstIso(), price: nowKstIso() },
+        // 종가 시각이다. 왜 `nowKstIso` 가 아닌지는 `lastCloseKstIso` 주석.
+        { portfolio: lastCloseKstIso(), price: lastCloseKstIso() },
       ),
     );
   }),
@@ -1315,7 +1327,8 @@ export const aiHandlers = [
           ],
         },
         requestId,
-        { portfolio: nowKstIso(), price: nowKstIso() },
+        // 종가 시각이다. 왜 `nowKstIso` 가 아닌지는 `lastCloseKstIso` 주석.
+        { portfolio: lastCloseKstIso(), price: lastCloseKstIso() },
       ),
     );
   }),
