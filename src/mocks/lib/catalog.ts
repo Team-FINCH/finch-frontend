@@ -555,9 +555,80 @@ export const ACTIVE_MOCK_STOCKS: readonly MockStock[] = MOCK_STOCKS.filter(
   (stock) => stock.active,
 );
 
+/**
+ * 시세가 한 걸음 움직이는 간격. 시세 구독 티어 중 가장 촘촘한 것보다 짧게 둔다 —
+ * 폴링이 돌 때마다 값이 그대로면 구독이 도는지 화면에서 알 수 없다.
+ */
+const PRICE_TICK_MS = 3_000;
+
+/**
+ * 기준가 대비 최대 흔들림 폭.
+ *
+ * **호가 단위와 함께 정해야 한다.** 폭이 좁으면 반올림에 먹혀 값이 그대로 나오고,
+ * 그러면 폴링이 도는지 화면에서 알 수 없다. 이 값과 아래 두 주기로 재 보면 틱마다
+ * 값이 바뀔 확률이 54~76%, 전체 변동 폭이 1.6~1.9% 다 — 하루 등락으로 그럴듯하면서
+ * 눈에 보인다. 폭을 더 키우면 몇 초 만에 2%씩 출렁여 오히려 가짜처럼 보인다.
+ */
+const PRICE_SWING_RATIO = 0.009;
+
+/**
+ * KRX 호가 단위. 가격대마다 다르고, 이것을 안 맞추면 `73,542원` 처럼 실제로는
+ * 나올 수 없는 값이 화면에 뜬다.
+ */
+function tickSizeOf(price: number): number {
+  if (price < 2_000) return 1;
+  if (price < 5_000) return 5;
+  if (price < 20_000) return 10;
+  if (price < 50_000) return 50;
+  if (price < 200_000) return 100;
+  if (price < 500_000) return 500;
+  return 1_000;
+}
+
+/** 종목코드를 숫자로 접는다. 종목마다 다른 위상으로 움직이게 하는 씨앗이다. */
+function seedOf(stockCode: string): number {
+  let seed = 0;
+  for (const char of stockCode) {
+    seed = (seed * 31 + char.charCodeAt(0)) % 100_000;
+  }
+  return seed;
+}
+
+/**
+ * 지금 시각의 체결가.
+ *
+ * **`Math.random()` 이 아니라 시간의 함수다.** 난수로 만들면 같은 시점에 두 번 물어도
+ * 값이 갈려서, 한 화면 안의 여러 요청(목록·상세·주문)이 서로 다른 가격을 보여 준다.
+ * 시간을 잘라 쓰면 `PRICE_TICK_MS` 안에서는 누가 몇 번을 물어도 같은 값이다.
+ *
+ * 주기가 다른 사인파 둘을 겹쳐 한 방향으로만 흐르지 않게 한다. 종목마다 위상이
+ * 달라 목록이 한꺼번에 오르내리지 않는다.
+ *
+ * **움직이지 않는 갈래 둘.** 거래정지는 체결이 없으니 가격이 멈춰 있어야 하고,
+ * `stale` 은 마지막으로 받은 값이 낡았다는 뜻이라 새 값이 생기면 안 된다. 둘 다
+ * 기준가를 그대로 돌려준다.
+ */
+export function livePriceOf(stock: MockStock): number {
+  if (stock.suspended || stock.quoteState !== 'live') {
+    return stock.currentPrice;
+  }
+
+  const step = Math.floor(Date.now() / PRICE_TICK_MS);
+  const phase = seedOf(stock.stockCode);
+  const wave =
+    Math.sin((step + phase) / 4) * 0.7 + Math.sin((step + phase) / 13) * 0.3;
+
+  const tick = tickSizeOf(stock.currentPrice);
+  const swing = stock.currentPrice * PRICE_SWING_RATIO * wave;
+  const price = Math.round((stock.currentPrice + swing) / tick) * tick;
+
+  // 호가 단위로 반올림하다 0 이 되는 일은 없어야 한다.
+  return Math.max(tick, price);
+}
+
 /** 전일 대비 변동액. 보합이면 0 이다. */
 export function changeAmountOf(stock: MockStock): number {
-  return stock.currentPrice - stock.previousClose;
+  return livePriceOf(stock) - stock.previousClose;
 }
 
 /** 전일 대비 등락률. **백분율이고 소수점 둘째 자리까지다** (`-1.21`). */
@@ -581,7 +652,7 @@ export function toStockSummary(stock: MockStock) {
     stockCode: stock.stockCode,
     stockName: stock.stockName,
     market: stock.market,
-    currentPrice: missing ? null : stock.currentPrice,
+    currentPrice: missing ? null : livePriceOf(stock),
     changeAmount: missing ? null : changeAmountOf(stock),
     changeRate: missing ? null : changeRateOf(stock),
     suspended: stock.suspended,
@@ -603,7 +674,7 @@ export function toStockQuote(stock: MockStock) {
 
   return {
     stockCode: stock.stockCode,
-    currentPrice: stock.currentPrice,
+    currentPrice: livePriceOf(stock),
     changeAmount: changeAmountOf(stock),
     changeRate: changeRateOf(stock),
     asOf: nowKstIso(),

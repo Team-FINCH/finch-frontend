@@ -12,7 +12,7 @@ import {
   STOCK_ERROR_CODES,
 } from '@/shared/types/errorCodes';
 
-import { findStock } from '../lib/catalog';
+import { findStock, livePriceOf } from '../lib/catalog';
 import {
   errorResponse,
   mockPath,
@@ -145,15 +145,19 @@ export const tradingHandlers = [
 
     const holdingQuantity = findHolding(stockCode)?.quantity ?? 0;
 
+    /* 최대 수량은 지금 가격으로 나눈 값이다. 가격이 움직이면 이 수도 함께 움직여야
+       화면의 비율 버튼이 실제로 살 수 있는 수를 가리킨다. */
+    const livePrice = livePriceOf(stock);
+
     // tradable: false 도 HTTP 200 이다 (apiSpec §7.3). 화면은 reason 으로 버튼을 잠근다.
     return HttpResponse.json({
       tradable: stock.orderRejection === null,
       reason: stock.orderRejection,
-      currentPrice: stock.currentPrice,
+      currentPrice: livePrice,
       availableCash: store.cashBalance,
       maxQuantity:
         side === 'BUY'
-          ? Math.floor(store.cashBalance / stock.currentPrice)
+          ? Math.floor(store.cashBalance / livePrice)
           : holdingQuantity,
       holdingQuantity,
     });
@@ -222,7 +226,9 @@ export const tradingHandlers = [
       );
     }
 
-    const executedPrice = stock.currentPrice;
+    // 시장가라 체결가는 낸 순간의 값이다. 화면이 보여 준 `예상 주문 금액` 과
+    // 조금 어긋날 수 있는 것이 정상이고, 그 어긋남 자체가 시장가의 성질이다.
+    const executedPrice = livePriceOf(stock);
     const executedAmount = executedPrice * quantity;
     const holding = findHolding(stock.stockCode);
 

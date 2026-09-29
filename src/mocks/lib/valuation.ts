@@ -1,4 +1,4 @@
-import { findStock } from './catalog';
+import { findStock, livePriceOf } from './catalog';
 import { store } from './store';
 
 /**
@@ -19,7 +19,9 @@ export function currentPriceOf(stockCode: string): number | null {
   if (stock === undefined || stock.quoteState === 'missing') {
     return null;
   }
-  return stock.currentPrice;
+  // 평가금액도 함께 움직여야 한다. 시세는 흐르는데 총자산만 멈춰 있으면
+  // 두 숫자가 서로 다른 시점을 가리킨다.
+  return livePriceOf(stock);
 }
 
 /**
