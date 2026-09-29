@@ -4,7 +4,7 @@
 
 [![finchapp.org](https://img.shields.io/badge/finchapp.org-F2B705?style=for-the-badge&labelColor=15181C)](https://finchapp.org)
 [![Docs](https://img.shields.io/badge/finch--docs-343A42?style=for-the-badge&labelColor=15181C)](https://github.com/Team-FINCH/finch-docs)
-[![PDF](https://img.shields.io/badge/서비스_소개서-EC1C24?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](docs/finch-presentation.pdf)
+[![About FINCH](https://img.shields.io/badge/About_FINCH-EC1C24?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](docs/finch-presentation.pdf)
 
 </div>
 
@@ -29,32 +29,39 @@
 
 ## 🛠️ Tech Stack
 
-<div align="center">
-
-<img src="https://skillicons.dev/icons?i=react,ts,vite,tailwind" />
-
-<br /><br />
-
+![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite_8-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
 ![TanStack Query](https://img.shields.io/badge/TanStack_Query-FF4154?style=flat-square&logo=reactquery&logoColor=white)
 ![Zustand](https://img.shields.io/badge/Zustand-433E38?style=flat-square&logo=react&logoColor=white)
-![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white)
+![React Router](https://img.shields.io/badge/React_Router_7-CA4245?style=flat-square&logo=reactrouter&logoColor=white)
 ![Radix UI](https://img.shields.io/badge/Radix_UI-161618?style=flat-square&logo=radixui&logoColor=white)
 ![Zod](https://img.shields.io/badge/Zod-3E67B1?style=flat-square&logo=zod&logoColor=white)
+![lightweight-charts](https://img.shields.io/badge/lightweight--charts-131722?style=flat-square&logo=tradingview&logoColor=white)
+![react-markdown](https://img.shields.io/badge/react--markdown-000000?style=flat-square&logo=markdown&logoColor=white)
 ![MSW](https://img.shields.io/badge/MSW-FF6A33?style=flat-square&logo=mockserviceworker&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-5A0FC8?style=flat-square&logo=pwa&logoColor=white)
-![lightweight-charts](https://img.shields.io/badge/lightweight--charts-131722?style=flat-square&logo=tradingview&logoColor=white)
+![ESLint](https://img.shields.io/badge/ESLint-4B32C3?style=flat-square&logo=eslint&logoColor=white)
+![Prettier](https://img.shields.io/badge/Prettier-F7B93E?style=flat-square&logo=prettier&logoColor=black)
 
-</div>
+<details>
+<summary><b>📋 분류별로 보기</b></summary>
+<br />
 
 | 분류           | 사용 기술                                      |
 | -------------- | ---------------------------------------------- |
 | 기반           | React 19 · TypeScript · Vite 8                 |
 | 상태 관리      | TanStack Query · Zustand                       |
+| 라우팅         | React Router 7                                 |
 | 스타일 · UI    | Tailwind CSS 4 · Radix Primitives · Pretendard |
 | 차트           | lightweight-charts                             |
 | 검증 · 목 서버 | Zod · MSW                                      |
 | AI 응답 렌더링 | react-markdown · remark-gfm                    |
 | 앱 배포        | vite-plugin-pwa                                |
+| 코드 품질      | ESLint · Prettier                              |
+
+</details>
 
 <details>
 <summary><b>🧭 아키텍처</b></summary>
