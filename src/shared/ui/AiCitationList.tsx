@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { formatKstDate } from '@/shared/lib/formatDate';
 import { type AiCitation } from '@/shared/types/ai/envelope';
 
 /**
@@ -51,6 +52,13 @@ import { type AiCitation } from '@/shared/types/ai/envelope';
  * ·`attribution.ts`). 합치면 그 참조가 끊어진다. 그래서 계약은 그대로 두고 표시만
  * 정리한다.
  *
+ * **발행일(`publishedAt`)을 그린다** (FINCH-361). 같은 문서가 아니라도 제목이
+ * 글자까지 같을 수 있다 — 조회공시 답변은 제목이 양식이라 같은 회사가 여러 번 내도
+ * 같고, 접수번호가 달라 `url` 도 다르니 `groupByDocument` 가 묶지 않는다(묶으면 근거가
+ * 사라진다). 두 줄 판은 둘째 줄을 `발행처 · 발행일`, 한 줄 판은 제목 오른쪽에 날짜를
+ * 붙인다. 날짜는 잘리지 않게 `flex-none` 이고 제목·발행처가 대신 줄어든다. `null` 이면
+ * 구분자까지 감춘다.
+ *
  * 여백은 컴포넌트가 갖지 않는다. 앞 요소와의 간격이 화면마다 달라 호출부가
  * `className` 으로 정한다.
  */
@@ -63,6 +71,16 @@ const CITATION_TYPE_LABEL: Record<string, string> = {
   engine: '자체 계산',
   wiki: '내 논지',
 };
+
+/**
+ * 발행일 표기. 올해 것은 `09.18`, 해를 넘긴 것은 `2025.09.18` 이다. 좁은 화면에서는
+ * 연도가 자리를 먹지만, 연도를 항상 빼면 해를 넘긴 공시가 올해 것으로 읽힌다.
+ */
+function formatPublishedAt(isoString: string): string {
+  const full = formatKstDate(isoString);
+  const thisYear = formatKstDate(new Date().toISOString()).slice(0, 4);
+  return full.startsWith(`${thisYear}.`) ? full.slice(5) : full;
+}
 
 /**
  * 문서 하나에 해당하는 줄. 같은 `url` 의 청크 여럿이 여기로 접힌다.
@@ -176,6 +194,10 @@ export function AiCitationList({
     <ul className={`flex flex-col ${showPublisher ? 'gap-2.5' : 'gap-2'}`}>
       {visibleGroups.map(({ head: citation }) => {
         const label = CITATION_TYPE_LABEL[citation.type] ?? citation.type;
+        const publishedAt =
+          citation.publishedAt === null
+            ? null
+            : formatPublishedAt(citation.publishedAt);
         const rowClass = showPublisher
           ? 'flex items-start gap-2.5'
           : 'flex items-center gap-2';
@@ -195,14 +217,28 @@ export function AiCitationList({
                 <span className="block truncate text-body-2 text-text-primary">
                   {citation.title}
                 </span>
-                <span className="block truncate text-caption text-text-muted">
-                  {citation.publisher ?? citation.source}
+                <span className="flex text-caption text-text-muted">
+                  <span className="min-w-0 truncate">
+                    {citation.publisher ?? citation.source}
+                  </span>
+                  {publishedAt !== null && (
+                    <span className="flex-none whitespace-pre">
+                      {` · ${publishedAt}`}
+                    </span>
+                  )}
                 </span>
               </span>
             ) : (
-              <span className="min-w-0 flex-1 truncate text-caption text-text-secondary">
-                {citation.title}
-              </span>
+              <>
+                <span className="min-w-0 flex-1 truncate text-caption text-text-secondary">
+                  {citation.title}
+                </span>
+                {publishedAt !== null && (
+                  <span className="flex-none text-caption text-text-muted">
+                    {publishedAt}
+                  </span>
+                )}
+              </>
             )}
           </>
         );
