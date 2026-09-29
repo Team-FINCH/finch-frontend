@@ -2,6 +2,7 @@
 
 <img src="docs/images/banner.png" alt="FINCH" />
 
+[![시연 영상](https://img.shields.io/badge/시연_영상-FF0000?style=for-the-badge&logo=youtube&logoColor=white&labelColor=15181C)](https://youtu.be/4Cbu0-vMve4)
 [![finchapp.org](https://img.shields.io/badge/finchapp.org-F2B705?style=for-the-badge&labelColor=15181C)](https://finchapp.org)
 [![Docs](https://img.shields.io/badge/finch--docs-343A42?style=for-the-badge&labelColor=15181C)](https://github.com/Team-FINCH/finch-docs)
 [![About FINCH](https://img.shields.io/badge/About_FINCH-EC1C24?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](docs/finch-presentation.pdf)
@@ -12,9 +13,9 @@
 
 |                    홈                     |              데일리 브리핑              |                  종목 상세                   |               AI 종목 분석                |
 | :---------------------------------------: | :-------------------------------------: | :------------------------------------------: | :---------------------------------------: |
-|    <img src="docs/images/home.png" />     | <img src="docs/images/briefing.png" />  |     <img src="docs/images/stock.png" />      |  <img src="docs/images/stock-ai.png" />   |
+|    <img src="docs/images/home.png" />     | <img src="docs/images/briefing.png" />  |     <img src="docs/images/stock.gif" />      |  <img src="docs/images/stock-ai.png" />   |
 |            **주문 전 AI 점검**            |         **AI 포트폴리오 진단**          |               **수익률 분석**                |                **AI 채팅**                |
-| <img src="docs/images/order-check.png" /> | <img src="docs/images/diagnosis.png" /> | <img src="docs/images/returns-factor.png" /> | <img src="docs/images/chat-answer.png" /> |
+| <img src="docs/images/order-check.gif" /> | <img src="docs/images/diagnosis.png" /> | <img src="docs/images/returns-factor.png" /> | <img src="docs/images/chat-answer.gif" /> |
 
 ## ✨ 주요 기능
 
