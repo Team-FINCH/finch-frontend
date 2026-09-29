@@ -1,1 +1,24 @@
 .vite-cache
+
+# 의존성·빌드 결과
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.tsbuildinfo
+
+# 로컬 환경 변수 (예시 파일은 올린다)
+.env
+.env.*
+!.env.example
+
+# 로그
+*.log
+npm-debug.log*
+
+# 에디터·OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
