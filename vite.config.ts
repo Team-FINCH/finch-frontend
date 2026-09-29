@@ -15,6 +15,20 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      /*
+       * **목 모드에서는 PWA 워커를 만들지 않는다.**
+       *
+       * 서비스 워커는 같은 스코프(`/`)를 둘이 가질 수 없다. 목 배포에서는 그
+       * 자리를 `public/mockServiceWorker.js` 가 가져야 요청을 가로챈다. 아래
+       * `devOptions` 주석이 dev 에서 같은 이유로 이 플러그인을 끈다고 적어 둔
+       * 것과 같은 문제이고, 목으로 도는 프로덕션 빌드가 생기면서 그 갈래가
+       * dev 밖으로 넓어졌다.
+       *
+       * 대가는 목 배포본이 앱으로 설치되지 않는 것이다. 웹으로 보는 용도라
+       * 받아들인다(2026-09-29 사용자 결정). 실제 배포는 변수를 안 주므로
+       * 그대로 설치된다.
+       */
+      disable: process.env.VITE_ENABLE_MSW === 'true',
       // devOptions 를 켜지 않는다 — 기본값이 false 라 dev 서버에서는 이 플러그인이
       // 서비스 워커를 등록하지 않는다. `public/mockServiceWorker.js` 가 개발에서
       // 이미 같은 스코프(`/`)에 서비스 워커를 등록하므로, 둘을 동시에 켜면 스코프를

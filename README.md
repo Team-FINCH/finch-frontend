@@ -104,6 +104,31 @@ src/
 
 </details>
 
+## 🚀 실행
+
+```bash
+cp .env.example .env   # 목 서버(MSW)로 띄운다. 없으면 API 가 전부 실패한다
+npm ci
+npm run dev
+```
+
+`.env` 의 `VITE_ENABLE_MSW` 가 목 서버를 켜는 유일한 스위치다. **기본값은 꺼짐이라
+변수를 주지 않으면 실제 백엔드로 요청이 나간다.** 목으로 띄우면 카카오 로그인이
+실제 카카오를 거치지 않고 바로 로그인된 상태가 된다.
+
+### Vercel 배포 (목 서버)
+
+프레임워크 프리셋 `Vite`, 빌드 명령과 출력 폴더는 기본값 그대로 두고 **환경변수
+하나만** 넣는다.
+
+```
+VITE_ENABLE_MSW = true
+```
+
+백엔드 주소·카카오 키·카카오 콘솔의 redirect URI 등록은 필요 없다. SPA 라우팅
+폴백은 `vercel.json` 이 담고 있다. 목 모드에서는 PWA 서비스 워커를 만들지 않아
+앱으로 설치되지는 않는다 — 목 워커가 같은 스코프를 써야 하기 때문이다.
+
 ## 🧑🏻‍💻 Developers
 
 | <img src="https://github.com/TrossYou.png" width="100" /> | <img src="https://github.com/xxj15.png" width="100" /> |
