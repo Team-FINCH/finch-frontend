@@ -45,7 +45,7 @@
 ![ESLint](https://img.shields.io/badge/ESLint-4B32C3?style=flat-square&logo=eslint&logoColor=white)
 ![Prettier](https://img.shields.io/badge/Prettier-F7B93E?style=flat-square&logo=prettier&logoColor=black)
 
-<details>
+<details open>
 <summary><b>📋 분류별로 보기</b></summary>
 <br />
 
@@ -63,35 +63,81 @@
 
 </details>
 
-<details>
+<details open>
 <summary><b>🧭 아키텍처</b></summary>
 <br />
 
+**전체 구조** — 화면 → 상태 → 네트워크 → 서버, 위에서 아래로 한 방향으로 흐릅니다.
+
 ```mermaid
 flowchart TB
-    subgraph UI["화면 — features/"]
-        H["홈"]
-        S["종목"]
-        O["주문"]
-        P["포트폴리오"]
-        C["AI 채팅"]
+    subgraph VIEW["🖥️ 화면 · features/"]
+        H["🏠 홈"]
+        S["📈 종목"]
+        O["🧾 주문"]
+        P["💼 포트폴리오"]
+        C["💬 AI 채팅"]
     end
 
-    UI --> RQ["TanStack Query<br/>서버 상태 · 캐시"]
-    UI --> ZS["Zustand<br/>세션 · UI 상태"]
-    S --> QS["useQuoteSubscription<br/>구독 추상화"]
-    H --> QS
-    O --> QS
-    QS -->|지금은 폴링| RQ
-    QS -.->|교체 지점| STOMP["STOMP"]
+    subgraph STATE["🧠 상태"]
+        QS["⚡ useQuoteSubscription<br/>시세 구독 추상화"]
+        RQ["🔄 TanStack Query<br/>서버 상태 · 캐시"]
+        ZS["🗂️ Zustand<br/>세션 · UI 상태"]
+    end
 
-    RQ --> HC["httpClient<br/>JWT 첨부 · 401 시 토큰 재발급"]
-    HC -->|"/api/v1"| BE["Backend"]
-    HC -.->|개발 모드| MSW["MSW 목 서버<br/>API 계약 재현"]
+    subgraph NET["🌐 네트워크"]
+        HC["🔐 httpClient<br/>JWT 첨부 · 401 → 토큰 재발급"]
+    end
 
-    C -->|"채팅 요청"| JOB["job 생성"] --> POLLJ["job 폴링<br/>완료까지만"]
-    POLLJ --> TW["타자 효과"] --> MD["Markdown 렌더<br/>원시 HTML 차단"]
+    subgraph SERVER["☁️ 서버"]
+        BE["🚀 Backend<br/>/api/v1"]
+        MSW["🧪 MSW 목 서버<br/>개발 모드 · API 계약 재현"]
+        STOMP["📡 STOMP<br/>실시간 시세 · 예정"]
+    end
+
+    H & S & O --> QS
+    VIEW --> RQ
+    VIEW --> ZS
+    QS -->|"지금은 폴링"| RQ
+    QS -.->|"교체 지점"| STOMP
+    RQ --> HC
+    HC -->|"운영"| BE
+    HC -.->|"개발"| MSW
+
+    classDef view fill:#F2B705,stroke:#C99400,color:#15181C,font-weight:bold
+    classDef state fill:#343A42,stroke:#15181C,color:#FFFFFF
+    classDef net fill:#15181C,stroke:#F2B705,stroke-width:2px,color:#F2B705
+    classDef server fill:#FFFFFF,stroke:#343A42,color:#15181C
+    classDef future fill:#FFFFFF,stroke:#EC1C24,stroke-dasharray:5 5,color:#EC1C24
+
+    class H,S,O,P,C view
+    class QS,RQ,ZS state
+    class HC net
+    class BE,MSW server
+    class STOMP future
+
+    style VIEW fill:none,stroke:#F2B705,stroke-width:2px
+    style STATE fill:none,stroke:#343A42,stroke-width:2px
+    style NET fill:none,stroke:#15181C,stroke-width:2px
+    style SERVER fill:none,stroke:#8A929C,stroke-width:2px,stroke-dasharray:4 4
 ```
+
+**AI 채팅 응답 흐름** — 오래 걸리는 답변은 job으로 받고, 도착하면 타자 효과로 보여줍니다.
+
+```mermaid
+flowchart LR
+    Q["💬 질문 입력"] --> JOB["① job 생성"] --> POLL["② job 폴링<br/>완료까지만"] --> TW["③ 타자 효과"] --> MD["④ Markdown 렌더<br/>원시 HTML 차단"]
+
+    classDef start fill:#F2B705,stroke:#C99400,color:#15181C,font-weight:bold
+    classDef step fill:#343A42,stroke:#15181C,color:#FFFFFF
+    classDef safe fill:#15181C,stroke:#F2B705,stroke-width:2px,color:#F2B705
+
+    class Q start
+    class JOB,POLL,TW step
+    class MD safe
+```
+
+**폴더 구조**
 
 ```
 src/
