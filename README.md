@@ -12,6 +12,38 @@
 
 > 담당: 유승주 [@TrossYou](https://github.com/TrossYou) · 안서진 [@xxj15](https://github.com/xxj15)
 
+## 아키텍처
+
+```mermaid
+flowchart TB
+    subgraph UI["화면 — features/"]
+        H["홈"] 
+        S["종목"]
+        O["주문"]
+        P["포트폴리오"]
+        C["AI 채팅"]
+    end
+
+    UI --> RQ["TanStack Query<br/>서버 상태 · 캐시"]
+    UI --> ZS["Zustand<br/>세션 · UI 상태"]
+    S --> QS["useQuoteSubscription<br/>구독 추상화"]
+    H --> QS
+    O --> QS
+    QS -->|지금은 폴링| RQ
+    QS -.->|교체 지점| STOMP["STOMP"]
+
+    RQ --> HC["httpClient<br/>JWT 첨부 · 401 시 토큰 재발급"]
+    HC -->|"/api/v1"| BE["Backend"]
+    HC -.->|개발 모드| MSW["MSW 목 서버<br/>API 계약 재현"]
+
+    C -->|"채팅 요청"| JOB["job 생성"] --> POLLJ["job 폴링<br/>완료까지만"]
+    POLLJ --> TW["타자 효과"] --> MD["Markdown 렌더<br/>원시 HTML 차단"]
+```
+
+**시세는 구독 추상화 뒤에 숨겼습니다.** 화면은 "이 종목을 구독한다"만 알고, 안쪽이 폴링인지 STOMP인지 모릅니다. 실시간 전송으로 바꿀 때 이 훅 하나만 고치면 됩니다.
+
+**채팅은 비동기 작업입니다.** 요청하면 job 을 받고, 끝날 때까지만 상태를 조회합니다. 창이 백그라운드로 가면 조회를 멈춥니다.
+
 ## 화면
 
 | 영역 | 내용 |
