@@ -35,3 +35,18 @@ export const KAKAO_REDIRECT_URI =
   // 오리진"이라고 안내하는데 ?? 면 빈 값이 그대로 나가 카카오가 KOE006 으로 막는다.
   import.meta.env.VITE_KAKAO_REDIRECT_URI ||
   `${window.location.origin}/oauth/kakao`;
+
+/**
+ * 목 서버(MSW)로 도는 빌드인가.
+ *
+ * **기본값은 꺼짐이다.** 변수를 빼먹었을 때 목이 켜진 채 가짜 데이터가 진짜처럼
+ * 보이는 것보다, 꺼진 채 요청이 실패하는 쪽이 낫다 — 앞은 조용히 잘못된 화면을
+ * 만들고 뒤는 바로 드러난다. 그래서 `!== 'false'` 가 아니라 `=== 'true'` 다.
+ *
+ * 로컬 개발도 이 변수를 봐야 한다. 설치 직후 `.env` 가 없으면 목이 돌지 않으므로
+ * `cp .env.example .env` 가 첫 단계다 (README).
+ *
+ * **`main.tsx` 는 이 상수를 쓰지 않고 같은 조건을 직접 적는다.** 사유는 그쪽
+ * 주석에 있다 — 번들러가 리터럴로 치환해 목 청크를 덜어내야 한다.
+ */
+export const IS_MOCK_MODE = import.meta.env.VITE_ENABLE_MSW === 'true';
