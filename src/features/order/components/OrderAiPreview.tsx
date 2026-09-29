@@ -6,7 +6,7 @@ import {
   readAiErrorCode,
   readAiErrorMessage,
 } from '@/shared/lib/aiErrorRetry';
-import { formatKstDate } from '@/shared/lib/formatDate';
+import { formatKstDate, formatKstMonthDayTime } from '@/shared/lib/formatDate';
 import { formatKrw } from '@/shared/lib/formatNumber';
 import { type OrderSide } from '@/shared/types/order';
 import { AiCard } from '@/shared/ui/AiCard';
@@ -147,6 +147,21 @@ export function OrderAiPreview({
   const sortedWarnings = sortOrderPreviewWarnings(warnings);
   // 서버가 만들던 프리셋 헤드라인을 화면이 세 값으로 만든다 (GitLab #93).
   const headline = selectOrderPreviewHeadline(preview.data);
+  /*
+    기준 시각 (AI 명세 §2.2 "UI 에 반드시 노출한다", envelope.ts `AiDataAsOfSchema`).
+    **이 카드의 숫자는 지금 시세가 아니라 거래일 종가 스냅샷 기준이다.** 위 `예상
+    주문 금액` 은 시세 폴링으로 움직이는데 이 카드는 멈춰 있어서, 이유를 적지
+    않으면 둘 중 하나가 고장으로 읽힌다. 그래서 `종가 기준` 이라고 적는다 —
+    `방금`·`실시간` 으로 읽히는 말을 쓰지 않는다.
+
+    포맷은 `StockAiTab` 의 `price` 원천과 같은 `월.일 시:분` 이다. 종가는 어제 값일
+    수 있어 날짜를 빼면 언제 것인지 가려지지 않는다 (`CauseTab` 은 시:분만 쓴다).
+    값이 없으면(`null`) 앞머리째 감춘다 — 빈 자리에 `-- 기준` 을 채우면 값이 있는
+    것처럼 읽힌다.
+  */
+  const { price: priceAsOfIso } = preview.data.aiMeta.dataAsOf;
+  const priceAsOf =
+    priceAsOfIso === null ? null : formatKstMonthDayTime(priceAsOfIso);
 
   return (
     <div className="mt-8">
@@ -228,7 +243,10 @@ export function OrderAiPreview({
           </div>
         )}
 
-        <p className="mt-4 text-caption text-ai-text-muted">참고용 정보예요.</p>
+        <p className="mt-4 text-caption text-ai-text-muted tabular-nums">
+          {priceAsOf === null ? null : `${priceAsOf} 종가 기준 · `}
+          참고용 정보예요.
+        </p>
       </AiCard>
 
       {/* 예수금이 모자란다. **에러 화면이 아니라 본문이다** — `feasible: false` 는
