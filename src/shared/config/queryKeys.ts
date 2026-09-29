@@ -114,19 +114,19 @@ export const queryKeys = {
     attribution: (period: string) =>
       [...queryKeys.ai.all(), 'attribution', period] as const,
     /**
+     * 주문 전 점검 캐시 전체의 접두. 종목·방향·수량을 가리지 않고 한꺼번에 털 때 쓴다.
+     * 점검 결과에 예수금이 들어가므로 예수금을 바꾸는 뮤테이션이 이 접두로 무효화한다.
+     * `ai.all()` 을 털면 브리핑·진단·수익률 분석까지 다시 불러 AI 호출이 늘어난다.
+     */
+    orderPreviewAll: () =>
+      [...queryKeys.ai.all(), 'orders', 'preview'] as const,
+    /**
      * `POST /ai/orders/preview` (AI 슬롯 4번).
      * **수량까지 키에 싣는다** — 점검 결과가 수량마다 다르다.
      * 한 번 본 수량으로 돌아가면 AI 를 다시 부르지 않게 된다.
      */
     orderPreview: (stockCode: string, side: string, quantity: number) =>
-      [
-        ...queryKeys.ai.all(),
-        'orders',
-        'preview',
-        stockCode,
-        side,
-        quantity,
-      ] as const,
+      [...queryKeys.ai.orderPreviewAll(), stockCode, side, quantity] as const,
     /** `GET /ai/wiki`. */
     wiki: () => [...queryKeys.ai.all(), 'wiki'] as const,
     /**

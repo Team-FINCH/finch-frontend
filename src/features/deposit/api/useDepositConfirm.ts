@@ -35,6 +35,9 @@ export function useDepositConfirm() {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.deposits.all(),
       });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.ai.orderPreviewAll(),
+      });
     },
   });
 }

@@ -40,6 +40,9 @@ export function useCreateOrder() {
       void queryClient.invalidateQueries({ queryKey: ['portfolio'] });
       void queryClient.invalidateQueries({ queryKey: ['account'] });
       void queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.ai.orderPreviewAll(),
+      });
     },
   });
 }

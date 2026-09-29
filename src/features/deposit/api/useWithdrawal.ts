@@ -50,6 +50,9 @@ export function useWithdrawal() {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.transactions.all(),
       });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.ai.orderPreviewAll(),
+      });
     },
   });
 }
