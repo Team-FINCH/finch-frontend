@@ -129,6 +129,29 @@ VITE_ENABLE_MSW = true
 폴백은 `vercel.json` 이 담고 있다. 목 모드에서는 PWA 서비스 워커를 만들지 않아
 앱으로 설치되지는 않는다 — 목 워커가 같은 스코프를 써야 하기 때문이다.
 
+대신 목 빌드는 **스스로를 지우는 `/sw.js`** 를 하나 내보낸다. 이 도메인을 전에
+방문해 실배포 PWA 워커가 설치된 브라우저가, 갱신을 확인할 때 이것으로 교체되고
+등록을 지운 뒤 목 앱으로 넘어온다. 이 파일이 없으면 그런 브라우저는 예전 화면에
+갇힌 채 API 가 전부 실패한다.
+
+### 빌드가 갈리는지 확인하는 법
+
+**셸 환경변수로만 확인하지 않는다.** `vite.config.ts` 는 `loadEnv` 로 `.env` 와
+셸 양쪽을 보지만, 한쪽으로만 재면 다른 쪽이 어긋나도 드러나지 않는다.
+
+```bash
+printf 'VITE_ENABLE_MSW=true
+' > .env && npm run build
+#  dist/sw.js          → 자기해제 스크립트 (registration.unregister 가 들어 있다)
+#  dist/workbox-*.js   → 없다 (PWA 가 꺼졌다)
+#  목 청크             → 있다
+
+rm .env && npm run build
+#  dist/sw.js          → 워크박스가 만든 진짜 PWA 워커
+#  dist/workbox-*.js   → 있다
+#  목 청크             → 없다 (트리셰이킹)
+```
+
 ## 🧑🏻‍💻 Developers
 
 | <img src="https://github.com/TrossYou.png" width="100" /> | <img src="https://github.com/xxj15.png" width="100" /> |
